@@ -56,6 +56,12 @@ import {
   Circle,
 } from "lucide-react";
 import { ImageUploadButton } from "@/components/ImageUploadButton";
+import {
+  BANNER_PRESETS,
+  AVATAR_EMOJIS,
+  bannerPresetToUrl,
+  avatarPresetToUrl,
+} from "@/lib/avatarPresets";
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
 
@@ -357,28 +363,12 @@ export default function Settings() {
             Public profile
           </h2>
 
-          <div className="space-y-2">
-            <Label className="flex items-center gap-1.5">
-              <ImageLucide className="h-3.5 w-3.5 text-primary" /> Banner image
-            </Label>
-            <p className="text-xs text-muted-foreground">
-              A wide cover photo shown at the top of your profile.
-            </p>
-            <div className="flex items-start gap-3">
-              <div
-                className="relative h-20 w-40 overflow-hidden rounded-lg border border-border bg-gradient-to-br from-violet-500/30 via-fuchsia-500/20 to-pink-500/30"
-                style={
-                  bannerUrl
-                    ? {
-                        backgroundImage: `url(${bannerUrl})`,
-                        backgroundSize: "cover",
-                        backgroundPosition: "center",
-                      }
-                    : undefined
-                }
-                data-testid="banner-preview"
-              />
-              <div className="flex flex-col gap-1.5">
+          <div className="space-y-3 rounded-lg border border-border bg-muted/30 p-4">
+            <div className="flex items-center justify-between gap-2">
+              <Label className="flex items-center gap-1.5">
+                <ImageLucide className="h-3.5 w-3.5 text-primary" /> Banner
+              </Label>
+              <div className="flex items-center gap-1">
                 <ImageUploadButton
                   testId="button-upload-banner"
                   onUploaded={(url) => setBannerUrl(url)}
@@ -396,22 +386,61 @@ export default function Settings() {
                 )}
               </div>
             </div>
+            <div
+              className="h-24 w-full overflow-hidden rounded-lg border border-border bg-gradient-to-br from-violet-500/30 via-fuchsia-500/20 to-pink-500/30"
+              style={
+                bannerUrl
+                  ? {
+                      backgroundImage: `url(${bannerUrl})`,
+                      backgroundSize: "cover",
+                      backgroundPosition: "center",
+                    }
+                  : undefined
+              }
+              data-testid="banner-preview"
+            />
+            <div>
+              <p className="mb-1.5 text-xs font-medium text-muted-foreground">
+                Pick a preset gradient
+              </p>
+              <div className="grid grid-cols-4 gap-2 sm:grid-cols-8">
+                {BANNER_PRESETS.map((p) => {
+                  const url = bannerPresetToUrl(p);
+                  const active = bannerUrl === url;
+                  return (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => setBannerUrl(url)}
+                      className={[
+                        "relative h-10 overflow-hidden rounded-md ring-offset-2 ring-offset-card transition",
+                        active ? "ring-2 ring-primary" : "ring-1 ring-border hover:ring-foreground/30",
+                      ].join(" ")}
+                      style={{
+                        background: `linear-gradient(135deg, ${p.from}, ${p.to})`,
+                      }}
+                      title={p.name}
+                      aria-label={`Banner preset ${p.name}`}
+                      data-testid={`banner-preset-${p.id}`}
+                    >
+                      {active && (
+                        <span className="absolute inset-0 flex items-center justify-center">
+                          <Check className="h-4 w-4 text-white drop-shadow" />
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
           </div>
 
-          <div className="space-y-2">
-            <Label className="flex items-center gap-1.5">
-              <Camera className="h-3.5 w-3.5 text-primary" /> Avatar
-            </Label>
-            <div className="flex items-center gap-3">
-              <Avatar className="h-16 w-16">
-                {avatarUrl ? (
-                  <AvatarImage src={avatarUrl} alt={displayName} />
-                ) : null}
-                <AvatarFallback className="bg-primary/15 text-lg text-primary">
-                  {initials}
-                </AvatarFallback>
-              </Avatar>
-              <div className="flex flex-col gap-1.5">
+          <div className="space-y-3 rounded-lg border border-border bg-muted/30 p-4">
+            <div className="flex items-center justify-between gap-2">
+              <Label className="flex items-center gap-1.5">
+                <Camera className="h-3.5 w-3.5 text-primary" /> Avatar
+              </Label>
+              <div className="flex items-center gap-1">
                 <ImageUploadButton
                   testId="button-upload-avatar"
                   onUploaded={(url) => setAvatarUrl(url)}
@@ -427,6 +456,56 @@ export default function Settings() {
                     Remove
                   </Button>
                 )}
+              </div>
+            </div>
+            <div className="flex items-center gap-4">
+              <Avatar className="h-16 w-16">
+                {avatarUrl ? (
+                  <AvatarImage src={avatarUrl} alt={displayName} />
+                ) : null}
+                <AvatarFallback className="bg-primary/15 text-lg text-primary">
+                  {initials}
+                </AvatarFallback>
+              </Avatar>
+              <p className="text-xs text-muted-foreground">
+                Upload your own photo or pick a fun emoji avatar from the
+                presets below.
+              </p>
+            </div>
+            <div>
+              <p className="mb-1.5 text-xs font-medium text-muted-foreground">
+                Emoji avatars
+              </p>
+              <div className="grid grid-cols-8 gap-2">
+                {AVATAR_EMOJIS.map((emoji, idx) => {
+                  const preset = BANNER_PRESETS[idx % BANNER_PRESETS.length];
+                  const url = avatarPresetToUrl(emoji, preset);
+                  const active = avatarUrl === url;
+                  return (
+                    <button
+                      key={emoji}
+                      type="button"
+                      onClick={() => setAvatarUrl(url)}
+                      className={[
+                        "relative flex h-12 w-12 items-center justify-center overflow-hidden rounded-full text-2xl ring-offset-2 ring-offset-card transition",
+                        active ? "ring-2 ring-primary" : "ring-1 ring-border hover:ring-foreground/30",
+                      ].join(" ")}
+                      style={{
+                        background: `linear-gradient(135deg, ${preset.from}, ${preset.to})`,
+                      }}
+                      title={emoji}
+                      aria-label={`Emoji avatar ${emoji}`}
+                      data-testid={`avatar-preset-${emoji}`}
+                    >
+                      <span className="leading-none">{emoji}</span>
+                      {active && (
+                        <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                          <Check className="h-2.5 w-2.5" />
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           </div>
