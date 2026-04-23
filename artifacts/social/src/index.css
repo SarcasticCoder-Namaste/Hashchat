@@ -412,6 +412,14 @@
     background-size: 22px 22px;
   }
 
+  /* Compact chat density — driven by user preference (data-density on <html>). */
+  [data-density="compact"] [data-msg-pad] {
+    padding: .25rem .625rem;
+  }
+  [data-density="compact"] [data-msg-list] {
+    gap: .375rem;
+  }
+
   /* Respect users who prefer reduced motion. */
   @media (prefers-reduced-motion: reduce) {
     .lift,

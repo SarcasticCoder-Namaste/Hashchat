@@ -258,7 +258,7 @@ export default function ConversationChat({ id }: { id: number }) {
             <Loader2 className="h-5 w-5 animate-spin text-muted-foreground/70" />
           </div>
         ) : msgs.data && msgs.data.length > 0 ? (
-          <div className="mx-auto flex max-w-2xl flex-col gap-3">
+          <div className="mx-auto flex max-w-2xl flex-col gap-3" data-msg-list>
             {msgs.data.map((m) => {
               const mine = m.senderId === clerkUser?.id;
               return (

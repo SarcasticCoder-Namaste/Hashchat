@@ -6,6 +6,10 @@ import {
   useSetMyHashtags,
   useGetHashtagSuggestions,
   useRedeemMvpCode,
+  useGetConversations,
+  useGetMyFriends,
+  useGetMyFollowedHashtags,
+  useGetMyPhotos,
   getGetMeQueryKey,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -14,8 +18,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Kbd } from "@/components/ui/kbd";
 import { ProfileGallery } from "@/components/ProfileGallery";
+import { useToast } from "@/hooks/use-toast";
+import { PREF_KEYS, usePref } from "@/lib/preferences";
 import {
   Tabs,
   TabsContent,
@@ -35,6 +43,15 @@ import {
   Monitor,
   Check,
   ImageIcon,
+  Bell,
+  Lock,
+  MessageSquare,
+  Link2,
+  Keyboard,
+  MessageCircle,
+  Users,
+  Image as ImageLucide,
+  AlertTriangle,
 } from "lucide-react";
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
@@ -176,23 +193,34 @@ export default function Settings() {
       </div>
 
       <Tabs defaultValue="profile">
-        <TabsList>
-          <TabsTrigger value="profile" data-testid="tab-profile">
-            <UserIcon className="mr-1.5 h-4 w-4" /> Profile
-          </TabsTrigger>
-          <TabsTrigger value="hashtags" data-testid="tab-hashtags">
-            <Hash className="mr-1.5 h-4 w-4" /> Hashtags
-          </TabsTrigger>
-          <TabsTrigger value="appearance" data-testid="tab-appearance">
-            <Palette className="mr-1.5 h-4 w-4" /> Appearance
-          </TabsTrigger>
-          <TabsTrigger value="gallery" data-testid="tab-gallery">
-            <ImageIcon className="mr-1.5 h-4 w-4" /> Gallery
-          </TabsTrigger>
-          <TabsTrigger value="account" data-testid="tab-account">
-            Account
-          </TabsTrigger>
-        </TabsList>
+        <div className="-mx-4 overflow-x-auto px-4 md:mx-0 md:overflow-visible md:px-0">
+          <TabsList className="flex w-max min-w-full justify-start md:flex-wrap">
+            <TabsTrigger value="profile" data-testid="tab-profile">
+              <UserIcon className="mr-1.5 h-4 w-4" /> Profile
+            </TabsTrigger>
+            <TabsTrigger value="hashtags" data-testid="tab-hashtags">
+              <Hash className="mr-1.5 h-4 w-4" /> Hashtags
+            </TabsTrigger>
+            <TabsTrigger value="appearance" data-testid="tab-appearance">
+              <Palette className="mr-1.5 h-4 w-4" /> Appearance
+            </TabsTrigger>
+            <TabsTrigger value="notifications" data-testid="tab-notifications">
+              <Bell className="mr-1.5 h-4 w-4" /> Notifications
+            </TabsTrigger>
+            <TabsTrigger value="privacy" data-testid="tab-privacy">
+              <Lock className="mr-1.5 h-4 w-4" /> Privacy
+            </TabsTrigger>
+            <TabsTrigger value="chat" data-testid="tab-chat">
+              <MessageSquare className="mr-1.5 h-4 w-4" /> Chat
+            </TabsTrigger>
+            <TabsTrigger value="gallery" data-testid="tab-gallery">
+              <ImageIcon className="mr-1.5 h-4 w-4" /> Gallery
+            </TabsTrigger>
+            <TabsTrigger value="account" data-testid="tab-account">
+              Account
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
         <TabsContent
           value="profile"
@@ -365,47 +393,30 @@ export default function Settings() {
           <AppearanceTab />
         </TabsContent>
 
+        <TabsContent value="notifications" className="mt-4">
+          <NotificationsTab />
+        </TabsContent>
+
+        <TabsContent value="privacy" className="mt-4">
+          <PrivacyTab />
+        </TabsContent>
+
+        <TabsContent value="chat" className="mt-4">
+          <ChatPrefsTab />
+        </TabsContent>
+
         <TabsContent value="gallery" className="mt-4">
           <ProfileGallery />
         </TabsContent>
 
-        <TabsContent
-          value="account"
-          className="mt-4 space-y-4 rounded-xl border border-border bg-card p-5 shadow-sm"
-        >
-          <h2 className="text-lg font-semibold text-foreground">Account</h2>
-          <div className="space-y-1">
-            <p className="text-sm text-muted-foreground">Username</p>
-            <p className="font-medium text-foreground">
-              @{me.username}
-              {me.discriminator && (
-                <span className="ml-1 text-muted-foreground/70">
-                  #{me.discriminator}
-                </span>
-              )}
-            </p>
-          </div>
-          <MvpRedeemSection isMvp={me.mvpPlan} />
-          <div className="space-y-1">
-            <p className="text-sm text-muted-foreground">Member since</p>
-            <p className="font-medium text-foreground">
-              {new Date(me.createdAt).toLocaleDateString(undefined, {
-                month: "long",
-                day: "numeric",
-                year: "numeric",
-              })}
-            </p>
-          </div>
-          <div className="border-t border-border pt-4">
-            <Button
-              variant="outline"
-              onClick={() => signOut({ redirectUrl: basePath || "/" })}
-              data-testid="button-signout-settings"
-            >
-              <LogOut className="mr-2 h-4 w-4" />
-              Sign out
-            </Button>
-          </div>
+        <TabsContent value="account" className="mt-4 space-y-4">
+          <AccountTab
+            username={me.username}
+            discriminator={me.discriminator}
+            createdAt={me.createdAt}
+            mvpPlan={me.mvpPlan}
+            onSignOut={() => signOut({ redirectUrl: basePath || "/" })}
+          />
         </TabsContent>
       </Tabs>
     </div>
@@ -527,6 +538,513 @@ function AppearanceTab() {
             </button>
           );
         })}
+      </div>
+    </div>
+  );
+}
+
+function PrefRow({
+  title,
+  description,
+  checked,
+  onCheckedChange,
+  testId,
+  disabled,
+  badge,
+}: {
+  title: string;
+  description: string;
+  checked: boolean;
+  onCheckedChange: (v: boolean) => void;
+  testId: string;
+  disabled?: boolean;
+  badge?: string;
+}) {
+  const id = `pref-${testId}`;
+  const descId = `${id}-desc`;
+  return (
+    <label
+      htmlFor={id}
+      className="flex cursor-pointer items-start justify-between gap-4 rounded-lg border border-border bg-background/40 p-3 hover:bg-accent/30"
+    >
+      <div className="min-w-0 flex-1">
+        <span className="flex items-center gap-2 text-sm font-medium text-foreground">
+          {title}
+          {badge && (
+            <span className="rounded-full bg-accent px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-accent-foreground">
+              {badge}
+            </span>
+          )}
+        </span>
+        <span
+          id={descId}
+          className="mt-0.5 block text-xs text-muted-foreground"
+        >
+          {description}
+        </span>
+      </div>
+      <Switch
+        id={id}
+        checked={checked}
+        onCheckedChange={onCheckedChange}
+        disabled={disabled}
+        aria-label={title}
+        aria-describedby={descId}
+        data-testid={testId}
+      />
+    </label>
+  );
+}
+
+function NotificationsTab() {
+  const { toast } = useToast();
+  const [sound, setSound] = usePref<boolean>(PREF_KEYS.notifSound, true);
+  const [mentions, setMentions] = usePref<boolean>(
+    PREF_KEYS.notifMentions,
+    true,
+  );
+  const [friendReqs, setFriendReqs] = usePref<boolean>(
+    PREF_KEYS.notifFriendRequests,
+    true,
+  );
+  const [marketing, setMarketing] = usePref<boolean>(
+    PREF_KEYS.notifMarketing,
+    false,
+  );
+  const [perm, setPerm] = useState<NotificationPermission | "unsupported">(
+    typeof Notification !== "undefined" ? Notification.permission : "unsupported",
+  );
+
+  async function requestBrowserPerm() {
+    if (typeof Notification === "undefined") return;
+    const result = await Notification.requestPermission();
+    setPerm(result);
+    if (result === "granted") {
+      new Notification("HashChat notifications enabled", {
+        body: "We'll let you know when something needs your attention.",
+        icon: `${basePath}/logo.png`,
+      });
+      toast({ title: "Notifications on", description: "You're all set." });
+    } else if (result === "denied") {
+      toast({
+        title: "Notifications blocked",
+        description:
+          "Update your browser site settings to allow notifications.",
+        variant: "destructive",
+      });
+    }
+  }
+
+  return (
+    <div className="space-y-4 rounded-xl border border-border bg-card p-5 shadow-sm">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h2 className="text-lg font-semibold text-foreground">Notifications</h2>
+          <p className="text-sm text-muted-foreground">
+            Choose what nudges you and how. Saved on this device.
+          </p>
+        </div>
+      </div>
+
+      <div className="rounded-lg border border-primary/30 bg-gradient-to-r from-violet-500/10 to-pink-500/10 p-4">
+        <div className="flex items-start gap-3">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/15 text-primary">
+            <Bell className="h-4 w-4" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold text-foreground">
+              Browser notifications
+            </p>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              Status:{" "}
+              <span className="font-medium text-foreground">
+                {perm === "granted"
+                  ? "Allowed"
+                  : perm === "denied"
+                    ? "Blocked"
+                    : perm === "unsupported"
+                      ? "Not supported in this browser"
+                      : "Not asked yet"}
+              </span>
+            </p>
+          </div>
+          {perm !== "granted" && perm !== "unsupported" && (
+            <Button
+              size="sm"
+              onClick={requestBrowserPerm}
+              data-testid="button-request-notif-perm"
+            >
+              Enable
+            </Button>
+          )}
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <PrefRow
+          title="Sound on new message"
+          description="Play a soft chime when a new message arrives in an open chat."
+          checked={sound}
+          onCheckedChange={setSound}
+          testId="switch-notif-sound"
+        />
+        <PrefRow
+          title="@mentions"
+          description="Highlight messages and rooms where someone @-mentions you."
+          checked={mentions}
+          onCheckedChange={setMentions}
+          testId="switch-notif-mentions"
+        />
+        <PrefRow
+          title="Friend requests"
+          description="Surface incoming friend requests in your inbox."
+          checked={friendReqs}
+          onCheckedChange={setFriendReqs}
+          testId="switch-notif-friends"
+        />
+        <PrefRow
+          title="Product updates"
+          description="Occasional emails about new HashChat features."
+          checked={marketing}
+          onCheckedChange={setMarketing}
+          testId="switch-notif-marketing"
+        />
+      </div>
+    </div>
+  );
+}
+
+function PrivacyTab() {
+  const [online, setOnline] = usePref<boolean>(PREF_KEYS.privShowOnline, true);
+  const [strangers, setStrangers] = usePref<boolean>(
+    PREF_KEYS.privDmsFromStrangers,
+    true,
+  );
+  const [reads, setReads] = usePref<boolean>(PREF_KEYS.privReadReceipts, true);
+  const [searchable, setSearchable] = usePref<boolean>(
+    PREF_KEYS.privProfileSearchable,
+    true,
+  );
+  return (
+    <div className="space-y-4 rounded-xl border border-border bg-card p-5 shadow-sm">
+      <div>
+        <h2 className="text-lg font-semibold text-foreground">Privacy</h2>
+        <p className="text-sm text-muted-foreground">
+          Control who can find you and reach out.
+        </p>
+      </div>
+      <div className="space-y-2">
+        <PrefRow
+          title="Show online status"
+          description="Let people see a green dot when you're active."
+          checked={online}
+          onCheckedChange={setOnline}
+          testId="switch-priv-online"
+        />
+        <PrefRow
+          title="DMs from non-friends"
+          description="Allow people who share a hashtag with you to send the first message."
+          checked={strangers}
+          onCheckedChange={setStrangers}
+          testId="switch-priv-strangers"
+        />
+        <PrefRow
+          title="Read receipts"
+          description="Show others when you've seen their messages."
+          checked={reads}
+          onCheckedChange={setReads}
+          testId="switch-priv-reads"
+        />
+        <PrefRow
+          title="Show in discovery"
+          description="Appear in suggested-people lists for matching hashtags."
+          checked={searchable}
+          onCheckedChange={setSearchable}
+          testId="switch-priv-search"
+        />
+      </div>
+    </div>
+  );
+}
+
+function ChatPrefsTab() {
+  const [compact, setCompact] = usePref<boolean>(PREF_KEYS.chatCompact, false);
+  const [enterToSend, setEnterToSend] = usePref<boolean>(
+    PREF_KEYS.chatEnterToSend,
+    true,
+  );
+  const [seconds, setSeconds] = usePref<boolean>(
+    PREF_KEYS.chatShowSeconds,
+    false,
+  );
+  const [autoplay, setAutoplay] = usePref<boolean>(
+    PREF_KEYS.chatAutoplayMedia,
+    true,
+  );
+  return (
+    <div className="space-y-4 rounded-xl border border-border bg-card p-5 shadow-sm">
+      <div>
+        <h2 className="text-lg font-semibold text-foreground">
+          Chat preferences
+        </h2>
+        <p className="text-sm text-muted-foreground">
+          Tweak how conversations look and feel.
+        </p>
+      </div>
+
+      <div className="space-y-2">
+        <PrefRow
+          title="Compact density"
+          description="Tighter message bubbles — fit more on screen. Applies instantly."
+          checked={compact}
+          onCheckedChange={setCompact}
+          testId="switch-chat-compact"
+          badge="Live"
+        />
+        <PrefRow
+          title="Enter to send"
+          description="Pressing Enter sends your message. Turn off to add line breaks instead."
+          checked={enterToSend}
+          onCheckedChange={setEnterToSend}
+          testId="switch-chat-enter"
+        />
+        <PrefRow
+          title="Show seconds in timestamps"
+          description="Display HH:MM:SS instead of HH:MM under each message."
+          checked={seconds}
+          onCheckedChange={setSeconds}
+          testId="switch-chat-seconds"
+        />
+        <PrefRow
+          title="Autoplay shared media"
+          description="Automatically play GIFs and videos shared in chats."
+          checked={autoplay}
+          onCheckedChange={setAutoplay}
+          testId="switch-chat-autoplay"
+        />
+      </div>
+
+      <div className="rounded-lg border border-border bg-muted/30 p-4">
+        <p className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
+          <Keyboard className="h-3.5 w-3.5 text-primary" /> Keyboard shortcuts
+        </p>
+        <ul className="mt-2 space-y-1.5 text-xs text-muted-foreground">
+          <li className="flex items-center justify-between">
+            <span>Send message</span>
+            <span className="flex items-center gap-1">
+              <Kbd>Enter</Kbd>
+            </span>
+          </li>
+          <li className="flex items-center justify-between">
+            <span>New line in message</span>
+            <span className="flex items-center gap-1">
+              <Kbd>Shift</Kbd> <span>+</span> <Kbd>Enter</Kbd>
+            </span>
+          </li>
+          <li className="flex items-center justify-between">
+            <span>Cancel reply / close menu</span>
+            <Kbd>Esc</Kbd>
+          </li>
+          <li className="flex items-center justify-between">
+            <span>Back to list</span>
+            <Kbd>Backspace</Kbd>
+          </li>
+        </ul>
+      </div>
+    </div>
+  );
+}
+
+function StatCard({
+  icon: Icon,
+  label,
+  value,
+  tone,
+}: {
+  icon: typeof MessageCircle;
+  label: string;
+  value: number | string;
+  tone: string;
+}) {
+  return (
+    <div className="rounded-xl border border-border bg-card p-4 shadow-sm lift">
+      <div
+        className={`mb-2 inline-flex h-8 w-8 items-center justify-center rounded-lg ${tone}`}
+      >
+        <Icon className="h-4 w-4" />
+      </div>
+      <p className="text-2xl font-bold text-foreground">{value}</p>
+      <p className="text-xs text-muted-foreground">{label}</p>
+    </div>
+  );
+}
+
+function AccountTab({
+  username,
+  discriminator,
+  createdAt,
+  mvpPlan,
+  onSignOut,
+}: {
+  username: string;
+  discriminator: string | null | undefined;
+  createdAt: string;
+  mvpPlan: boolean;
+  onSignOut: () => void;
+}) {
+  const { toast } = useToast();
+  const conversations = useGetConversations();
+  const friends = useGetMyFriends();
+  const followed = useGetMyFollowedHashtags();
+  const photos = useGetMyPhotos();
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+
+  const profileUrl =
+    typeof window !== "undefined"
+      ? `${window.location.origin}${basePath}/u/${username}`
+      : "";
+
+  async function copyProfileLink() {
+    try {
+      await navigator.clipboard.writeText(profileUrl);
+      toast({ title: "Link copied", description: profileUrl });
+    } catch {
+      toast({
+        title: "Couldn't copy",
+        description: "Long-press the URL above to copy it manually.",
+        variant: "destructive",
+      });
+    }
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <StatCard
+          icon={MessageCircle}
+          label="Conversations"
+          value={conversations.data?.length ?? "—"}
+          tone="bg-violet-500/15 text-violet-600 dark:text-violet-300"
+        />
+        <StatCard
+          icon={Users}
+          label="Friends"
+          value={friends.data?.length ?? "—"}
+          tone="bg-pink-500/15 text-pink-600 dark:text-pink-300"
+        />
+        <StatCard
+          icon={Hash}
+          label="Rooms followed"
+          value={followed.data?.length ?? "—"}
+          tone="bg-orange-500/15 text-orange-600 dark:text-orange-300"
+        />
+        <StatCard
+          icon={ImageLucide}
+          label="Photos"
+          value={photos.data?.length ?? "—"}
+          tone="bg-emerald-500/15 text-emerald-600 dark:text-emerald-300"
+        />
+      </div>
+
+      <div className="space-y-4 rounded-xl border border-border bg-card p-5 shadow-sm">
+        <h2 className="text-lg font-semibold text-foreground">Account</h2>
+        <div className="space-y-1">
+          <p className="text-sm text-muted-foreground">Username</p>
+          <p className="font-medium text-foreground">
+            @{username}
+            {discriminator && (
+              <span className="ml-1 text-muted-foreground/70">
+                #{discriminator}
+              </span>
+            )}
+          </p>
+        </div>
+        <div className="space-y-1">
+          <p className="text-sm text-muted-foreground">Profile link</p>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <code className="flex-1 truncate rounded-md bg-muted px-3 py-2 text-xs text-foreground">
+              {profileUrl}
+            </code>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={copyProfileLink}
+              data-testid="button-copy-profile-link"
+            >
+              <Link2 className="mr-1.5 h-3.5 w-3.5" /> Copy
+            </Button>
+          </div>
+        </div>
+        <MvpRedeemSection isMvp={mvpPlan} />
+        <div className="space-y-1">
+          <p className="text-sm text-muted-foreground">Member since</p>
+          <p className="font-medium text-foreground">
+            {new Date(createdAt).toLocaleDateString(undefined, {
+              month: "long",
+              day: "numeric",
+              year: "numeric",
+            })}
+          </p>
+        </div>
+        <div className="border-t border-border pt-4">
+          <Button
+            variant="outline"
+            onClick={onSignOut}
+            data-testid="button-signout-settings"
+          >
+            <LogOut className="mr-2 h-4 w-4" />
+            Sign out
+          </Button>
+        </div>
+      </div>
+
+      <div className="space-y-3 rounded-xl border border-destructive/30 bg-destructive/5 p-5">
+        <div className="flex items-center gap-2">
+          <AlertTriangle className="h-4 w-4 text-destructive" />
+          <h2 className="text-base font-semibold text-foreground">
+            Danger zone
+          </h2>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Deleting your account permanently removes your messages, friends, and
+          photos from HashChat. This action cannot be undone.
+        </p>
+        {confirmingDelete ? (
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() =>
+                toast({
+                  title: "Deletion requested",
+                  description:
+                    "We've recorded your request. Email support@hashchat.app to confirm.",
+                })
+              }
+              data-testid="button-confirm-delete-account"
+            >
+              Yes, delete my account
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setConfirmingDelete(false)}
+              data-testid="button-cancel-delete-account"
+            >
+              Cancel
+            </Button>
+          </div>
+        ) : (
+          <Button
+            variant="outline"
+            size="sm"
+            className="border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
+            onClick={() => setConfirmingDelete(true)}
+            data-testid="button-delete-account"
+          >
+            Delete my account
+          </Button>
+        )}
       </div>
     </div>
   );

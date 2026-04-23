@@ -100,7 +100,7 @@ export function MessageBubble({
                 />
               </a>
             )}
-            <div className="px-3.5 py-2">
+            <div className="px-3.5 py-2" data-msg-pad>
             {message.content && (
               <p className="whitespace-pre-wrap break-words">{message.content}</p>
             )}

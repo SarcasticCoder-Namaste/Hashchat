@@ -174,7 +174,7 @@ export default function RoomChat({ tag }: { tag: string }) {
             <Loader2 className="h-5 w-5 animate-spin text-muted-foreground/70" />
           </div>
         ) : messagesQ.data && messagesQ.data.length > 0 ? (
-          <div className="mx-auto max-w-2xl space-y-4">
+          <div className="mx-auto flex max-w-2xl flex-col gap-4" data-msg-list>
             {messagesQ.data.map((m) => (
               <MessageBubble
                 key={m.id}

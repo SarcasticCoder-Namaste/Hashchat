@@ -1,4 +1,7 @@
 import { useEffect, useRef } from "react";
+import { applyRootPreferences } from "@/lib/preferences";
+
+applyRootPreferences();
 import {
   ClerkProvider,
   SignIn,
