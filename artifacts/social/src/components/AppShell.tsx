@@ -19,22 +19,60 @@ import {
   Film,
   ShieldCheck,
 } from "lucide-react";
+import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { PresenceAvatar, UserNameLine } from "@/components/UserBadge";
 import { IncomingCallToast } from "@/components/IncomingCallToast";
+import { PageTransition } from "@/components/PageTransition";
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
 
-const NAV = [
+type NavItem = {
+  href: string;
+  label: string;
+  icon: typeof Compass;
+};
+
+const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
+  {
+    label: "Explore",
+    items: [
+      { href: "/app/discover", label: "Discover", icon: Compass },
+      { href: "/app/trending", label: "Trending", icon: TrendingUp },
+      { href: "/app/reels", label: "Reels", icon: Film },
+    ],
+  },
+  {
+    label: "Chat",
+    items: [
+      { href: "/app/rooms", label: "Rooms", icon: Hash },
+      { href: "/app/messages", label: "Messages", icon: MessageCircle },
+    ],
+  },
+  {
+    label: "You",
+    items: [
+      { href: "/app/friends", label: "Friends", icon: UserPlus },
+      { href: "/app/settings", label: "Settings", icon: SettingsIcon },
+    ],
+  },
+];
+
+const MOBILE_NAV: NavItem[] = [
   { href: "/app/discover", label: "Discover", icon: Compass },
-  { href: "/app/trending", label: "Trending", icon: TrendingUp },
   { href: "/app/rooms", label: "Rooms", icon: Hash },
   { href: "/app/reels", label: "Reels", icon: Film },
   { href: "/app/messages", label: "Messages", icon: MessageCircle },
   { href: "/app/friends", label: "Friends", icon: UserPlus },
   { href: "/app/settings", label: "Settings", icon: SettingsIcon },
 ];
+
+function isActive(location: string, href: string): boolean {
+  if (location === href) return true;
+  if (href === "/app/discover") return false;
+  return location.startsWith(href);
+}
 
 export default function AppShell({ children }: { children: ReactNode }) {
   const [location, setLocation] = useLocation();
@@ -53,13 +91,20 @@ export default function AppShell({ children }: { children: ReactNode }) {
   const incomingCount = friendReqs?.incoming.length ?? 0;
   const isStaff = me?.role === "admin" || me?.role === "moderator";
 
-  const nav = [
-    ...NAV.slice(0, 6),
-    ...(isStaff
-      ? [{ href: "/app/admin", label: "Admin", icon: ShieldCheck }]
-      : []),
-    NAV[6],
-  ];
+  const groups = isStaff
+    ? [
+        ...NAV_GROUPS.slice(0, 2),
+        {
+          label: "Staff",
+          items: [{ href: "/app/admin", label: "Admin", icon: ShieldCheck }],
+        },
+        NAV_GROUPS[2],
+      ]
+    : NAV_GROUPS;
+
+  const mobileNav = isStaff
+    ? [...MOBILE_NAV.slice(0, 5), { href: "/app/admin", label: "Admin", icon: ShieldCheck }, MOBILE_NAV[5]]
+    : MOBILE_NAV;
 
   useEffect(() => {
     if (
@@ -107,57 +152,90 @@ export default function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="min-h-[100dvh] bg-background">
-      <div className="mx-auto flex min-h-[100dvh] max-w-7xl">
-        <aside className="hidden w-64 flex-col border-r border-border bg-sidebar p-4 md:flex">
+      {/* Ambient backdrop accents */}
+      <div
+        className="pointer-events-none absolute -left-20 top-0 -z-0 h-72 w-72 rounded-full bg-violet-500/10 blur-3xl"
+        aria-hidden="true"
+      />
+      <div
+        className="pointer-events-none absolute right-0 top-1/3 -z-0 h-72 w-72 rounded-full bg-pink-500/10 blur-3xl"
+        aria-hidden="true"
+      />
+
+      <div className="relative mx-auto flex min-h-[100dvh] max-w-7xl">
+        <aside className="hidden w-64 flex-col border-r border-border bg-sidebar/80 p-4 backdrop-blur md:flex">
           <Link
             href="/app/discover"
-            className="mb-6 flex items-center gap-2"
+            className="mb-6 flex items-center gap-2.5 group"
             data-testid="link-home"
           >
-            <img
+            <motion.img
               src={`${basePath}/logo.svg`}
               alt="HashChat"
               className="h-9 w-9"
+              whileHover={{ rotate: -8, scale: 1.05 }}
+              transition={{ type: "spring", stiffness: 400, damping: 14 }}
             />
-            <span className="text-xl font-bold tracking-tight text-foreground">
+            <span className="text-xl font-bold tracking-tight brand-gradient-text">
               HashChat
             </span>
           </Link>
-          <nav className="flex flex-1 flex-col gap-1">
-            {nav.map(({ href, label, icon: Icon }) => {
-              const active =
-                location === href ||
-                (href !== "/app/discover" && location.startsWith(href));
-              const showBadge = href === "/app/friends" && incomingCount > 0;
-              return (
-                <Link
-                  key={href}
-                  href={href}
-                  data-testid={`nav-${label.toLowerCase()}`}
-                  className={[
-                    "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
-                    active
-                      ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                      : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
-                  ].join(" ")}
-                >
-                  <Icon className="h-4 w-4" />
-                  <span className="flex-1">{label}</span>
-                  {showBadge && (
-                    <span className="rounded-full bg-primary px-2 py-0.5 text-xs font-semibold text-primary-foreground">
-                      {incomingCount}
-                    </span>
-                  )}
-                </Link>
-              );
-            })}
+
+          <nav className="flex flex-1 flex-col gap-5">
+            {groups.map((group) => (
+              <div key={group.label} className="space-y-1">
+                <p className="px-3 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
+                  {group.label}
+                </p>
+                <div className="space-y-0.5">
+                  {group.items.map(({ href, label, icon: Icon }) => {
+                    const active = isActive(location, href);
+                    const showBadge = href === "/app/friends" && incomingCount > 0;
+                    return (
+                      <Link
+                        key={href}
+                        href={href}
+                        data-testid={`nav-${label.toLowerCase()}`}
+                        className={[
+                          "relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                          active
+                            ? "text-sidebar-accent-foreground"
+                            : "text-muted-foreground hover:text-foreground",
+                        ].join(" ")}
+                      >
+                        {active && (
+                          <motion.span
+                            layoutId="sidebar-active-pill"
+                            className="absolute inset-0 -z-10 rounded-lg bg-gradient-to-r from-violet-500/20 to-pink-500/20 ring-1 ring-violet-500/30"
+                            transition={{ type: "spring", stiffness: 500, damping: 36 }}
+                          />
+                        )}
+                        <Icon className={`h-4 w-4 ${active ? "text-primary" : ""}`} />
+                        <span className="flex-1">{label}</span>
+                        {showBadge && (
+                          <motion.span
+                            initial={{ scale: 0.6, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            className="rounded-full bg-primary px-2 py-0.5 text-xs font-semibold text-primary-foreground shadow-sm"
+                          >
+                            {incomingCount}
+                          </motion.span>
+                        )}
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
           </nav>
-          <div className="mt-4 flex items-center justify-between">
+
+          <div className="mt-4 flex items-center justify-between rounded-lg border border-border/50 bg-card/40 px-3 py-1.5">
             <span className="text-xs text-muted-foreground">Theme</span>
             <ThemeToggle />
           </div>
+
           {me && (
-            <div className="mt-3 rounded-lg border border-border p-3">
+            <div className="mt-3 rounded-xl border border-border bg-card/60 p-3 backdrop-blur lift">
               <Link
                 href="/app/settings"
                 className="flex items-center gap-3"
@@ -201,7 +279,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
                 alt="HashChat"
                 className="h-7 w-7"
               />
-              <span className="font-bold text-foreground">HashChat</span>
+              <span className="font-bold brand-gradient-text">HashChat</span>
             </Link>
             <div className="flex items-center gap-1">
               <ThemeToggle />
@@ -216,18 +294,18 @@ export default function AppShell({ children }: { children: ReactNode }) {
             </div>
           </header>
 
-          <main className="flex-1 overflow-y-auto">{children}</main>
+          <main className="flex-1 overflow-y-auto">
+            <PageTransition>{children}</PageTransition>
+          </main>
 
           <nav
             className={[
-              "sticky bottom-0 grid border-t border-border bg-card md:hidden",
-              isStaff ? "grid-cols-8" : "grid-cols-7",
+              "sticky bottom-0 z-10 grid border-t border-border bg-card/90 backdrop-blur md:hidden",
+              isStaff ? "grid-cols-7" : "grid-cols-6",
             ].join(" ")}
           >
-            {nav.map(({ href, label, icon: Icon }) => {
-              const active =
-                location === href ||
-                (href !== "/app/discover" && location.startsWith(href));
+            {mobileNav.map(({ href, label, icon: Icon }) => {
+              const active = isActive(location, href);
               const showBadge = href === "/app/friends" && incomingCount > 0;
               return (
                 <Link
@@ -235,10 +313,17 @@ export default function AppShell({ children }: { children: ReactNode }) {
                   href={href}
                   data-testid={`mobnav-${label.toLowerCase()}`}
                   className={[
-                    "relative flex flex-col items-center gap-0.5 py-2 text-[10px]",
-                    active ? "text-primary" : "text-muted-foreground",
+                    "relative flex flex-col items-center gap-0.5 py-2 text-[10px] transition-colors",
+                    active ? "text-primary" : "text-muted-foreground hover:text-foreground",
                   ].join(" ")}
                 >
+                  {active && (
+                    <motion.span
+                      layoutId="mobile-nav-bar"
+                      className="absolute inset-x-3 top-0 h-0.5 rounded-full bg-gradient-to-r from-violet-500 to-pink-500"
+                      transition={{ type: "spring", stiffness: 500, damping: 36 }}
+                    />
+                  )}
                   <Icon className="h-5 w-5" />
                   <span>{label}</span>
                   {showBadge && (

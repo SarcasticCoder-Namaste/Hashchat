@@ -3,53 +3,120 @@ import {
   useGetRooms,
   useGetTrendingRooms,
 } from "@workspace/api-client-react";
-import { Hash, MessageCircle, Users, Loader2, Sparkles } from "lucide-react";
+import { motion } from "framer-motion";
+import { Hash, MessageCircle, Users, Sparkles, Flame } from "lucide-react";
+import { CardSkeleton } from "@/components/Skeleton";
+import { EmptyState } from "@/components/EmptyState";
+import { Button } from "@/components/ui/button";
 
 export default function Rooms() {
   const myRooms = useGetRooms();
   const trending = useGetTrendingRooms({ limit: 10 });
 
   return (
-    <div className="mx-auto max-w-4xl space-y-8 px-4 py-6 md:px-8 md:py-10">
-      <div>
-        <h1 className="text-3xl font-bold text-foreground">Hashtag rooms</h1>
-        <p className="mt-1 text-muted-foreground">
-          Live group chats around your favorite topics.
-        </p>
+    <div className="mx-auto max-w-4xl space-y-10 px-4 py-6 md:px-8 md:py-10">
+      <div className="relative overflow-hidden rounded-2xl border border-border bg-gradient-to-br from-violet-500/10 via-card to-pink-500/10 p-6 md:p-8">
+        <div className="hero-grid absolute inset-0 opacity-40" aria-hidden="true" />
+        <div className="relative">
+          <h1 className="text-3xl font-bold text-foreground md:text-4xl">
+            Hashtag <span className="brand-gradient-text">rooms</span>
+          </h1>
+          <p className="mt-2 max-w-xl text-muted-foreground">
+            Live group chats around your favorite topics. Drop in, say something, make friends.
+          </p>
+        </div>
       </div>
 
       <section>
-        <h2 className="mb-3 text-lg font-semibold text-foreground">Your rooms</h2>
+        <SectionHeader
+          icon={<Hash className="h-5 w-5 text-primary" />}
+          title="Your rooms"
+          subtitle="Rooms based on the hashtags you follow."
+        />
         {myRooms.isLoading ? (
-          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground/70" />
+          <div className="grid gap-3 sm:grid-cols-2">
+            <CardSkeleton />
+            <CardSkeleton />
+          </div>
         ) : myRooms.data && myRooms.data.length > 0 ? (
           <div className="grid gap-3 sm:grid-cols-2">
-            {myRooms.data.map((r) => (
-              <RoomCard key={r.tag} r={r} />
+            {myRooms.data.map((r, idx) => (
+              <motion.div
+                key={r.tag}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: idx * 0.03, duration: 0.22 }}
+              >
+                <RoomCard r={r} />
+              </motion.div>
             ))}
           </div>
         ) : (
-          <div className="rounded-xl border border-dashed border-border bg-card p-6 text-center text-muted-foreground">
-            Pick or follow some hashtags to see rooms here.
-          </div>
+          <EmptyState
+            icon={Hash}
+            title="No rooms yet"
+            description="Pick or follow some hashtags from your profile to populate this list."
+            action={
+              <Button asChild variant="secondary">
+                <Link href="/app/settings">Pick hashtags →</Link>
+              </Button>
+            }
+          />
         )}
       </section>
 
       <section>
-        <div className="mb-3 flex items-center gap-2">
-          <Sparkles className="h-5 w-5 text-pink-600" />
-          <h2 className="text-lg font-semibold text-foreground">
-            Discover trending rooms
-          </h2>
-        </div>
+        <SectionHeader
+          icon={<Sparkles className="h-5 w-5 text-pink-500" />}
+          title="Discover trending rooms"
+          subtitle="The fastest growing conversations right now."
+        />
         {trending.isLoading ? (
-          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground/70" />
-        ) : (
           <div className="grid gap-3 sm:grid-cols-2">
-            {trending.data?.map((r) => <RoomCard key={r.tag} r={r} />)}
+            <CardSkeleton />
+            <CardSkeleton />
           </div>
+        ) : trending.data && trending.data.length > 0 ? (
+          <div className="grid gap-3 sm:grid-cols-2">
+            {trending.data.map((r, idx) => (
+              <motion.div
+                key={r.tag}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: idx * 0.03, duration: 0.22 }}
+              >
+                <RoomCard r={r} />
+              </motion.div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground">Nothing trending — check back soon.</p>
         )}
       </section>
+    </div>
+  );
+}
+
+function SectionHeader({
+  icon,
+  title,
+  subtitle,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  subtitle?: string;
+}) {
+  return (
+    <div className="mb-3 flex items-end justify-between gap-3">
+      <div>
+        <div className="flex items-center gap-2">
+          {icon}
+          <h2 className="text-lg font-semibold text-foreground">{title}</h2>
+        </div>
+        {subtitle && (
+          <p className="mt-0.5 text-xs text-muted-foreground">{subtitle}</p>
+        )}
+      </div>
     </div>
   );
 }
@@ -65,39 +132,49 @@ function RoomCard({
     lastMessage?: { content: string; senderName: string } | null;
   };
 }) {
+  const hot = r.recentMessages > 0;
   return (
-    <Link href={`/app/rooms/${encodeURIComponent(r.tag)}`} className="block rounded-xl border border-border bg-card p-4 shadow-sm transition-shadow hover:shadow-md" data-testid={`room-${r.tag}`}>
-        <div className="flex items-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-gradient-to-br from-violet-500 to-pink-500 text-white">
-            <Hash className="h-6 w-6" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-base font-semibold text-foreground">
-              #{r.tag}
-            </p>
-            <p className="flex items-center gap-3 text-xs text-muted-foreground">
-              <span className="inline-flex items-center gap-1">
-                <Users className="h-3 w-3" /> {r.memberCount}
-              </span>
-              <span className="inline-flex items-center gap-1">
-                <MessageCircle className="h-3 w-3" /> {r.messageCount}
-              </span>
-              {r.recentMessages > 0 && (
-                <span className="rounded-full bg-pink-500/15 px-1.5 py-0.5 text-pink-500">
-                  {r.recentMessages} new
-                </span>
-              )}
-            </p>
-          </div>
+    <Link
+      href={`/app/rooms/${encodeURIComponent(r.tag)}`}
+      className="lift block rounded-xl border border-border bg-card p-4 shadow-sm"
+      data-testid={`room-${r.tag}`}
+    >
+      <div className="flex items-center gap-3">
+        <div className="relative flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500 to-pink-500 text-white shadow-md">
+          <Hash className="h-6 w-6" />
+          {hot && (
+            <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-orange-500 text-white shadow ring-2 ring-card">
+              <Flame className="h-3 w-3" />
+            </span>
+          )}
         </div>
-        {r.lastMessage && (
-          <p className="mt-3 line-clamp-2 text-sm text-muted-foreground">
-            <span className="font-medium text-foreground">
-              {r.lastMessage.senderName}:
-            </span>{" "}
-            {r.lastMessage.content}
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-base font-semibold text-foreground">
+            #{r.tag}
           </p>
-        )}
-      </Link>
+          <p className="flex items-center gap-3 text-xs text-muted-foreground">
+            <span className="inline-flex items-center gap-1">
+              <Users className="h-3 w-3" /> {r.memberCount}
+            </span>
+            <span className="inline-flex items-center gap-1">
+              <MessageCircle className="h-3 w-3" /> {r.messageCount}
+            </span>
+            {hot && (
+              <span className="rounded-full bg-pink-500/15 px-1.5 py-0.5 font-medium text-pink-500">
+                {r.recentMessages} new
+              </span>
+            )}
+          </p>
+        </div>
+      </div>
+      {r.lastMessage && (
+        <p className="mt-3 line-clamp-2 text-sm text-muted-foreground">
+          <span className="font-medium text-foreground">
+            {r.lastMessage.senderName}:
+          </span>{" "}
+          {r.lastMessage.content}
+        </p>
+      )}
+    </Link>
   );
 }

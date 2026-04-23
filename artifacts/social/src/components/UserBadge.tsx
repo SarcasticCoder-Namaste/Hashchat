@@ -44,7 +44,7 @@ export function PresenceAvatar({
         className={[
           "absolute -bottom-0.5 -right-0.5 rounded-full ring-2 ring-card",
           dotCls,
-          online ? "bg-emerald-500" : "bg-muted-foreground/40",
+          online ? "bg-emerald-500 pulse-ring" : "bg-muted-foreground/40",
         ].join(" ")}
       />
     </div>

@@ -3,6 +3,7 @@ import {
   useDiscoverPeople,
   useGetTrendingHashtags,
   useGetMe,
+  useGetMyFriends,
   useOpenConversation,
   useSendFriendRequest,
   useCancelFriendRequest,
@@ -16,6 +17,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { PresenceAvatar } from "@/components/UserBadge";
+import { CardSkeleton } from "@/components/Skeleton";
+import { EmptyState } from "@/components/EmptyState";
 import {
   Hash,
   Sparkles,
@@ -27,24 +30,80 @@ import {
   Check,
   Star,
   Crown,
+  Users,
+  Flame,
 } from "lucide-react";
+
+function greeting(name?: string) {
+  const h = new Date().getHours();
+  const tod = h < 5 ? "Up late" : h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening";
+  return name ? `${tod}, ${name}` : tod;
+}
 
 export default function Discover() {
   const { data: me } = useGetMe();
   const { data: matches, isLoading } = useDiscoverPeople({ limit: 12 });
   const { data: trending } = useGetTrendingHashtags({ limit: 10 });
+  const { data: friends } = useGetMyFriends();
+
+  const firstName = me?.displayName.split(" ")[0];
+
+  const stats = [
+    { label: "Hashtags", value: me?.hashtags.length ?? 0, icon: Hash, accent: "from-violet-500 to-fuchsia-500" },
+    { label: "Friends", value: friends?.length ?? 0, icon: Users, accent: "from-pink-500 to-rose-500" },
+    { label: "Trending", value: trending?.length ?? 0, icon: Flame, accent: "from-orange-500 to-amber-500" },
+  ];
 
   return (
-    <div className="mx-auto max-w-5xl space-y-8 px-4 py-6 md:px-8 md:py-10">
-      <div>
-        <h1 className="text-3xl font-bold text-foreground">
-          Welcome back{me ? `, ${me.displayName.split(" ")[0]}` : ""} 👋
-        </h1>
-        <p className="mt-1 text-muted-foreground">
-          Fresh matches and trending hashtags based on what you love.
-        </p>
+    <div className="mx-auto max-w-5xl space-y-10 px-4 py-6 md:px-8 md:py-10">
+      {/* Hero */}
+      <div className="relative overflow-hidden rounded-3xl border border-border bg-gradient-to-br from-violet-500/10 via-card to-pink-500/10 p-6 md:p-8">
+        <div className="hero-grid absolute inset-0 opacity-40" aria-hidden="true" />
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+          className="relative"
+        >
+          <p className="text-sm font-medium text-muted-foreground">
+            {greeting(firstName)} 👋
+          </p>
+          <h1 className="mt-1 text-3xl font-bold tracking-tight md:text-4xl">
+            Find your <span className="brand-gradient-text">people</span>.
+          </h1>
+          <p className="mt-2 max-w-xl text-muted-foreground">
+            Fresh matches and hashtags hand-picked from what you love.
+          </p>
+        </motion.div>
+
+        <div className="relative mt-6 grid grid-cols-3 gap-3">
+          {stats.map((s, i) => (
+            <motion.div
+              key={s.label}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.05 + i * 0.05, duration: 0.3 }}
+              className="rounded-xl border border-border bg-card/70 p-3 backdrop-blur lift"
+            >
+              <div className="flex items-center gap-2">
+                <span
+                  className={`flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br ${s.accent} text-white shadow-sm`}
+                >
+                  <s.icon className="h-4 w-4" />
+                </span>
+                <div>
+                  <p className="text-lg font-bold leading-none text-foreground">{s.value}</p>
+                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                    {s.label}
+                  </p>
+                </div>
+              </div>
+            </motion.div>
+          ))}
+        </div>
       </div>
 
+      {/* Smart matches */}
       <section>
         <div className="mb-3 flex items-center gap-2">
           <Sparkles className="h-5 w-5 text-violet-600" />
@@ -53,7 +112,7 @@ export default function Discover() {
         {isLoading ? (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="h-44 animate-pulse rounded-xl bg-card" />
+              <CardSkeleton key={i} />
             ))}
           </div>
         ) : matches && matches.length > 0 ? (
@@ -70,31 +129,54 @@ export default function Discover() {
             ))}
           </div>
         ) : (
-          <div className="rounded-xl border border-dashed border-border bg-card p-8 text-center text-muted-foreground">
-            No matches yet. Add more hashtags from your profile to find people.
-          </div>
+          <EmptyState
+            icon={Sparkles}
+            title="No matches yet"
+            description="Add a few more hashtags from your profile and we'll surface people who share them."
+            action={
+              <Button asChild>
+                <Link href="/app/settings">Add hashtags →</Link>
+              </Button>
+            }
+          />
         )}
       </section>
 
+      {/* Trending */}
       <section>
         <div className="mb-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <TrendingUp className="h-5 w-5 text-pink-600" />
             <h2 className="text-lg font-semibold text-foreground">Trending now</h2>
           </div>
-          <Link href="/app/trending" className="text-sm font-medium text-primary hover:underline" data-testid="link-all-trending">
-              See all
-            </Link>
+          <Link
+            href="/app/trending"
+            className="text-sm font-medium text-primary hover:underline"
+            data-testid="link-all-trending"
+          >
+            See all →
+          </Link>
         </div>
         <div className="flex flex-wrap gap-2">
-          {trending?.map((t) => (
-            <Link key={t.tag} href={`/app/rooms/${encodeURIComponent(t.tag)}`} data-testid={`discover-trend-${t.tag}`} className="inline-flex items-center gap-1 rounded-full bg-card px-3 py-1.5 text-sm font-medium text-foreground shadow-sm hover:bg-accent hover:text-primary">
+          {trending?.map((t, idx) => (
+            <motion.div
+              key={t.tag}
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: idx * 0.025, type: "spring", stiffness: 320, damping: 22 }}
+            >
+              <Link
+                href={`/app/rooms/${encodeURIComponent(t.tag)}`}
+                data-testid={`discover-trend-${t.tag}`}
+                className="inline-flex items-center gap-1 rounded-full border border-border bg-card px-3 py-1.5 text-sm font-medium text-foreground shadow-sm transition hover:-translate-y-0.5 hover:border-primary/40 hover:bg-accent hover:text-primary hover:shadow-md"
+              >
                 <Hash className="h-3.5 w-3.5" />
                 {t.tag}
                 <span className="ml-1 text-xs text-muted-foreground/70">
                   {t.recentMessages}↑
                 </span>
               </Link>
+            </motion.div>
           ))}
         </div>
       </section>
@@ -180,7 +262,7 @@ function MatchCard({ m }: { m: MatchUser }) {
 
   return (
     <div
-      className="flex flex-col rounded-xl border border-border bg-card p-4 shadow-sm"
+      className="lift flex flex-col rounded-xl border border-border bg-card p-4 shadow-sm"
       data-testid={`match-${m.username}`}
     >
       <div className="flex items-center gap-3">

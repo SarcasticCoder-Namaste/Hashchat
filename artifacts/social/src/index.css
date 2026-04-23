@@ -335,4 +335,96 @@
   .border.hover-elevate:not(.no-hover-interaction-elevate)::after {
     inset: -1px;
   }
+
+  /* Card lift on hover — gentle translate + shadow upgrade. Combine with hover-elevate. */
+  .lift {
+    transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+  }
+  .lift:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px -10px hsl(var(--primary) / .25),
+                0 4px 10px -4px hsl(var(--foreground) / .08);
+  }
+
+  /* Brand gradient text */
+  .brand-gradient-text {
+    background: linear-gradient(135deg, hsl(263 90% 62%) 0%, hsl(330 81% 60%) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  /* Online dot pulse ring */
+  .pulse-ring {
+    position: relative;
+  }
+  .pulse-ring::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 9999px;
+    box-shadow: 0 0 0 0 hsl(142 71% 45% / .55);
+    animation: pulse-ring 1.8s cubic-bezier(.4,0,.6,1) infinite;
+  }
+  @keyframes pulse-ring {
+    0%   { box-shadow: 0 0 0 0 hsl(142 71% 45% / .55); }
+    70%  { box-shadow: 0 0 0 8px hsl(142 71% 45% / 0); }
+    100% { box-shadow: 0 0 0 0 hsl(142 71% 45% / 0); }
+  }
+
+  /* Skeleton shimmer */
+  .skeleton {
+    position: relative;
+    overflow: hidden;
+    background: hsl(var(--muted));
+    border-radius: .5rem;
+  }
+  .skeleton::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    transform: translateX(-100%);
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      hsl(var(--foreground) / .06) 50%,
+      transparent 100%
+    );
+    animation: shimmer 1.4s infinite;
+  }
+  @keyframes shimmer {
+    100% { transform: translateX(100%); }
+  }
+
+  /* Floating action button */
+  .fab {
+    box-shadow: 0 12px 28px -8px hsl(263 90% 50% / .55),
+                0 4px 12px -4px hsl(330 81% 60% / .35);
+    transition: transform .18s ease, box-shadow .18s ease;
+  }
+  .fab:hover  { transform: translateY(-2px) scale(1.04); }
+  .fab:active { transform: translateY(0) scale(.98); }
+
+  /* Subtle background grid for hero sections */
+  .hero-grid {
+    background-image:
+      radial-gradient(hsl(var(--foreground) / .06) 1px, transparent 1px);
+    background-size: 22px 22px;
+  }
+
+  /* Respect users who prefer reduced motion. */
+  @media (prefers-reduced-motion: reduce) {
+    .lift,
+    .lift:hover,
+    .fab,
+    .fab:hover,
+    .fab:active {
+      transition: none;
+      transform: none;
+    }
+    .pulse-ring::after,
+    .skeleton::after {
+      animation: none;
+    }
+  }
 }
