@@ -12,16 +12,16 @@ export default function Rooms() {
   return (
     <div className="mx-auto max-w-4xl space-y-8 px-4 py-6 md:px-8 md:py-10">
       <div>
-        <h1 className="text-3xl font-bold text-slate-900">Hashtag rooms</h1>
-        <p className="mt-1 text-slate-600">
+        <h1 className="text-3xl font-bold text-foreground">Hashtag rooms</h1>
+        <p className="mt-1 text-muted-foreground">
           Live group chats around your favorite topics.
         </p>
       </div>
 
       <section>
-        <h2 className="mb-3 text-lg font-semibold text-slate-900">Your rooms</h2>
+        <h2 className="mb-3 text-lg font-semibold text-foreground">Your rooms</h2>
         {myRooms.isLoading ? (
-          <Loader2 className="h-5 w-5 animate-spin text-slate-400" />
+          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground/70" />
         ) : myRooms.data && myRooms.data.length > 0 ? (
           <div className="grid gap-3 sm:grid-cols-2">
             {myRooms.data.map((r) => (
@@ -29,7 +29,7 @@ export default function Rooms() {
             ))}
           </div>
         ) : (
-          <div className="rounded-xl border border-dashed border-slate-300 bg-white p-6 text-center text-slate-500">
+          <div className="rounded-xl border border-dashed border-border bg-card p-6 text-center text-muted-foreground">
             Pick or follow some hashtags to see rooms here.
           </div>
         )}
@@ -38,12 +38,12 @@ export default function Rooms() {
       <section>
         <div className="mb-3 flex items-center gap-2">
           <Sparkles className="h-5 w-5 text-pink-600" />
-          <h2 className="text-lg font-semibold text-slate-900">
+          <h2 className="text-lg font-semibold text-foreground">
             Discover trending rooms
           </h2>
         </div>
         {trending.isLoading ? (
-          <Loader2 className="h-5 w-5 animate-spin text-slate-400" />
+          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground/70" />
         ) : (
           <div className="grid gap-3 sm:grid-cols-2">
             {trending.data?.map((r) => <RoomCard key={r.tag} r={r} />)}
@@ -66,16 +66,16 @@ function RoomCard({
   };
 }) {
   return (
-    <Link href={`/app/rooms/${encodeURIComponent(r.tag)}`} className="block rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition-shadow hover:shadow-md" data-testid={`room-${r.tag}`}>
+    <Link href={`/app/rooms/${encodeURIComponent(r.tag)}`} className="block rounded-xl border border-border bg-card p-4 shadow-sm transition-shadow hover:shadow-md" data-testid={`room-${r.tag}`}>
         <div className="flex items-center gap-3">
           <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-gradient-to-br from-violet-500 to-pink-500 text-white">
             <Hash className="h-6 w-6" />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="truncate text-base font-semibold text-slate-900">
+            <p className="truncate text-base font-semibold text-foreground">
               #{r.tag}
             </p>
-            <p className="flex items-center gap-3 text-xs text-slate-500">
+            <p className="flex items-center gap-3 text-xs text-muted-foreground">
               <span className="inline-flex items-center gap-1">
                 <Users className="h-3 w-3" /> {r.memberCount}
               </span>
@@ -83,7 +83,7 @@ function RoomCard({
                 <MessageCircle className="h-3 w-3" /> {r.messageCount}
               </span>
               {r.recentMessages > 0 && (
-                <span className="rounded-full bg-pink-100 px-1.5 py-0.5 text-pink-700">
+                <span className="rounded-full bg-pink-500/15 px-1.5 py-0.5 text-pink-500">
                   {r.recentMessages} new
                 </span>
               )}
@@ -91,8 +91,8 @@ function RoomCard({
           </div>
         </div>
         {r.lastMessage && (
-          <p className="mt-3 line-clamp-2 text-sm text-slate-600">
-            <span className="font-medium text-slate-900">
+          <p className="mt-3 line-clamp-2 text-sm text-muted-foreground">
+            <span className="font-medium text-foreground">
               {r.lastMessage.senderName}:
             </span>{" "}
             {r.lastMessage.content}

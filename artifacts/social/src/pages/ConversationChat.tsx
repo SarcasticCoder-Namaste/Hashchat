@@ -1,22 +1,28 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "wouter";
+import { useUser } from "@clerk/react";
 import {
   useGetConversationMessages,
   useSendConversationMessage,
   useGetConversations,
   getGetConversationMessagesQueryKey,
   getGetConversationsQueryKey,
+  type Message,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { ArrowLeft, Send, Loader2, Hash } from "lucide-react";
+import { MessageBubble } from "@/components/MessageBubble";
+import { ArrowLeft, Send, Loader2, Hash, X, Reply } from "lucide-react";
 
 export default function ConversationChat({ id }: { id: number }) {
   const qc = useQueryClient();
+  const { user: clerkUser } = useUser();
   const [draft, setDraft] = useState("");
+  const [replyTo, setReplyTo] = useState<Message | null>(null);
   const scrollerRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const convs = useGetConversations();
   const conv = convs.data?.find((c) => c.id === id);
@@ -27,13 +33,17 @@ export default function ConversationChat({ id }: { id: number }) {
       refetchInterval: 2500,
     },
   });
+
+  function invalidateMessages() {
+    qc.invalidateQueries({ queryKey: getGetConversationMessagesQueryKey(id) });
+  }
+
   const send = useSendConversationMessage({
     mutation: {
       onSuccess: () => {
         setDraft("");
-        qc.invalidateQueries({
-          queryKey: getGetConversationMessagesQueryKey(id),
-        });
+        setReplyTo(null);
+        invalidateMessages();
         qc.invalidateQueries({ queryKey: getGetConversationsQueryKey() });
       },
     },
@@ -46,11 +56,24 @@ export default function ConversationChat({ id }: { id: number }) {
     });
   }, [msgs.data?.length]);
 
+  useEffect(() => {
+    setReplyTo(null);
+    setDraft("");
+  }, [id]);
+
   function submit(e: React.FormEvent) {
     e.preventDefault();
     const content = draft.trim();
     if (!content || send.isPending) return;
-    send.mutate({ id, data: { content } });
+    send.mutate({
+      id,
+      data: { content, replyToId: replyTo?.id ?? null },
+    });
+  }
+
+  function startReply(m: Message) {
+    setReplyTo(m);
+    setTimeout(() => inputRef.current?.focus(), 0);
   }
 
   const initials =
@@ -63,10 +86,14 @@ export default function ConversationChat({ id }: { id: number }) {
 
   return (
     <div className="flex h-[calc(100dvh-58px)] flex-col md:h-[100dvh]">
-      <header className="flex items-center gap-3 border-b border-slate-200 bg-white px-4 py-3">
-        <Link href="/app/messages" className="text-slate-500 hover:text-slate-900" data-testid="link-back-messages">
-            <ArrowLeft className="h-5 w-5" />
-          </Link>
+      <header className="flex items-center gap-3 border-b border-border bg-card px-4 py-3">
+        <Link
+          href="/app/messages"
+          className="text-muted-foreground hover:text-foreground"
+          data-testid="link-back-messages"
+        >
+          <ArrowLeft className="h-5 w-5" />
+        </Link>
         {conv ? (
           <>
             <Avatar className="h-10 w-10">
@@ -76,15 +103,23 @@ export default function ConversationChat({ id }: { id: number }) {
                   alt={conv.otherUser.displayName}
                 />
               ) : null}
-              <AvatarFallback className="bg-violet-200 text-violet-700">
+              <AvatarFallback className="bg-primary/15 text-primary">
                 {initials}
               </AvatarFallback>
             </Avatar>
             <div className="min-w-0 flex-1">
-              <p className="truncate text-base font-semibold text-slate-900">
-                {conv.otherUser.displayName}
-              </p>
-              <p className="truncate text-xs text-slate-500">
+              <div className="flex items-center gap-2">
+                <p className="truncate text-base font-semibold text-foreground">
+                  {conv.otherUser.displayName}
+                </p>
+                {conv.otherUser.featuredHashtag && (
+                  <span className="inline-flex items-center gap-0.5 rounded-full bg-accent px-1.5 py-0.5 text-[10px] font-medium text-accent-foreground">
+                    <Hash className="h-2.5 w-2.5" />
+                    {conv.otherUser.featuredHashtag}
+                  </span>
+                )}
+              </div>
+              <p className="truncate text-xs text-muted-foreground">
                 @{conv.otherUser.username}
               </p>
             </div>
@@ -93,7 +128,7 @@ export default function ConversationChat({ id }: { id: number }) {
                 {conv.otherUser.sharedHashtags.slice(0, 3).map((t) => (
                   <span
                     key={t}
-                    className="inline-flex items-center gap-0.5 rounded-full bg-violet-100 px-2 py-0.5 text-xs font-medium text-violet-700"
+                    className="inline-flex items-center gap-0.5 rounded-full bg-accent px-2 py-0.5 text-xs font-medium text-accent-foreground"
                   >
                     <Hash className="h-3 w-3" />
                     {t}
@@ -103,59 +138,37 @@ export default function ConversationChat({ id }: { id: number }) {
             )}
           </>
         ) : (
-          <p className="text-sm text-slate-500">Loading…</p>
+          <p className="text-sm text-muted-foreground">Loading…</p>
         )}
       </header>
 
       <div
         ref={scrollerRef}
-        className="flex-1 overflow-y-auto bg-slate-50 px-4 py-6"
+        className="flex-1 overflow-y-auto bg-background px-4 py-6"
         data-testid="conv-message-list"
       >
         {msgs.isLoading ? (
           <div className="flex h-full items-center justify-center">
-            <Loader2 className="h-5 w-5 animate-spin text-slate-400" />
+            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground/70" />
           </div>
         ) : msgs.data && msgs.data.length > 0 ? (
-          <div className="mx-auto flex max-w-2xl flex-col gap-2">
+          <div className="mx-auto flex max-w-2xl flex-col gap-3">
             {msgs.data.map((m) => {
-              const mine = m.senderId !== conv?.otherUser.id;
+              const mine = m.senderId === clerkUser?.id;
               return (
-                <div
+                <MessageBubble
                   key={m.id}
-                  className={[
-                    "flex",
-                    mine ? "justify-end" : "justify-start",
-                  ].join(" ")}
-                  data-testid={`dm-${m.id}`}
-                >
-                  <div
-                    className={[
-                      "max-w-[78%] rounded-2xl px-3.5 py-2 text-sm shadow-sm",
-                      mine
-                        ? "rounded-br-md bg-violet-600 text-white"
-                        : "rounded-bl-md bg-white text-slate-800",
-                    ].join(" ")}
-                  >
-                    <p className="break-words">{m.content}</p>
-                    <p
-                      className={[
-                        "mt-1 text-[10px]",
-                        mine ? "text-violet-100" : "text-slate-400",
-                      ].join(" ")}
-                    >
-                      {new Date(m.createdAt).toLocaleTimeString([], {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                    </p>
-                  </div>
-                </div>
+                  message={m}
+                  variant="dm"
+                  isMine={mine}
+                  onReply={startReply}
+                  onInvalidate={invalidateMessages}
+                />
               );
             })}
           </div>
         ) : (
-          <div className="flex h-full items-center justify-center text-slate-500">
+          <div className="flex h-full items-center justify-center text-muted-foreground">
             Say hi to start the conversation 👋
           </div>
         )}
@@ -163,26 +176,53 @@ export default function ConversationChat({ id }: { id: number }) {
 
       <form
         onSubmit={submit}
-        className="flex items-center gap-2 border-t border-slate-200 bg-white p-3"
+        className="flex flex-col gap-2 border-t border-border bg-card p-3"
       >
-        <Input
-          placeholder="Type a message…"
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          data-testid="input-dm-message"
-        />
-        <Button
-          type="submit"
-          disabled={!draft.trim() || send.isPending}
-          className="bg-violet-600 hover:bg-violet-700"
-          data-testid="button-send-dm"
-        >
-          {send.isPending ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <Send className="h-4 w-4" />
-          )}
-        </Button>
+        {replyTo && (
+          <div
+            className="flex items-start gap-2 rounded-lg border-l-2 border-primary bg-muted px-3 py-2 text-xs"
+            data-testid="reply-preview"
+          >
+            <Reply className="mt-0.5 h-3.5 w-3.5 text-primary" />
+            <div className="min-w-0 flex-1">
+              <p className="font-medium text-foreground">
+                Replying to {replyTo.senderName}
+              </p>
+              <p className="line-clamp-1 text-muted-foreground">
+                {replyTo.content}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setReplyTo(null)}
+              className="text-muted-foreground hover:text-foreground"
+              data-testid="button-cancel-reply"
+              aria-label="Cancel reply"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        )}
+        <div className="flex items-center gap-2">
+          <Input
+            ref={inputRef}
+            placeholder="Type a message…"
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            data-testid="input-dm-message"
+          />
+          <Button
+            type="submit"
+            disabled={!draft.trim() || send.isPending}
+            data-testid="button-send-dm"
+          >
+            {send.isPending ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Send className="h-4 w-4" />
+            )}
+          </Button>
+        </div>
       </form>
     </div>
   );

@@ -55,14 +55,14 @@ export default function Trending() {
   return (
     <div className="mx-auto max-w-3xl space-y-6 px-4 py-6 md:px-8 md:py-10">
       <div>
-        <h1 className="text-3xl font-bold text-slate-900">Trending hashtags</h1>
-        <p className="mt-1 text-slate-600">
+        <h1 className="text-3xl font-bold text-foreground">Trending hashtags</h1>
+        <p className="mt-1 text-muted-foreground">
           Follow tags to keep up with the action and get smart matches.
         </p>
       </div>
 
       <div className="relative">
-        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/70" />
         <Input
           className="pl-9"
           placeholder="Search hashtags…"
@@ -74,12 +74,12 @@ export default function Trending() {
 
       {followed.data && followed.data.length > 0 && !trimmed && (
         <section>
-          <p className="mb-2 text-sm font-medium text-slate-700">
+          <p className="mb-2 text-sm font-medium text-foreground">
             You're following
           </p>
           <div className="flex flex-wrap gap-2">
             {followed.data.map((f) => (
-              <Link key={f.tag} href={`/app/rooms/${encodeURIComponent(f.tag)}`} className="inline-flex items-center gap-1 rounded-full bg-violet-100 px-3 py-1.5 text-sm font-medium text-violet-700 hover:bg-violet-200" data-testid={`followed-${f.tag}`}>
+              <Link key={f.tag} href={`/app/rooms/${encodeURIComponent(f.tag)}`} className="inline-flex items-center gap-1 rounded-full bg-primary/15 px-3 py-1.5 text-sm font-medium text-primary hover:bg-primary/25" data-testid={`followed-${f.tag}`}>
                   <Hash className="h-3.5 w-3.5" /> {f.tag}
                 </Link>
             ))}
@@ -87,19 +87,19 @@ export default function Trending() {
         </section>
       )}
 
-      <section className="rounded-xl border border-slate-200 bg-white">
-        <div className="flex items-center gap-2 border-b border-slate-100 p-4">
+      <section className="rounded-xl border border-border bg-card">
+        <div className="flex items-center gap-2 border-b border-border p-4">
           <TrendingUp className="h-4 w-4 text-pink-600" />
-          <p className="text-sm font-semibold text-slate-700">
+          <p className="text-sm font-semibold text-foreground">
             {trimmed ? `Results for "${trimmed}"` : "Hot right now"}
           </p>
         </div>
         {loading ? (
-          <div className="p-8 text-center text-slate-500">
+          <div className="p-8 text-center text-muted-foreground">
             <Loader2 className="mx-auto h-5 w-5 animate-spin" />
           </div>
         ) : list && list.length > 0 ? (
-          <ul className="divide-y divide-slate-100">
+          <ul className="divide-y divide-border">
             {list.map((t) => {
               const isFollowed = followedSet.has(t.tag);
               const recent =
@@ -117,10 +117,10 @@ export default function Trending() {
                         <Hash className="h-5 w-5" />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="truncate font-semibold text-slate-900">
+                        <p className="truncate font-semibold text-foreground">
                           #{t.tag}
                         </p>
-                        <p className="text-xs text-slate-500">
+                        <p className="text-xs text-muted-foreground">
                           {t.memberCount} members · {t.messageCount} messages
                           {recent > 0 ? ` · ${recent} new` : ""}
                         </p>
@@ -150,13 +150,13 @@ export default function Trending() {
             })}
           </ul>
         ) : (
-          <div className="p-8 text-center text-slate-500">
+          <div className="p-8 text-center text-muted-foreground">
             {trimmed ? "No matches." : "Nothing trending yet."}
           </div>
         )}
         {trimmed && list && (
-          <div className="border-t border-slate-100 p-3">
-            <Link href={`/app/rooms/${encodeURIComponent(trimmed.toLowerCase().replace(/^#/, ""))}`} className="text-sm font-medium text-violet-700 hover:underline" data-testid="link-jump-tag">
+          <div className="border-t border-border p-3">
+            <Link href={`/app/rooms/${encodeURIComponent(trimmed.toLowerCase().replace(/^#/, ""))}`} className="text-sm font-medium text-primary hover:underline" data-testid="link-jump-tag">
                 Jump to #{trimmed.toLowerCase().replace(/^#/, "")} →
               </Link>
           </div>

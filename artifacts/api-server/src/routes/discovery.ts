@@ -2,6 +2,7 @@ import { Router, type IRouter } from "express";
 import { db, usersTable, userHashtagsTable } from "@workspace/db";
 import { sql, eq, inArray, ne } from "drizzle-orm";
 import { requireAuth, getUserId } from "../middlewares/requireAuth";
+import { loadFriendStatuses } from "./friends";
 
 const router: IRouter = Router();
 
@@ -66,6 +67,8 @@ router.get("/discover/people", requireAuth, async (req, res): Promise<void> => {
   }
   const myTagSet = new Set(myTags);
 
+  const friendMap = await loadFriendStatuses(getUserId(req), candidateIds);
+
   const result = users.map((u) => {
     const tags = tagMap.get(u.id) ?? [];
     const shared = tags.filter((t) => myTagSet.has(t));
@@ -76,10 +79,12 @@ router.get("/discover/people", requireAuth, async (req, res): Promise<void> => {
       bio: u.bio,
       avatarUrl: u.avatarUrl,
       status: u.status,
+      featuredHashtag: u.featuredHashtag,
       hashtags: tags,
       sharedHashtags: shared,
       matchScore:
         shared.length * 10 + (tags.length > 0 ? Math.min(tags.length, 5) : 0),
+      friendStatus: friendMap.get(u.id) ?? "none",
     };
   });
   result.sort((a, b) => b.matchScore - a.matchScore);

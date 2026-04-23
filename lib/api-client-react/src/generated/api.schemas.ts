@@ -18,6 +18,8 @@ export interface User {
   /** @nullable */
   avatarUrl?: string | null;
   status: string;
+  /** @nullable */
+  featuredHashtag?: string | null;
   hashtags: string[];
   followedHashtags: string[];
   createdAt: string;
@@ -30,6 +32,8 @@ export interface UpdateUserBody {
   /** @nullable */
   avatarUrl?: string | null;
   status?: string;
+  /** @nullable */
+  featuredHashtag?: string | null;
 }
 
 export interface SetHashtagsBody {
@@ -61,9 +65,16 @@ export interface MatchUser {
   /** @nullable */
   avatarUrl?: string | null;
   status: string;
+  /** @nullable */
+  featuredHashtag?: string | null;
   hashtags: string[];
   sharedHashtags: string[];
   matchScore: number;
+  /**
+   * One of: friends, request_sent, request_received, none
+   * @nullable
+   */
+  friendStatus?: string | null;
 }
 
 export interface HashtagDetail {
@@ -75,6 +86,11 @@ export interface HashtagDetail {
   isFollowed: boolean;
   topMembers: MatchUser[];
   relatedHashtags: string[];
+}
+
+export interface FriendRequestList {
+  incoming: MatchUser[];
+  outgoing: MatchUser[];
 }
 
 export interface Reaction {

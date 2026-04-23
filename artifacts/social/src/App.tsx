@@ -6,6 +6,7 @@ import {
   Show,
   useClerk,
 } from "@clerk/react";
+import { dark } from "@clerk/themes";
 import {
   Switch,
   Route,
@@ -14,9 +15,12 @@ import {
   Router as WouterRouter,
 } from "wouter";
 import { QueryClientProvider, useQueryClient } from "@tanstack/react-query";
+import { useTheme } from "next-themes";
 import { queryClient } from "@/lib/queryClient";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { ThemeProvider } from "@/components/ThemeProvider";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import Landing from "@/pages/Landing";
 import Onboarding from "@/pages/Onboarding";
 import Discover from "@/pages/Discover";
@@ -26,6 +30,7 @@ import RoomChat from "@/pages/RoomChat";
 import Conversations from "@/pages/Conversations";
 import ConversationChat from "@/pages/ConversationChat";
 import Profile from "@/pages/Profile";
+import Friends from "@/pages/Friends";
 import NotFound from "@/pages/not-found";
 import AppShell from "@/components/AppShell";
 
@@ -48,16 +53,9 @@ if (!clerkPubKey) {
   throw new Error("Missing VITE_CLERK_PUBLISHABLE_KEY");
 }
 
-const clerkAppearance = {
+const baseClerkAppearance = {
   variables: {
     colorPrimary: "#7C3AED",
-    colorForeground: "#0F172A",
-    colorMutedForeground: "#64748B",
-    colorBackground: "#FFFFFF",
-    colorInput: "#FFFFFF",
-    colorInputForeground: "#0F172A",
-    colorNeutral: "#E2E8F0",
-    colorDanger: "#DC2626",
     fontFamily:
       'ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif',
     borderRadius: "0.75rem",
@@ -69,27 +67,47 @@ const clerkAppearance = {
   },
 };
 
+function ClerkAuthCard({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="relative flex min-h-[100dvh] items-center justify-center overflow-hidden bg-background px-4 py-10">
+      <div className="absolute inset-0 -z-10 bg-gradient-to-br from-violet-500/15 via-background to-pink-500/15" />
+      <div
+        className="absolute -top-32 -left-32 -z-10 h-96 w-96 rounded-full bg-violet-500/20 blur-3xl"
+        aria-hidden="true"
+      />
+      <div
+        className="absolute -bottom-32 -right-32 -z-10 h-96 w-96 rounded-full bg-pink-500/20 blur-3xl"
+        aria-hidden="true"
+      />
+      <div className="absolute right-4 top-4 z-10">
+        <ThemeToggle />
+      </div>
+      {children}
+    </div>
+  );
+}
+
 function SignInPage() {
   return (
-    <div className="flex min-h-[100dvh] items-center justify-center bg-gradient-to-br from-violet-50 via-white to-pink-50 px-4 py-10">
+    <ClerkAuthCard>
       <SignIn
         routing="path"
         path={`${basePath}/sign-in`}
         signUpUrl={`${basePath}/sign-up`}
       />
-    </div>
+    </ClerkAuthCard>
   );
 }
 
 function SignUpPage() {
   return (
-    <div className="flex min-h-[100dvh] items-center justify-center bg-gradient-to-br from-violet-50 via-white to-pink-50 px-4 py-10">
+    <ClerkAuthCard>
       <SignUp
         routing="path"
         path={`${basePath}/sign-up`}
         signInUrl={`${basePath}/sign-in`}
       />
-    </div>
+    </ClerkAuthCard>
   );
 }
 
@@ -143,12 +161,18 @@ function ClerkQueryClientCacheInvalidator() {
 
 function ClerkProviderWithRoutes() {
   const [, setLocation] = useLocation();
+  const { resolvedTheme } = useTheme();
+
+  const appearance = {
+    ...baseClerkAppearance,
+    baseTheme: resolvedTheme === "dark" ? dark : undefined,
+  };
 
   return (
     <ClerkProvider
       publishableKey={clerkPubKey!}
       proxyUrl={clerkProxyUrl}
-      appearance={clerkAppearance}
+      appearance={appearance}
       signInUrl={`${basePath}/sign-in`}
       signUpUrl={`${basePath}/sign-up`}
       localization={{
@@ -214,10 +238,18 @@ function ClerkProviderWithRoutes() {
                 </ProtectedShell>
               )}
             </Route>
-            <Route path="/app/profile">
+            <Route path="/app/friends">
+              <ProtectedShell>
+                <Friends />
+              </ProtectedShell>
+            </Route>
+            <Route path="/app/settings">
               <ProtectedShell>
                 <Profile />
               </ProtectedShell>
+            </Route>
+            <Route path="/app/profile">
+              <Redirect to="/app/settings" />
             </Route>
             <Route component={NotFound} />
           </Switch>
@@ -230,9 +262,11 @@ function ClerkProviderWithRoutes() {
 
 function App() {
   return (
-    <WouterRouter base={basePath}>
-      <ClerkProviderWithRoutes />
-    </WouterRouter>
+    <ThemeProvider>
+      <WouterRouter base={basePath}>
+        <ClerkProviderWithRoutes />
+      </WouterRouter>
+    </ThemeProvider>
   );
 }
 

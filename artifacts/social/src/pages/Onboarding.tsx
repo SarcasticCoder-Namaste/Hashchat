@@ -60,23 +60,23 @@ export default function Onboarding() {
     <div className="mx-auto max-w-3xl px-6 py-12">
       <div className="flex items-center gap-2">
         <img src={`${basePath}/logo.svg`} alt="HashChat" className="h-8 w-8" />
-        <span className="text-lg font-bold text-slate-900">HashChat</span>
+        <span className="text-lg font-bold text-foreground">HashChat</span>
       </div>
       <div className="mt-8">
-        <div className="inline-flex items-center gap-2 rounded-full border border-violet-200 bg-white px-3 py-1 text-xs font-medium text-violet-700">
+        <div className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-card px-3 py-1 text-xs font-medium text-primary">
           <Sparkles className="h-3.5 w-3.5" /> Step 1 of 1
         </div>
-        <h1 className="mt-4 text-3xl font-bold text-slate-900 md:text-4xl">
+        <h1 className="mt-4 text-3xl font-bold text-foreground md:text-4xl">
           What are you into?
         </h1>
-        <p className="mt-2 text-slate-600">
+        <p className="mt-2 text-muted-foreground">
           Pick at least 3 hashtags. We'll match you with people and rooms that share
           your interests.
         </p>
       </div>
 
-      <div className="mt-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <p className="text-sm font-medium text-slate-700">
+      <div className="mt-8 rounded-2xl border border-border bg-card p-6 shadow-sm">
+        <p className="text-sm font-medium text-foreground">
           {picked.length} selected
         </p>
         <div className="mt-3 flex flex-wrap gap-2">
@@ -91,8 +91,8 @@ export default function Onboarding() {
                 className={[
                   "inline-flex items-center gap-1 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors",
                   active
-                    ? "border-violet-600 bg-violet-600 text-white"
-                    : "border-slate-200 bg-white text-slate-700 hover:border-violet-300 hover:text-violet-700",
+                    ? "border-primary bg-primary text-white"
+                    : "border-border bg-card text-foreground hover:border-primary/50 hover:text-primary",
                 ].join(" ")}
               >
                 <Hash className="h-3.5 w-3.5" />
@@ -101,7 +101,7 @@ export default function Onboarding() {
                   <span
                     className={[
                       "ml-1 text-xs",
-                      active ? "text-violet-100" : "text-slate-400",
+                      active ? "text-primary-foreground/80" : "text-muted-foreground/70",
                     ].join(" ")}
                   >
                     {memberCount}
@@ -111,7 +111,7 @@ export default function Onboarding() {
             );
           })}
           {!suggested && (
-            <div className="h-24 w-full animate-pulse rounded-lg bg-slate-100" />
+            <div className="h-24 w-full animate-pulse rounded-lg bg-muted" />
           )}
         </div>
 
@@ -139,7 +139,7 @@ export default function Onboarding() {
         </div>
 
         <div className="mt-8 flex items-center justify-between">
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-muted-foreground">
             {canSave
               ? "Looking good. Let's go!"
               : `Pick ${3 - picked.length} more to continue.`}
@@ -147,7 +147,7 @@ export default function Onboarding() {
           <Button
             disabled={!canSave || setMine.isPending}
             onClick={() => setMine.mutate({ data: { hashtags: picked } })}
-            className="bg-violet-600 hover:bg-violet-700"
+            className="bg-primary hover:bg-primary/90"
             data-testid="button-save-tags"
           >
             {setMine.isPending && (

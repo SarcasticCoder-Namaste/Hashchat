@@ -14,6 +14,7 @@ tags:
   - name: conversations
   - name: messages
   - name: rooms
+  - name: friends
 paths:
   /healthz:
     get:
@@ -401,6 +402,95 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/Message" }
 
+  /me/friends:
+    get:
+      operationId: getMyFriends
+      tags: [friends]
+      summary: List my accepted friends
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/MatchUser" }
+
+  /me/friends/requests:
+    get:
+      operationId: getFriendRequests
+      tags: [friends]
+      summary: List incoming and outgoing friend requests
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FriendRequestList" }
+
+  /users/{id}/friend-request:
+    post:
+      operationId: sendFriendRequest
+      tags: [friends]
+      summary: Send a friend request to a user
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "204": { description: No content }
+    delete:
+      operationId: cancelFriendRequest
+      tags: [friends]
+      summary: Cancel a pending outgoing friend request
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "204": { description: No content }
+
+  /me/friends/{id}/accept:
+    post:
+      operationId: acceptFriendRequest
+      tags: [friends]
+      summary: Accept an incoming friend request
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "204": { description: No content }
+
+  /me/friends/{id}/decline:
+    post:
+      operationId: declineFriendRequest
+      tags: [friends]
+      summary: Decline an incoming friend request
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "204": { description: No content }
+
+  /me/friends/{id}:
+    delete:
+      operationId: unfriend
+      tags: [friends]
+      summary: Remove an existing friendship
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "204": { description: No content }
+
   /stats/overview:
     get:
       operationId: getOverviewStats
@@ -432,6 +522,8 @@ components:
         avatarUrl:
           type: ["string", "null"]
         status: { type: string }
+        featuredHashtag:
+          type: ["string", "null"]
         hashtags:
           type: array
           items: { type: string }
@@ -450,6 +542,8 @@ components:
         avatarUrl:
           type: ["string", "null"]
         status: { type: string }
+        featuredHashtag:
+          type: ["string", "null"]
 
     SetHashtagsBody:
       type: object
@@ -507,6 +601,8 @@ components:
         avatarUrl:
           type: ["string", "null"]
         status: { type: string }
+        featuredHashtag:
+          type: ["string", "null"]
         hashtags:
           type: array
           items: { type: string }
@@ -514,7 +610,21 @@ components:
           type: array
           items: { type: string }
         matchScore: { type: number }
+        friendStatus:
+          type: ["string", "null"]
+          description: "One of: friends, request_sent, request_received, none"
       required: [id, username, displayName, status, hashtags, sharedHashtags, matchScore]
+
+    FriendRequestList:
+      type: object
+      properties:
+        incoming:
+          type: array
+          items: { $ref: "#/components/schemas/MatchUser" }
+        outgoing:
+          type: array
+          items: { $ref: "#/components/schemas/MatchUser" }
+      required: [incoming, outgoing]
 
     Conversation:
       type: object

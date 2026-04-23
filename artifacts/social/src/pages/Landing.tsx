@@ -10,11 +10,11 @@ export default function Landing() {
   const { data: trending } = useGetTrendingHashtags({ limit: 8 });
 
   return (
-    <div className="min-h-[100dvh] bg-gradient-to-br from-violet-50 via-white to-pink-50">
+    <div className="min-h-[100dvh] bg-gradient-to-br from-violet-500/10 via-background to-pink-500/10">
       <header className="mx-auto flex max-w-6xl items-center justify-between px-6 py-5">
         <Link href="/" className="flex items-center gap-2" data-testid="link-landing-logo">
             <img src={`${basePath}/logo.svg`} alt="HashChat" className="h-9 w-9" />
-            <span className="text-xl font-bold tracking-tight text-slate-900">
+            <span className="text-xl font-bold tracking-tight text-foreground">
               HashChat
             </span>
           </Link>
@@ -23,7 +23,7 @@ export default function Landing() {
               <Button variant="ghost" data-testid="link-signin">Sign in</Button>
             </Link>
           <Link href="/sign-up">
-              <Button data-testid="link-signup" className="bg-violet-600 hover:bg-violet-700">
+              <Button data-testid="link-signup" className="bg-primary hover:bg-primary/90">
                 Get started
               </Button>
             </Link>
@@ -33,24 +33,24 @@ export default function Landing() {
       <section className="mx-auto max-w-6xl px-6 pt-12 pb-16 md:pt-20 md:pb-24">
         <div className="grid items-center gap-10 md:grid-cols-2">
           <div>
-            <div className="inline-flex items-center gap-2 rounded-full border border-violet-200 bg-white px-3 py-1 text-xs font-medium text-violet-700 shadow-sm">
+            <div className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-card px-3 py-1 text-xs font-medium text-primary shadow-sm">
               <Sparkles className="h-3.5 w-3.5" />
               Hashtag-driven social chat
             </div>
-            <h1 className="mt-5 text-4xl font-bold tracking-tight text-slate-900 md:text-6xl">
+            <h1 className="mt-5 text-4xl font-bold tracking-tight text-foreground md:text-6xl">
               Find your tribe through{" "}
               <span className="bg-gradient-to-r from-violet-600 to-pink-600 bg-clip-text text-transparent">
                 #hashtags
               </span>
               .
             </h1>
-            <p className="mt-5 max-w-xl text-lg text-slate-600">
+            <p className="mt-5 max-w-xl text-lg text-muted-foreground">
               Pick the topics you love. We'll match you with like-minded people, drop
               you into the right rooms, and keep you in the loop on what's trending.
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-3">
               <Link href="/sign-up">
-                  <Button size="lg" className="bg-violet-600 hover:bg-violet-700" data-testid="cta-signup">
+                  <Button size="lg" className="bg-primary hover:bg-primary/90" data-testid="cta-signup">
                     Start chatting <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
                 </Link>
@@ -70,14 +70,14 @@ export default function Landing() {
             )}
           </div>
 
-          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xl shadow-violet-100">
-            <p className="text-sm font-semibold text-slate-900">Trending right now</p>
-            <p className="text-xs text-slate-500">Hot rooms across HashChat</p>
+          <div className="rounded-2xl border border-border bg-card p-6 shadow-xl shadow-primary/10">
+            <p className="text-sm font-semibold text-foreground">Trending right now</p>
+            <p className="text-xs text-muted-foreground">Hot rooms across HashChat</p>
             <div className="mt-4 flex flex-wrap gap-2">
               {trending?.map((t) => (
                 <span
                   key={t.tag}
-                  className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-violet-100 to-pink-100 px-3 py-1.5 text-sm font-medium text-violet-800"
+                  className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-violet-500/20 to-pink-500/20 px-3 py-1.5 text-sm font-medium text-primary"
                   data-testid={`landing-trend-${t.tag}`}
                 >
                   <Hash className="h-3.5 w-3.5" />
@@ -88,7 +88,7 @@ export default function Landing() {
                 </span>
               ))}
               {!trending && (
-                <div className="h-32 w-full animate-pulse rounded-lg bg-slate-100" />
+                <div className="h-32 w-full animate-pulse rounded-lg bg-muted" />
               )}
             </div>
             <div className="mt-6 grid grid-cols-2 gap-3">
@@ -130,12 +130,12 @@ function Stat({
   icon: React.ReactNode;
 }) {
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-3" data-testid={`stat-${label.toLowerCase()}`}>
-      <div className="flex items-center gap-1.5 text-slate-500">
+    <div className="rounded-lg border border-border bg-card p-3" data-testid={`stat-${label.toLowerCase()}`}>
+      <div className="flex items-center gap-1.5 text-muted-foreground">
         {icon}
         <span className="text-xs">{label}</span>
       </div>
-      <p className="mt-1 text-xl font-bold text-slate-900">
+      <p className="mt-1 text-xl font-bold text-foreground">
         {value.toLocaleString()}
       </p>
     </div>
@@ -152,12 +152,12 @@ function FeatureCard({
   icon: React.ReactNode;
 }) {
   return (
-    <div className="rounded-lg border border-slate-200 p-3">
-      <div className="flex items-center gap-2 text-violet-700">
+    <div className="rounded-lg border border-border p-3">
+      <div className="flex items-center gap-2 text-primary">
         {icon}
-        <p className="text-sm font-semibold text-slate-900">{title}</p>
+        <p className="text-sm font-semibold text-foreground">{title}</p>
       </div>
-      <p className="mt-1 text-xs text-slate-500">{desc}</p>
+      <p className="mt-1 text-xs text-muted-foreground">{desc}</p>
     </div>
   );
 }

@@ -7,6 +7,7 @@ import conversationsRouter from "./conversations";
 import messagesRouter from "./messages";
 import roomsRouter from "./rooms";
 import statsRouter from "./stats";
+import friendsRouter from "./friends";
 
 const router: IRouter = Router();
 
@@ -18,5 +19,6 @@ router.use(conversationsRouter);
 router.use(messagesRouter);
 router.use(roomsRouter);
 router.use(statsRouter);
+router.use(friendsRouter);
 
 export default router;

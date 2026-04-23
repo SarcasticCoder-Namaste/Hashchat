@@ -16,6 +16,7 @@ export const usersTable = pgTable("users", {
   bio: text("bio"),
   avatarUrl: text("avatar_url"),
   status: text("status").notNull().default("online"),
+  featuredHashtag: text("featured_hashtag"),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
@@ -139,6 +140,27 @@ export const reactionsTable = pgTable(
   (t) => [primaryKey({ columns: [t.messageId, t.userId, t.emoji] })],
 );
 
+export const friendshipsTable = pgTable(
+  "friendships",
+  {
+    requesterId: text("requester_id")
+      .notNull()
+      .references(() => usersTable.id, { onDelete: "cascade" }),
+    addresseeId: text("addressee_id")
+      .notNull()
+      .references(() => usersTable.id, { onDelete: "cascade" }),
+    status: text("status").notNull().default("pending"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.requesterId, t.addresseeId] })],
+);
+
+export type Friendship = typeof friendshipsTable.$inferSelect;
 export type User = typeof usersTable.$inferSelect;
 export type Hashtag = typeof hashtagsTable.$inferSelect;
 export type UserHashtag = typeof userHashtagsTable.$inferSelect;

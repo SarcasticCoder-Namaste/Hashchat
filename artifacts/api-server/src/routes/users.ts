@@ -29,6 +29,7 @@ async function loadUser(userId: string) {
     bio: user.bio,
     avatarUrl: user.avatarUrl,
     status: user.status,
+    featuredHashtag: user.featuredHashtag,
     hashtags: tags.map((t) => t.tag),
     followedHashtags: followed.map((t) => t.tag),
     createdAt: user.createdAt.toISOString(),
@@ -55,6 +56,8 @@ router.patch("/me", requireAuth, async (req, res): Promise<void> => {
   if (parsed.data.bio !== undefined) updates.bio = parsed.data.bio;
   if (parsed.data.avatarUrl !== undefined) updates.avatarUrl = parsed.data.avatarUrl;
   if (parsed.data.status !== undefined) updates.status = parsed.data.status;
+  if (parsed.data.featuredHashtag !== undefined)
+    updates.featuredHashtag = parsed.data.featuredHashtag;
   if (Object.keys(updates).length > 0) {
     await db.update(usersTable).set(updates).where(eq(usersTable.id, getUserId(req)));
   }

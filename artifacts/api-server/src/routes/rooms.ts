@@ -8,7 +8,7 @@ import {
   usersTable,
   reactionsTable,
 } from "@workspace/db";
-import { and, desc, eq, inArray, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, or, sql } from "drizzle-orm";
 import { requireAuth, getUserId } from "../middlewares/requireAuth";
 import { SendRoomMessageBody } from "@workspace/api-zod";
 import { normalizeTag } from "../lib/hashtags";
@@ -27,11 +27,18 @@ async function buildMessages(rows: { id: number; conversationId: number | null; 
   const replyIds = rows.map((r) => r.replyToId).filter((v): v is number => v !== null);
   const replyMap = new Map<number, string>();
   if (replyIds.length > 0) {
-    const replies = await db
-      .select({ id: messagesTable.id, content: messagesTable.content })
-      .from(messagesTable)
-      .where(inArray(messagesTable.id, replyIds));
-    for (const r of replies) replyMap.set(r.id, r.content);
+    const conversationIds = Array.from(new Set(rows.map((r) => r.conversationId).filter((v): v is number => v !== null)));
+    const roomTags = Array.from(new Set(rows.map((r) => r.roomTag).filter((v): v is string => v !== null)));
+    const scopeFilters = [];
+    if (conversationIds.length > 0) scopeFilters.push(inArray(messagesTable.conversationId, conversationIds));
+    if (roomTags.length > 0) scopeFilters.push(inArray(messagesTable.roomTag, roomTags));
+    if (scopeFilters.length > 0) {
+      const replies = await db
+        .select({ id: messagesTable.id, content: messagesTable.content })
+        .from(messagesTable)
+        .where(and(inArray(messagesTable.id, replyIds), or(...scopeFilters)));
+      for (const r of replies) replyMap.set(r.id, r.content);
+    }
   }
 
   const messageIds = rows.map((r) => r.id);
@@ -201,13 +208,25 @@ router.post("/rooms/:tag/messages", requireAuth, async (req, res): Promise<void>
     return;
   }
   await db.insert(hashtagsTable).values({ tag }).onConflictDoNothing();
+  const replyToId = parsed.data.replyToId ?? null;
+  if (replyToId !== null) {
+    const [refMsg] = await db
+      .select({ id: messagesTable.id, roomTag: messagesTable.roomTag })
+      .from(messagesTable)
+      .where(eq(messagesTable.id, replyToId))
+      .limit(1);
+    if (!refMsg || refMsg.roomTag !== tag) {
+      res.status(400).json({ error: "Invalid replyToId" });
+      return;
+    }
+  }
   const [created] = await db
     .insert(messagesTable)
     .values({
       roomTag: tag,
       senderId: getUserId(req),
       content: parsed.data.content,
-      replyToId: parsed.data.replyToId ?? null,
+      replyToId,
     })
     .returning();
   const [built] = await buildMessages([created], getUserId(req));

@@ -24,6 +24,7 @@ export const GetMeResponse = zod.object({
   bio: zod.string().nullish(),
   avatarUrl: zod.string().nullish(),
   status: zod.string(),
+  featuredHashtag: zod.string().nullish(),
   hashtags: zod.array(zod.string()),
   followedHashtags: zod.array(zod.string()),
   createdAt: zod.coerce.date(),
@@ -37,6 +38,7 @@ export const UpdateMeBody = zod.object({
   bio: zod.string().nullish(),
   avatarUrl: zod.string().nullish(),
   status: zod.string().optional(),
+  featuredHashtag: zod.string().nullish(),
 });
 
 export const UpdateMeResponse = zod.object({
@@ -46,6 +48,7 @@ export const UpdateMeResponse = zod.object({
   bio: zod.string().nullish(),
   avatarUrl: zod.string().nullish(),
   status: zod.string(),
+  featuredHashtag: zod.string().nullish(),
   hashtags: zod.array(zod.string()),
   followedHashtags: zod.array(zod.string()),
   createdAt: zod.coerce.date(),
@@ -104,6 +107,7 @@ export const GetUserResponse = zod.object({
   bio: zod.string().nullish(),
   avatarUrl: zod.string().nullish(),
   status: zod.string(),
+  featuredHashtag: zod.string().nullish(),
   hashtags: zod.array(zod.string()),
   followedHashtags: zod.array(zod.string()),
   createdAt: zod.coerce.date(),
@@ -180,9 +184,14 @@ export const GetHashtagResponse = zod.object({
       bio: zod.string().nullish(),
       avatarUrl: zod.string().nullish(),
       status: zod.string(),
+      featuredHashtag: zod.string().nullish(),
       hashtags: zod.array(zod.string()),
       sharedHashtags: zod.array(zod.string()),
       matchScore: zod.number(),
+      friendStatus: zod
+        .string()
+        .nullish()
+        .describe("One of: friends, request_sent, request_received, none"),
     }),
   ),
   relatedHashtags: zod.array(zod.string()),
@@ -218,9 +227,14 @@ export const DiscoverPeopleResponseItem = zod.object({
   bio: zod.string().nullish(),
   avatarUrl: zod.string().nullish(),
   status: zod.string(),
+  featuredHashtag: zod.string().nullish(),
   hashtags: zod.array(zod.string()),
   sharedHashtags: zod.array(zod.string()),
   matchScore: zod.number(),
+  friendStatus: zod
+    .string()
+    .nullish()
+    .describe("One of: friends, request_sent, request_received, none"),
 });
 export const DiscoverPeopleResponse = zod.array(DiscoverPeopleResponseItem);
 
@@ -236,9 +250,14 @@ export const GetConversationsResponseItem = zod.object({
     bio: zod.string().nullish(),
     avatarUrl: zod.string().nullish(),
     status: zod.string(),
+    featuredHashtag: zod.string().nullish(),
     hashtags: zod.array(zod.string()),
     sharedHashtags: zod.array(zod.string()),
     matchScore: zod.number(),
+    friendStatus: zod
+      .string()
+      .nullish()
+      .describe("One of: friends, request_sent, request_received, none"),
   }),
   lastMessage: zod
     .union([
@@ -285,9 +304,14 @@ export const OpenConversationResponse = zod.object({
     bio: zod.string().nullish(),
     avatarUrl: zod.string().nullish(),
     status: zod.string(),
+    featuredHashtag: zod.string().nullish(),
     hashtags: zod.array(zod.string()),
     sharedHashtags: zod.array(zod.string()),
     matchScore: zod.number(),
+    friendStatus: zod
+      .string()
+      .nullish()
+      .describe("One of: friends, request_sent, request_received, none"),
   }),
   lastMessage: zod
     .union([
@@ -499,6 +523,104 @@ export const SendRoomMessageParams = zod.object({
 export const SendRoomMessageBody = zod.object({
   content: zod.string(),
   replyToId: zod.number().nullish(),
+});
+
+/**
+ * @summary List my accepted friends
+ */
+export const GetMyFriendsResponseItem = zod.object({
+  id: zod.string(),
+  username: zod.string(),
+  displayName: zod.string(),
+  bio: zod.string().nullish(),
+  avatarUrl: zod.string().nullish(),
+  status: zod.string(),
+  featuredHashtag: zod.string().nullish(),
+  hashtags: zod.array(zod.string()),
+  sharedHashtags: zod.array(zod.string()),
+  matchScore: zod.number(),
+  friendStatus: zod
+    .string()
+    .nullish()
+    .describe("One of: friends, request_sent, request_received, none"),
+});
+export const GetMyFriendsResponse = zod.array(GetMyFriendsResponseItem);
+
+/**
+ * @summary List incoming and outgoing friend requests
+ */
+export const GetFriendRequestsResponse = zod.object({
+  incoming: zod.array(
+    zod.object({
+      id: zod.string(),
+      username: zod.string(),
+      displayName: zod.string(),
+      bio: zod.string().nullish(),
+      avatarUrl: zod.string().nullish(),
+      status: zod.string(),
+      featuredHashtag: zod.string().nullish(),
+      hashtags: zod.array(zod.string()),
+      sharedHashtags: zod.array(zod.string()),
+      matchScore: zod.number(),
+      friendStatus: zod
+        .string()
+        .nullish()
+        .describe("One of: friends, request_sent, request_received, none"),
+    }),
+  ),
+  outgoing: zod.array(
+    zod.object({
+      id: zod.string(),
+      username: zod.string(),
+      displayName: zod.string(),
+      bio: zod.string().nullish(),
+      avatarUrl: zod.string().nullish(),
+      status: zod.string(),
+      featuredHashtag: zod.string().nullish(),
+      hashtags: zod.array(zod.string()),
+      sharedHashtags: zod.array(zod.string()),
+      matchScore: zod.number(),
+      friendStatus: zod
+        .string()
+        .nullish()
+        .describe("One of: friends, request_sent, request_received, none"),
+    }),
+  ),
+});
+
+/**
+ * @summary Send a friend request to a user
+ */
+export const SendFriendRequestParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+/**
+ * @summary Cancel a pending outgoing friend request
+ */
+export const CancelFriendRequestParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+/**
+ * @summary Accept an incoming friend request
+ */
+export const AcceptFriendRequestParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+/**
+ * @summary Decline an incoming friend request
+ */
+export const DeclineFriendRequestParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+/**
+ * @summary Remove an existing friendship
+ */
+export const UnfriendParams = zod.object({
+  id: zod.coerce.string(),
 });
 
 /**
