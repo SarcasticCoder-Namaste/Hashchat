@@ -3,6 +3,7 @@ import {
   db,
   conversationsTable,
   conversationReadsTable,
+  conversationBackgroundsTable,
   messagesTable,
   reactionsTable,
   usersTable,
@@ -10,7 +11,12 @@ import {
 } from "@workspace/db";
 import { and, desc, eq, inArray, or, sql, gt } from "drizzle-orm";
 import { requireAuth, getUserId } from "../middlewares/requireAuth";
-import { OpenConversationBody, SendConversationMessageBody } from "@workspace/api-zod";
+import { isValidStorageUrl } from "../lib/storageUrls";
+import {
+  OpenConversationBody,
+  SendConversationMessageBody,
+  SetConversationBackgroundBody,
+} from "@workspace/api-zod";
 
 const router: IRouter = Router();
 
@@ -18,7 +24,7 @@ function pair(a: string, b: string): [string, string] {
   return a < b ? [a, b] : [b, a];
 }
 
-async function buildMessages(rows: { id: number; conversationId: number | null; roomTag: string | null; senderId: string; content: string; replyToId: number | null; createdAt: Date }[], myUserId: string) {
+async function buildMessages(rows: { id: number; conversationId: number | null; roomTag: string | null; senderId: string; content: string; imageUrl: string | null; replyToId: number | null; createdAt: Date }[], myUserId: string) {
   if (rows.length === 0) return [];
   const senderIds = Array.from(new Set(rows.map((r) => r.senderId)));
   const senders = await db
@@ -78,6 +84,7 @@ async function buildMessages(rows: { id: number; conversationId: number | null; 
       senderName: sender?.displayName ?? sender?.username ?? "Unknown",
       senderAvatarUrl: sender?.avatarUrl ?? null,
       content: r.content,
+      imageUrl: r.imageUrl,
       replyToId: r.replyToId,
       replyToContent: r.replyToId ? (replyMap.get(r.replyToId) ?? null) : null,
       reactions: reactionMap.get(r.id) ?? [],
@@ -119,6 +126,12 @@ router.get("/conversations", requireAuth, async (req, res): Promise<void> => {
     .from(conversationReadsTable)
     .where(and(eq(conversationReadsTable.userId, me), inArray(conversationReadsTable.conversationId, convos.map((c) => c.id))));
   const readMap = new Map(reads.map((r) => [r.conversationId, r.lastReadAt]));
+
+  const bgRows = await db
+    .select()
+    .from(conversationBackgroundsTable)
+    .where(and(eq(conversationBackgroundsTable.userId, me), inArray(conversationBackgroundsTable.conversationId, convos.map((c) => c.id))));
+  const bgMap = new Map(bgRows.map((r) => [r.conversationId, r.backgroundUrl]));
 
   const result: unknown[] = [];
   for (const c of convos) {
@@ -165,6 +178,7 @@ router.get("/conversations", requireAuth, async (req, res): Promise<void> => {
       },
       lastMessage: built[0] ?? null,
       unreadCount: unread?.count ?? 0,
+      backgroundUrl: bgMap.get(c.id) ?? c.backgroundUrl ?? null,
       updatedAt: c.updatedAt.toISOString(),
     });
   }
@@ -286,6 +300,10 @@ router.post("/conversations/:id/messages", requireAuth, async (req, res): Promis
     res.status(404).json({ error: "Not found" });
     return;
   }
+  if (parsed.data.imageUrl != null && !isValidStorageUrl(parsed.data.imageUrl)) {
+    res.status(400).json({ error: "imageUrl must reference an uploaded object" });
+    return;
+  }
   const replyToId = parsed.data.replyToId ?? null;
   if (replyToId !== null) {
     // Validate target exists and isn't soft-deleted
@@ -305,6 +323,7 @@ router.post("/conversations/:id/messages", requireAuth, async (req, res): Promis
       conversationId: id,
       senderId: me,
       content: parsed.data.content,
+      imageUrl: parsed.data.imageUrl ?? null,
       replyToId,
     })
     .returning();
@@ -314,6 +333,53 @@ router.post("/conversations/:id/messages", requireAuth, async (req, res): Promis
     .where(eq(conversationsTable.id, id));
   const [built] = await buildMessages([created], me);
   res.status(201).json(built);
+});
+
+router.patch("/conversations/:id/background", requireAuth, async (req, res): Promise<void> => {
+  const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const id = parseInt(raw, 10);
+  if (Number.isNaN(id)) {
+    res.status(400).json({ error: "Invalid id" });
+    return;
+  }
+  const parsed = SetConversationBackgroundBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+  if (!isValidStorageUrl(parsed.data.backgroundUrl)) {
+    res.status(400).json({ error: "backgroundUrl must reference an uploaded object" });
+    return;
+  }
+  const me = getUserId(req);
+  const [convo] = await db.select().from(conversationsTable).where(eq(conversationsTable.id, id)).limit(1);
+  if (!convo || (convo.userAId !== me && convo.userBId !== me)) {
+    res.status(404).json({ error: "Not found" });
+    return;
+  }
+  await db
+    .insert(conversationBackgroundsTable)
+    .values({ conversationId: id, userId: me, backgroundUrl: parsed.data.backgroundUrl })
+
+    .onConflictDoUpdate({
+      target: [conversationBackgroundsTable.conversationId, conversationBackgroundsTable.userId],
+      set: { backgroundUrl: parsed.data.backgroundUrl, updatedAt: new Date() },
+    });
+  res.json({ ok: true });
+});
+
+router.delete("/conversations/:id/background", requireAuth, async (req, res): Promise<void> => {
+  const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const id = parseInt(raw, 10);
+  if (Number.isNaN(id)) {
+    res.status(400).json({ error: "Invalid id" });
+    return;
+  }
+  const me = getUserId(req);
+  await db
+    .delete(conversationBackgroundsTable)
+    .where(and(eq(conversationBackgroundsTable.conversationId, id), eq(conversationBackgroundsTable.userId, me)));
+  res.status(204).end();
 });
 
 export default router;

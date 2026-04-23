@@ -15,6 +15,9 @@ tags:
   - name: messages
   - name: rooms
   - name: friends
+  - name: storage
+  - name: photos
+  - name: calls
 paths:
   /healthz:
     get:
@@ -401,6 +404,206 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/Message" }
+
+  /conversations/{id}/background:
+    patch:
+      operationId: setConversationBackground
+      tags: [conversations]
+      summary: Set chat background image for this conversation (per-user override)
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SetBackgroundBody" }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/OkResponse" }
+    delete:
+      operationId: clearConversationBackground
+      tags: [conversations]
+      summary: Clear chat background for this conversation
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      responses:
+        "204": { description: No content }
+
+  /me/photos:
+    get:
+      operationId: getMyPhotos
+      tags: [photos]
+      summary: List my photo gallery
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/UserPhoto" }
+    post:
+      operationId: addMyPhoto
+      tags: [photos]
+      summary: Add a photo to my gallery
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AddPhotoBody" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/UserPhoto" }
+
+  /me/photos/{id}:
+    delete:
+      operationId: deleteMyPhoto
+      tags: [photos]
+      summary: Delete one of my photos
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      responses:
+        "204": { description: No content }
+
+  /users/{username}/photos:
+    get:
+      operationId: getUserPhotos
+      tags: [photos]
+      summary: List a user's photo gallery
+      parameters:
+        - { name: username, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/UserPhoto" }
+
+  /storage/uploads/request-url:
+    post:
+      operationId: requestUploadUrl
+      tags: [storage]
+      summary: Request a presigned URL for upload
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/UploadUrlRequest" }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/UploadUrlResponse" }
+
+  /calls:
+    post:
+      operationId: initiateCall
+      tags: [calls]
+      summary: Initiate a voice/video call
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/InitiateCallBody" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Call" }
+
+  /calls/incoming:
+    get:
+      operationId: getIncomingCalls
+      tags: [calls]
+      summary: List active calls I am invited to
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Call" }
+
+  /calls/{id}:
+    get:
+      operationId: getCall
+      tags: [calls]
+      summary: Get call details
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Call" }
+
+  /calls/{id}/join:
+    post:
+      operationId: joinCall
+      tags: [calls]
+      summary: Mark myself as joined to this call
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Call" }
+
+  /calls/{id}/leave:
+    post:
+      operationId: leaveCall
+      tags: [calls]
+      summary: Leave the call (or end if last participant)
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/OkResponse" }
+
+  /calls/{id}/signals:
+    post:
+      operationId: sendCallSignal
+      tags: [calls]
+      summary: Send a WebRTC signaling message
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CallSignalBody" }
+      responses:
+        "204": { description: No content }
+    get:
+      operationId: getCallSignals
+      tags: [calls]
+      summary: Poll signaling messages addressed to me
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+        - { name: since, in: query, required: false, schema: { type: integer, default: 0 } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CallSignalList" }
 
   /me/friends:
     get:
@@ -793,8 +996,124 @@ components:
             - $ref: "#/components/schemas/Message"
             - type: "null"
         unreadCount: { type: integer }
+        backgroundUrl:
+          type: ["string", "null"]
         updatedAt: { type: string, format: date-time }
       required: [id, otherUser, unreadCount, updatedAt]
+
+    SetBackgroundBody:
+      type: object
+      properties:
+        backgroundUrl: { type: string }
+      required: [backgroundUrl]
+
+    UserPhoto:
+      type: object
+      properties:
+        id: { type: integer }
+        userId: { type: string }
+        imageUrl: { type: string }
+        caption:
+          type: ["string", "null"]
+        createdAt: { type: string, format: date-time }
+      required: [id, userId, imageUrl, createdAt]
+
+    AddPhotoBody:
+      type: object
+      properties:
+        imageUrl: { type: string }
+        caption:
+          type: ["string", "null"]
+      required: [imageUrl]
+
+    UploadUrlRequest:
+      type: object
+      properties:
+        name: { type: string, minLength: 1 }
+        size: { type: integer, minimum: 1 }
+        contentType: { type: string, minLength: 1 }
+      required: [name, size, contentType]
+
+    UploadUrlResponse:
+      type: object
+      properties:
+        uploadURL: { type: string, format: uri }
+        objectPath: { type: string }
+        metadata: { $ref: "#/components/schemas/UploadUrlRequest" }
+      required: [uploadURL, objectPath]
+
+    InitiateCallBody:
+      type: object
+      properties:
+        kind: { type: string, enum: [voice, video] }
+        conversationId:
+          type: ["integer", "null"]
+        roomTag:
+          type: ["string", "null"]
+      required: [kind]
+
+    Call:
+      type: object
+      properties:
+        id: { type: integer }
+        initiatorId: { type: string }
+        kind: { type: string }
+        status: { type: string }
+        conversationId:
+          type: ["integer", "null"]
+        roomTag:
+          type: ["string", "null"]
+        startedAt: { type: string, format: date-time }
+        endedAt:
+          type: ["string", "null"]
+          format: date-time
+        participants:
+          type: array
+          items: { $ref: "#/components/schemas/CallParticipant" }
+      required: [id, initiatorId, kind, status, startedAt, participants]
+
+    CallParticipant:
+      type: object
+      properties:
+        userId: { type: string }
+        username: { type: string }
+        displayName: { type: string }
+        avatarUrl:
+          type: ["string", "null"]
+        state: { type: string }
+        joinedAt:
+          type: ["string", "null"]
+          format: date-time
+      required: [userId, username, displayName, state]
+
+    CallSignalBody:
+      type: object
+      properties:
+        toUserId: { type: string }
+        kind: { type: string, enum: [offer, answer, ice] }
+        payload: { type: string }
+      required: [toUserId, kind, payload]
+
+    CallSignal:
+      type: object
+      properties:
+        id: { type: integer }
+        callId: { type: integer }
+        fromUserId: { type: string }
+        toUserId: { type: string }
+        kind: { type: string }
+        payload: { type: string }
+        createdAt: { type: string, format: date-time }
+      required: [id, callId, fromUserId, toUserId, kind, payload, createdAt]
+
+    CallSignalList:
+      type: object
+      properties:
+        signals:
+          type: array
+          items: { $ref: "#/components/schemas/CallSignal" }
+        cursor: { type: integer }
+      required: [signals, cursor]
 
     OpenConversationBody:
       type: object
@@ -819,6 +1138,8 @@ components:
           type: ["integer", "null"]
         replyToContent:
           type: ["string", "null"]
+        imageUrl:
+          type: ["string", "null"]
         reactions:
           type: array
           items: { $ref: "#/components/schemas/Reaction" }
@@ -831,6 +1152,8 @@ components:
         content: { type: string }
         replyToId:
           type: ["integer", "null"]
+        imageUrl:
+          type: ["string", "null"]
       required: [content]
 
     Reaction:

@@ -67,3 +67,11 @@ Express + Clerk middleware. `requireAuth` reads `getAuth(req).userId` and lazily
 ### Mockup Sandbox (`artifacts/mockup-sandbox`)
 
 Vite preview server for component prototyping (port 8081 → `__mockup`).
+
+V4 additions:
+- Image sharing in DMs and rooms via object storage (presigned PUT). Upload icon next to message input on both pages.
+- Profile photo gallery on Settings (Gallery tab) — add and delete photos.
+- Per-conversation chat backgrounds (per-user override via `conversation_backgrounds`). Set/clear from the conversation header menu.
+- Voice + video group calling using a WebRTC mesh with REST-based signaling (calls, call_participants, call_signals tables; `/api/calls/*` routes). 1.5s polling for participant + signal sync. Google STUN only (no TURN — works on most networks but not strict NATs). Initiator side decides offer direction by lower userId.
+- Incoming call toast lives in `AppShell`, polling `/api/calls/incoming` (calls remain "incoming" until I accept/decline, even if the initiator's status flipped to active).
+- Storage: upload URL endpoint requires auth; persisted image/background URLs are validated to point at our `/objects/<id>` namespace; private object reads are unauthenticated by design (UUID unguessability) so `<img>` tags work without bearer headers.

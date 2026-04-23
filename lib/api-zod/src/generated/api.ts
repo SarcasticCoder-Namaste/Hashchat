@@ -295,6 +295,7 @@ export const GetConversationsResponseItem = zod.object({
         content: zod.string(),
         replyToId: zod.number().nullish(),
         replyToContent: zod.string().nullish(),
+        imageUrl: zod.string().nullish(),
         reactions: zod.array(
           zod.object({
             emoji: zod.string(),
@@ -308,6 +309,7 @@ export const GetConversationsResponseItem = zod.object({
     ])
     .optional(),
   unreadCount: zod.number(),
+  backgroundUrl: zod.string().nullish(),
   updatedAt: zod.coerce.date(),
 });
 export const GetConversationsResponse = zod.array(GetConversationsResponseItem);
@@ -353,6 +355,7 @@ export const OpenConversationResponse = zod.object({
         content: zod.string(),
         replyToId: zod.number().nullish(),
         replyToContent: zod.string().nullish(),
+        imageUrl: zod.string().nullish(),
         reactions: zod.array(
           zod.object({
             emoji: zod.string(),
@@ -366,6 +369,7 @@ export const OpenConversationResponse = zod.object({
     ])
     .optional(),
   unreadCount: zod.number(),
+  backgroundUrl: zod.string().nullish(),
   updatedAt: zod.coerce.date(),
 });
 
@@ -386,6 +390,7 @@ export const GetConversationMessagesResponseItem = zod.object({
   content: zod.string(),
   replyToId: zod.number().nullish(),
   replyToContent: zod.string().nullish(),
+  imageUrl: zod.string().nullish(),
   reactions: zod.array(
     zod.object({
       emoji: zod.string(),
@@ -409,6 +414,7 @@ export const SendConversationMessageParams = zod.object({
 export const SendConversationMessageBody = zod.object({
   content: zod.string(),
   replyToId: zod.number().nullish(),
+  imageUrl: zod.string().nullish(),
 });
 
 /**
@@ -454,6 +460,7 @@ export const GetRoomsResponseItem = zod.object({
         content: zod.string(),
         replyToId: zod.number().nullish(),
         replyToContent: zod.string().nullish(),
+        imageUrl: zod.string().nullish(),
         reactions: zod.array(
           zod.object({
             emoji: zod.string(),
@@ -497,6 +504,7 @@ export const GetTrendingRoomsResponseItem = zod.object({
         content: zod.string(),
         replyToId: zod.number().nullish(),
         replyToContent: zod.string().nullish(),
+        imageUrl: zod.string().nullish(),
         reactions: zod.array(
           zod.object({
             emoji: zod.string(),
@@ -530,6 +538,7 @@ export const GetRoomMessagesResponseItem = zod.object({
   content: zod.string(),
   replyToId: zod.number().nullish(),
   replyToContent: zod.string().nullish(),
+  imageUrl: zod.string().nullish(),
   reactions: zod.array(
     zod.object({
       emoji: zod.string(),
@@ -551,6 +560,236 @@ export const SendRoomMessageParams = zod.object({
 export const SendRoomMessageBody = zod.object({
   content: zod.string(),
   replyToId: zod.number().nullish(),
+  imageUrl: zod.string().nullish(),
+});
+
+/**
+ * @summary Set chat background image for this conversation (per-user override)
+ */
+export const SetConversationBackgroundParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const SetConversationBackgroundBody = zod.object({
+  backgroundUrl: zod.string(),
+});
+
+export const SetConversationBackgroundResponse = zod.object({
+  ok: zod.boolean(),
+});
+
+/**
+ * @summary Clear chat background for this conversation
+ */
+export const ClearConversationBackgroundParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+/**
+ * @summary List my photo gallery
+ */
+export const GetMyPhotosResponseItem = zod.object({
+  id: zod.number(),
+  userId: zod.string(),
+  imageUrl: zod.string(),
+  caption: zod.string().nullish(),
+  createdAt: zod.coerce.date(),
+});
+export const GetMyPhotosResponse = zod.array(GetMyPhotosResponseItem);
+
+/**
+ * @summary Add a photo to my gallery
+ */
+export const AddMyPhotoBody = zod.object({
+  imageUrl: zod.string(),
+  caption: zod.string().nullish(),
+});
+
+/**
+ * @summary Delete one of my photos
+ */
+export const DeleteMyPhotoParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+/**
+ * @summary List a user's photo gallery
+ */
+export const GetUserPhotosParams = zod.object({
+  username: zod.coerce.string(),
+});
+
+export const GetUserPhotosResponseItem = zod.object({
+  id: zod.number(),
+  userId: zod.string(),
+  imageUrl: zod.string(),
+  caption: zod.string().nullish(),
+  createdAt: zod.coerce.date(),
+});
+export const GetUserPhotosResponse = zod.array(GetUserPhotosResponseItem);
+
+/**
+ * @summary Request a presigned URL for upload
+ */
+
+export const RequestUploadUrlBody = zod.object({
+  name: zod.string().min(1),
+  size: zod.number().min(1),
+  contentType: zod.string().min(1),
+});
+
+export const RequestUploadUrlResponse = zod.object({
+  uploadURL: zod.string().url(),
+  objectPath: zod.string(),
+  metadata: zod
+    .object({
+      name: zod.string().min(1),
+      size: zod.number().min(1),
+      contentType: zod.string().min(1),
+    })
+    .optional(),
+});
+
+/**
+ * @summary Initiate a voice/video call
+ */
+export const InitiateCallBody = zod.object({
+  kind: zod.enum(["voice", "video"]),
+  conversationId: zod.number().nullish(),
+  roomTag: zod.string().nullish(),
+});
+
+/**
+ * @summary List active calls I am invited to
+ */
+export const GetIncomingCallsResponseItem = zod.object({
+  id: zod.number(),
+  initiatorId: zod.string(),
+  kind: zod.string(),
+  status: zod.string(),
+  conversationId: zod.number().nullish(),
+  roomTag: zod.string().nullish(),
+  startedAt: zod.coerce.date(),
+  endedAt: zod.coerce.date().nullish(),
+  participants: zod.array(
+    zod.object({
+      userId: zod.string(),
+      username: zod.string(),
+      displayName: zod.string(),
+      avatarUrl: zod.string().nullish(),
+      state: zod.string(),
+      joinedAt: zod.coerce.date().nullish(),
+    }),
+  ),
+});
+export const GetIncomingCallsResponse = zod.array(GetIncomingCallsResponseItem);
+
+/**
+ * @summary Get call details
+ */
+export const GetCallParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const GetCallResponse = zod.object({
+  id: zod.number(),
+  initiatorId: zod.string(),
+  kind: zod.string(),
+  status: zod.string(),
+  conversationId: zod.number().nullish(),
+  roomTag: zod.string().nullish(),
+  startedAt: zod.coerce.date(),
+  endedAt: zod.coerce.date().nullish(),
+  participants: zod.array(
+    zod.object({
+      userId: zod.string(),
+      username: zod.string(),
+      displayName: zod.string(),
+      avatarUrl: zod.string().nullish(),
+      state: zod.string(),
+      joinedAt: zod.coerce.date().nullish(),
+    }),
+  ),
+});
+
+/**
+ * @summary Mark myself as joined to this call
+ */
+export const JoinCallParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const JoinCallResponse = zod.object({
+  id: zod.number(),
+  initiatorId: zod.string(),
+  kind: zod.string(),
+  status: zod.string(),
+  conversationId: zod.number().nullish(),
+  roomTag: zod.string().nullish(),
+  startedAt: zod.coerce.date(),
+  endedAt: zod.coerce.date().nullish(),
+  participants: zod.array(
+    zod.object({
+      userId: zod.string(),
+      username: zod.string(),
+      displayName: zod.string(),
+      avatarUrl: zod.string().nullish(),
+      state: zod.string(),
+      joinedAt: zod.coerce.date().nullish(),
+    }),
+  ),
+});
+
+/**
+ * @summary Leave the call (or end if last participant)
+ */
+export const LeaveCallParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const LeaveCallResponse = zod.object({
+  ok: zod.boolean(),
+});
+
+/**
+ * @summary Send a WebRTC signaling message
+ */
+export const SendCallSignalParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const SendCallSignalBody = zod.object({
+  toUserId: zod.string(),
+  kind: zod.enum(["offer", "answer", "ice"]),
+  payload: zod.string(),
+});
+
+/**
+ * @summary Poll signaling messages addressed to me
+ */
+export const GetCallSignalsParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const getCallSignalsQuerySinceDefault = 0;
+
+export const GetCallSignalsQueryParams = zod.object({
+  since: zod.coerce.number().default(getCallSignalsQuerySinceDefault),
+});
+
+export const GetCallSignalsResponse = zod.object({
+  signals: zod.array(
+    zod.object({
+      id: zod.number(),
+      callId: zod.number(),
+      fromUserId: zod.string(),
+      toUserId: zod.string(),
+      kind: zod.string(),
+      payload: zod.string(),
+      createdAt: zod.coerce.date(),
+    }),
+  ),
+  cursor: zod.number(),
 });
 
 /**

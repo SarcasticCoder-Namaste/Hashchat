@@ -124,6 +124,8 @@ export interface Message {
   replyToId?: number | null;
   /** @nullable */
   replyToContent?: string | null;
+  /** @nullable */
+  imageUrl?: string | null;
   reactions: Reaction[];
   createdAt: string;
 }
@@ -133,7 +135,115 @@ export interface Conversation {
   otherUser: MatchUser;
   lastMessage?: Message | null;
   unreadCount: number;
+  /** @nullable */
+  backgroundUrl?: string | null;
   updatedAt: string;
+}
+
+export interface SetBackgroundBody {
+  backgroundUrl: string;
+}
+
+export interface UserPhoto {
+  id: number;
+  userId: string;
+  imageUrl: string;
+  /** @nullable */
+  caption?: string | null;
+  createdAt: string;
+}
+
+export interface AddPhotoBody {
+  imageUrl: string;
+  /** @nullable */
+  caption?: string | null;
+}
+
+export interface UploadUrlRequest {
+  /** @minLength 1 */
+  name: string;
+  /** @minimum 1 */
+  size: number;
+  /** @minLength 1 */
+  contentType: string;
+}
+
+export interface UploadUrlResponse {
+  uploadURL: string;
+  objectPath: string;
+  metadata?: UploadUrlRequest;
+}
+
+export type InitiateCallBodyKind =
+  (typeof InitiateCallBodyKind)[keyof typeof InitiateCallBodyKind];
+
+export const InitiateCallBodyKind = {
+  voice: "voice",
+  video: "video",
+} as const;
+
+export interface InitiateCallBody {
+  kind: InitiateCallBodyKind;
+  /** @nullable */
+  conversationId?: number | null;
+  /** @nullable */
+  roomTag?: string | null;
+}
+
+export interface CallParticipant {
+  userId: string;
+  username: string;
+  displayName: string;
+  /** @nullable */
+  avatarUrl?: string | null;
+  state: string;
+  /** @nullable */
+  joinedAt?: string | null;
+}
+
+export interface Call {
+  id: number;
+  initiatorId: string;
+  kind: string;
+  status: string;
+  /** @nullable */
+  conversationId?: number | null;
+  /** @nullable */
+  roomTag?: string | null;
+  startedAt: string;
+  /** @nullable */
+  endedAt?: string | null;
+  participants: CallParticipant[];
+}
+
+export type CallSignalBodyKind =
+  (typeof CallSignalBodyKind)[keyof typeof CallSignalBodyKind];
+
+export const CallSignalBodyKind = {
+  offer: "offer",
+  answer: "answer",
+  ice: "ice",
+} as const;
+
+export interface CallSignalBody {
+  toUserId: string;
+  kind: CallSignalBodyKind;
+  payload: string;
+}
+
+export interface CallSignal {
+  id: number;
+  callId: number;
+  fromUserId: string;
+  toUserId: string;
+  kind: string;
+  payload: string;
+  createdAt: string;
+}
+
+export interface CallSignalList {
+  signals: CallSignal[];
+  cursor: number;
 }
 
 export interface OpenConversationBody {
@@ -144,6 +254,8 @@ export interface SendMessageBody {
   content: string;
   /** @nullable */
   replyToId?: number | null;
+  /** @nullable */
+  imageUrl?: string | null;
 }
 
 export interface ReactionBody {
@@ -272,6 +384,10 @@ export type RemoveMessageReactionParams = {
 
 export type GetTrendingRoomsParams = {
   limit?: number;
+};
+
+export type GetCallSignalsParams = {
+  since?: number;
 };
 
 export type GetYoutubeReelsParams = {

@@ -11,6 +11,9 @@ import friendsRouter from "./friends";
 import adminRouter from "./admin";
 import mvpRouter from "./mvp";
 import reelsRouter from "./reels";
+import storageRouter from "./storage";
+import photosRouter from "./photos";
+import callsRouter from "./calls";
 
 const router: IRouter = Router();
 
@@ -26,5 +29,8 @@ router.use(friendsRouter);
 router.use(adminRouter);
 router.use(mvpRouter);
 router.use(reelsRouter);
+router.use(storageRouter);
+router.use(photosRouter);
+router.use(callsRouter);
 
 export default router;

@@ -10,12 +10,13 @@ import {
 } from "@workspace/db";
 import { and, desc, eq, inArray, or, sql } from "drizzle-orm";
 import { requireAuth, getUserId } from "../middlewares/requireAuth";
+import { isValidStorageUrl } from "../lib/storageUrls";
 import { SendRoomMessageBody } from "@workspace/api-zod";
 import { normalizeTag } from "../lib/hashtags";
 
 const router: IRouter = Router();
 
-async function buildMessages(rows: { id: number; conversationId: number | null; roomTag: string | null; senderId: string; content: string; replyToId: number | null; createdAt: Date }[], myUserId: string) {
+async function buildMessages(rows: { id: number; conversationId: number | null; roomTag: string | null; senderId: string; content: string; imageUrl: string | null; replyToId: number | null; createdAt: Date }[], myUserId: string) {
   if (rows.length === 0) return [];
   const senderIds = Array.from(new Set(rows.map((r) => r.senderId)));
   const senders = await db
@@ -75,6 +76,7 @@ async function buildMessages(rows: { id: number; conversationId: number | null; 
       senderName: sender?.displayName ?? sender?.username ?? "Unknown",
       senderAvatarUrl: sender?.avatarUrl ?? null,
       content: r.content,
+      imageUrl: r.imageUrl,
       replyToId: r.replyToId,
       replyToContent: r.replyToId ? (replyMap.get(r.replyToId) ?? null) : null,
       reactions: reactionMap.get(r.id) ?? [],
@@ -215,6 +217,10 @@ router.post("/rooms/:tag/messages", requireAuth, async (req, res): Promise<void>
   }
   await db.insert(hashtagsTable).values({ tag }).onConflictDoNothing();
   const replyToId = parsed.data.replyToId ?? null;
+  if (parsed.data.imageUrl != null && !isValidStorageUrl(parsed.data.imageUrl)) {
+    res.status(400).json({ error: "imageUrl must reference an uploaded object" });
+    return;
+  }
   if (replyToId !== null) {
     const [refMsg] = await db
       .select({ id: messagesTable.id, roomTag: messagesTable.roomTag })
@@ -232,6 +238,7 @@ router.post("/rooms/:tag/messages", requireAuth, async (req, res): Promise<void>
       roomTag: tag,
       senderId: getUserId(req),
       content: parsed.data.content,
+      imageUrl: parsed.data.imageUrl ?? null,
       replyToId,
     })
     .returning();

@@ -79,6 +79,7 @@ export const conversationsTable = pgTable(
     userBId: text("user_b_id")
       .notNull()
       .references(() => usersTable.id, { onDelete: "cascade" }),
+    backgroundUrl: text("background_url"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -87,6 +88,23 @@ export const conversationsTable = pgTable(
       .defaultNow(),
   },
   (t) => [uniqueIndex("conversations_pair").on(t.userAId, t.userBId)],
+);
+
+export const conversationBackgroundsTable = pgTable(
+  "conversation_backgrounds",
+  {
+    conversationId: integer("conversation_id")
+      .notNull()
+      .references(() => conversationsTable.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => usersTable.id, { onDelete: "cascade" }),
+    backgroundUrl: text("background_url").notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.conversationId, t.userId] })],
 );
 
 export const conversationReadsTable = pgTable(
@@ -120,6 +138,7 @@ export const messagesTable = pgTable(
       .notNull()
       .references(() => usersTable.id, { onDelete: "cascade" }),
     content: text("content").notNull(),
+    imageUrl: text("image_url"),
     replyToId: integer("reply_to_id"),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true })
@@ -184,7 +203,89 @@ export const friendshipsTable = pgTable(
   (t) => [primaryKey({ columns: [t.requesterId, t.addresseeId] })],
 );
 
+export const userPhotosTable = pgTable(
+  "user_photos",
+  {
+    id: serial("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => usersTable.id, { onDelete: "cascade" }),
+    imageUrl: text("image_url").notNull(),
+    caption: text("caption"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [index("user_photos_user_idx").on(t.userId, t.createdAt)],
+);
+
+export const callsTable = pgTable(
+  "calls",
+  {
+    id: serial("id").primaryKey(),
+    initiatorId: text("initiator_id")
+      .notNull()
+      .references(() => usersTable.id, { onDelete: "cascade" }),
+    conversationId: integer("conversation_id").references(
+      () => conversationsTable.id,
+      { onDelete: "cascade" },
+    ),
+    roomTag: text("room_tag").references(() => hashtagsTable.tag, {
+      onDelete: "cascade",
+    }),
+    kind: text("kind").notNull().default("video"),
+    status: text("status").notNull().default("ringing"),
+    startedAt: timestamp("started_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    endedAt: timestamp("ended_at", { withTimezone: true }),
+  },
+  (t) => [index("calls_status_idx").on(t.status, t.startedAt)],
+);
+
+export const callParticipantsTable = pgTable(
+  "call_participants",
+  {
+    callId: integer("call_id")
+      .notNull()
+      .references(() => callsTable.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => usersTable.id, { onDelete: "cascade" }),
+    state: text("state").notNull().default("invited"),
+    joinedAt: timestamp("joined_at", { withTimezone: true }),
+    leftAt: timestamp("left_at", { withTimezone: true }),
+  },
+  (t) => [primaryKey({ columns: [t.callId, t.userId] })],
+);
+
+export const callSignalsTable = pgTable(
+  "call_signals",
+  {
+    id: serial("id").primaryKey(),
+    callId: integer("call_id")
+      .notNull()
+      .references(() => callsTable.id, { onDelete: "cascade" }),
+    fromUserId: text("from_user_id")
+      .notNull()
+      .references(() => usersTable.id, { onDelete: "cascade" }),
+    toUserId: text("to_user_id")
+      .notNull()
+      .references(() => usersTable.id, { onDelete: "cascade" }),
+    kind: text("kind").notNull(),
+    payload: text("payload").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [index("call_signals_target_idx").on(t.toUserId, t.callId, t.id)],
+);
+
 export type MvpCode = typeof mvpCodesTable.$inferSelect;
+export type UserPhoto = typeof userPhotosTable.$inferSelect;
+export type Call = typeof callsTable.$inferSelect;
+export type CallParticipant = typeof callParticipantsTable.$inferSelect;
+export type CallSignal = typeof callSignalsTable.$inferSelect;
 export type Friendship = typeof friendshipsTable.$inferSelect;
 export type User = typeof usersTable.$inferSelect;
 export type Hashtag = typeof hashtagsTable.$inferSelect;

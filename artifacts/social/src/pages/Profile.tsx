@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { ProfileGallery } from "@/components/ProfileGallery";
 import {
   Tabs,
   TabsContent,
@@ -33,6 +34,7 @@ import {
   Moon,
   Monitor,
   Check,
+  ImageIcon,
 } from "lucide-react";
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
@@ -183,6 +185,9 @@ export default function Settings() {
           </TabsTrigger>
           <TabsTrigger value="appearance" data-testid="tab-appearance">
             <Palette className="mr-1.5 h-4 w-4" /> Appearance
+          </TabsTrigger>
+          <TabsTrigger value="gallery" data-testid="tab-gallery">
+            <ImageIcon className="mr-1.5 h-4 w-4" /> Gallery
           </TabsTrigger>
           <TabsTrigger value="account" data-testid="tab-account">
             Account
@@ -358,6 +363,10 @@ export default function Settings() {
 
         <TabsContent value="appearance" className="mt-4">
           <AppearanceTab />
+        </TabsContent>
+
+        <TabsContent value="gallery" className="mt-4">
+          <ProfileGallery />
         </TabsContent>
 
         <TabsContent

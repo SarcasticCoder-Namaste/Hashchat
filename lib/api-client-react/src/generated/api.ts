@@ -17,19 +17,25 @@ import type {
 } from "@tanstack/react-query";
 
 import type {
+  AddPhotoBody,
   AdminStats,
   AdminUser,
+  Call,
+  CallSignalBody,
+  CallSignalList,
   Conversation,
   CreateMvpCodeBody,
   CreatedCode,
   DiscoverPeopleParams,
   FriendRequestList,
+  GetCallSignalsParams,
   GetTrendingHashtagsParams,
   GetTrendingRoomsParams,
   GetYoutubeReelsParams,
   Hashtag,
   HashtagDetail,
   HealthStatus,
+  InitiateCallBody,
   MatchUser,
   Message,
   MvpCode,
@@ -44,11 +50,15 @@ import type {
   Room,
   SearchHashtagsParams,
   SendMessageBody,
+  SetBackgroundBody,
   SetHashtagsBody,
   SetRoleBody,
   TrendingHashtag,
   UpdateUserBody,
+  UploadUrlRequest,
+  UploadUrlResponse,
   User,
+  UserPhoto,
 } from "./api.schemas";
 
 import { customFetch } from "../custom-fetch";
@@ -2074,6 +2084,1197 @@ export const useSendRoomMessage = <
 > => {
   return useMutation(getSendRoomMessageMutationOptions(options));
 };
+
+/**
+ * @summary Set chat background image for this conversation (per-user override)
+ */
+export const getSetConversationBackgroundUrl = (id: number) => {
+  return `/api/conversations/${id}/background`;
+};
+
+export const setConversationBackground = async (
+  id: number,
+  setBackgroundBody: SetBackgroundBody,
+  options?: RequestInit,
+): Promise<OkResponse> => {
+  return customFetch<OkResponse>(getSetConversationBackgroundUrl(id), {
+    ...options,
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(setBackgroundBody),
+  });
+};
+
+export const getSetConversationBackgroundMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof setConversationBackground>>,
+    TError,
+    { id: number; data: BodyType<SetBackgroundBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof setConversationBackground>>,
+  TError,
+  { id: number; data: BodyType<SetBackgroundBody> },
+  TContext
+> => {
+  const mutationKey = ["setConversationBackground"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof setConversationBackground>>,
+    { id: number; data: BodyType<SetBackgroundBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return setConversationBackground(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SetConversationBackgroundMutationResult = NonNullable<
+  Awaited<ReturnType<typeof setConversationBackground>>
+>;
+export type SetConversationBackgroundMutationBody = BodyType<SetBackgroundBody>;
+export type SetConversationBackgroundMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Set chat background image for this conversation (per-user override)
+ */
+export const useSetConversationBackground = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof setConversationBackground>>,
+    TError,
+    { id: number; data: BodyType<SetBackgroundBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof setConversationBackground>>,
+  TError,
+  { id: number; data: BodyType<SetBackgroundBody> },
+  TContext
+> => {
+  return useMutation(getSetConversationBackgroundMutationOptions(options));
+};
+
+/**
+ * @summary Clear chat background for this conversation
+ */
+export const getClearConversationBackgroundUrl = (id: number) => {
+  return `/api/conversations/${id}/background`;
+};
+
+export const clearConversationBackground = async (
+  id: number,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getClearConversationBackgroundUrl(id), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getClearConversationBackgroundMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof clearConversationBackground>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof clearConversationBackground>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["clearConversationBackground"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof clearConversationBackground>>,
+    { id: number }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return clearConversationBackground(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ClearConversationBackgroundMutationResult = NonNullable<
+  Awaited<ReturnType<typeof clearConversationBackground>>
+>;
+
+export type ClearConversationBackgroundMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Clear chat background for this conversation
+ */
+export const useClearConversationBackground = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof clearConversationBackground>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof clearConversationBackground>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  return useMutation(getClearConversationBackgroundMutationOptions(options));
+};
+
+/**
+ * @summary List my photo gallery
+ */
+export const getGetMyPhotosUrl = () => {
+  return `/api/me/photos`;
+};
+
+export const getMyPhotos = async (
+  options?: RequestInit,
+): Promise<UserPhoto[]> => {
+  return customFetch<UserPhoto[]>(getGetMyPhotosUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetMyPhotosQueryKey = () => {
+  return [`/api/me/photos`] as const;
+};
+
+export const getGetMyPhotosQueryOptions = <
+  TData = Awaited<ReturnType<typeof getMyPhotos>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getMyPhotos>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetMyPhotosQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getMyPhotos>>> = ({
+    signal,
+  }) => getMyPhotos({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getMyPhotos>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetMyPhotosQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getMyPhotos>>
+>;
+export type GetMyPhotosQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List my photo gallery
+ */
+
+export function useGetMyPhotos<
+  TData = Awaited<ReturnType<typeof getMyPhotos>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getMyPhotos>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetMyPhotosQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Add a photo to my gallery
+ */
+export const getAddMyPhotoUrl = () => {
+  return `/api/me/photos`;
+};
+
+export const addMyPhoto = async (
+  addPhotoBody: AddPhotoBody,
+  options?: RequestInit,
+): Promise<UserPhoto> => {
+  return customFetch<UserPhoto>(getAddMyPhotoUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(addPhotoBody),
+  });
+};
+
+export const getAddMyPhotoMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof addMyPhoto>>,
+    TError,
+    { data: BodyType<AddPhotoBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof addMyPhoto>>,
+  TError,
+  { data: BodyType<AddPhotoBody> },
+  TContext
+> => {
+  const mutationKey = ["addMyPhoto"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof addMyPhoto>>,
+    { data: BodyType<AddPhotoBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return addMyPhoto(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AddMyPhotoMutationResult = NonNullable<
+  Awaited<ReturnType<typeof addMyPhoto>>
+>;
+export type AddMyPhotoMutationBody = BodyType<AddPhotoBody>;
+export type AddMyPhotoMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Add a photo to my gallery
+ */
+export const useAddMyPhoto = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof addMyPhoto>>,
+    TError,
+    { data: BodyType<AddPhotoBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof addMyPhoto>>,
+  TError,
+  { data: BodyType<AddPhotoBody> },
+  TContext
+> => {
+  return useMutation(getAddMyPhotoMutationOptions(options));
+};
+
+/**
+ * @summary Delete one of my photos
+ */
+export const getDeleteMyPhotoUrl = (id: number) => {
+  return `/api/me/photos/${id}`;
+};
+
+export const deleteMyPhoto = async (
+  id: number,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getDeleteMyPhotoUrl(id), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getDeleteMyPhotoMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteMyPhoto>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteMyPhoto>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["deleteMyPhoto"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteMyPhoto>>,
+    { id: number }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return deleteMyPhoto(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteMyPhotoMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteMyPhoto>>
+>;
+
+export type DeleteMyPhotoMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Delete one of my photos
+ */
+export const useDeleteMyPhoto = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteMyPhoto>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteMyPhoto>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  return useMutation(getDeleteMyPhotoMutationOptions(options));
+};
+
+/**
+ * @summary List a user's photo gallery
+ */
+export const getGetUserPhotosUrl = (username: string) => {
+  return `/api/users/${username}/photos`;
+};
+
+export const getUserPhotos = async (
+  username: string,
+  options?: RequestInit,
+): Promise<UserPhoto[]> => {
+  return customFetch<UserPhoto[]>(getGetUserPhotosUrl(username), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetUserPhotosQueryKey = (username: string) => {
+  return [`/api/users/${username}/photos`] as const;
+};
+
+export const getGetUserPhotosQueryOptions = <
+  TData = Awaited<ReturnType<typeof getUserPhotos>>,
+  TError = ErrorType<unknown>,
+>(
+  username: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getUserPhotos>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetUserPhotosQueryKey(username);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getUserPhotos>>> = ({
+    signal,
+  }) => getUserPhotos(username, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!username,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getUserPhotos>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetUserPhotosQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getUserPhotos>>
+>;
+export type GetUserPhotosQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List a user's photo gallery
+ */
+
+export function useGetUserPhotos<
+  TData = Awaited<ReturnType<typeof getUserPhotos>>,
+  TError = ErrorType<unknown>,
+>(
+  username: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getUserPhotos>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetUserPhotosQueryOptions(username, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Request a presigned URL for upload
+ */
+export const getRequestUploadUrlUrl = () => {
+  return `/api/storage/uploads/request-url`;
+};
+
+export const requestUploadUrl = async (
+  uploadUrlRequest: UploadUrlRequest,
+  options?: RequestInit,
+): Promise<UploadUrlResponse> => {
+  return customFetch<UploadUrlResponse>(getRequestUploadUrlUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(uploadUrlRequest),
+  });
+};
+
+export const getRequestUploadUrlMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof requestUploadUrl>>,
+    TError,
+    { data: BodyType<UploadUrlRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof requestUploadUrl>>,
+  TError,
+  { data: BodyType<UploadUrlRequest> },
+  TContext
+> => {
+  const mutationKey = ["requestUploadUrl"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof requestUploadUrl>>,
+    { data: BodyType<UploadUrlRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return requestUploadUrl(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RequestUploadUrlMutationResult = NonNullable<
+  Awaited<ReturnType<typeof requestUploadUrl>>
+>;
+export type RequestUploadUrlMutationBody = BodyType<UploadUrlRequest>;
+export type RequestUploadUrlMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Request a presigned URL for upload
+ */
+export const useRequestUploadUrl = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof requestUploadUrl>>,
+    TError,
+    { data: BodyType<UploadUrlRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof requestUploadUrl>>,
+  TError,
+  { data: BodyType<UploadUrlRequest> },
+  TContext
+> => {
+  return useMutation(getRequestUploadUrlMutationOptions(options));
+};
+
+/**
+ * @summary Initiate a voice/video call
+ */
+export const getInitiateCallUrl = () => {
+  return `/api/calls`;
+};
+
+export const initiateCall = async (
+  initiateCallBody: InitiateCallBody,
+  options?: RequestInit,
+): Promise<Call> => {
+  return customFetch<Call>(getInitiateCallUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(initiateCallBody),
+  });
+};
+
+export const getInitiateCallMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof initiateCall>>,
+    TError,
+    { data: BodyType<InitiateCallBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof initiateCall>>,
+  TError,
+  { data: BodyType<InitiateCallBody> },
+  TContext
+> => {
+  const mutationKey = ["initiateCall"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof initiateCall>>,
+    { data: BodyType<InitiateCallBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return initiateCall(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type InitiateCallMutationResult = NonNullable<
+  Awaited<ReturnType<typeof initiateCall>>
+>;
+export type InitiateCallMutationBody = BodyType<InitiateCallBody>;
+export type InitiateCallMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Initiate a voice/video call
+ */
+export const useInitiateCall = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof initiateCall>>,
+    TError,
+    { data: BodyType<InitiateCallBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof initiateCall>>,
+  TError,
+  { data: BodyType<InitiateCallBody> },
+  TContext
+> => {
+  return useMutation(getInitiateCallMutationOptions(options));
+};
+
+/**
+ * @summary List active calls I am invited to
+ */
+export const getGetIncomingCallsUrl = () => {
+  return `/api/calls/incoming`;
+};
+
+export const getIncomingCalls = async (
+  options?: RequestInit,
+): Promise<Call[]> => {
+  return customFetch<Call[]>(getGetIncomingCallsUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetIncomingCallsQueryKey = () => {
+  return [`/api/calls/incoming`] as const;
+};
+
+export const getGetIncomingCallsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getIncomingCalls>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getIncomingCalls>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetIncomingCallsQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getIncomingCalls>>
+  > = ({ signal }) => getIncomingCalls({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getIncomingCalls>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetIncomingCallsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getIncomingCalls>>
+>;
+export type GetIncomingCallsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List active calls I am invited to
+ */
+
+export function useGetIncomingCalls<
+  TData = Awaited<ReturnType<typeof getIncomingCalls>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getIncomingCalls>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetIncomingCallsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Get call details
+ */
+export const getGetCallUrl = (id: number) => {
+  return `/api/calls/${id}`;
+};
+
+export const getCall = async (
+  id: number,
+  options?: RequestInit,
+): Promise<Call> => {
+  return customFetch<Call>(getGetCallUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetCallQueryKey = (id: number) => {
+  return [`/api/calls/${id}`] as const;
+};
+
+export const getGetCallQueryOptions = <
+  TData = Awaited<ReturnType<typeof getCall>>,
+  TError = ErrorType<unknown>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<Awaited<ReturnType<typeof getCall>>, TError, TData>;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetCallQueryKey(id);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getCall>>> = ({
+    signal,
+  }) => getCall(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof getCall>>, TError, TData> & {
+    queryKey: QueryKey;
+  };
+};
+
+export type GetCallQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getCall>>
+>;
+export type GetCallQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get call details
+ */
+
+export function useGetCall<
+  TData = Awaited<ReturnType<typeof getCall>>,
+  TError = ErrorType<unknown>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<Awaited<ReturnType<typeof getCall>>, TError, TData>;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetCallQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Mark myself as joined to this call
+ */
+export const getJoinCallUrl = (id: number) => {
+  return `/api/calls/${id}/join`;
+};
+
+export const joinCall = async (
+  id: number,
+  options?: RequestInit,
+): Promise<Call> => {
+  return customFetch<Call>(getJoinCallUrl(id), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getJoinCallMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof joinCall>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof joinCall>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["joinCall"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof joinCall>>,
+    { id: number }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return joinCall(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type JoinCallMutationResult = NonNullable<
+  Awaited<ReturnType<typeof joinCall>>
+>;
+
+export type JoinCallMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Mark myself as joined to this call
+ */
+export const useJoinCall = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof joinCall>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof joinCall>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  return useMutation(getJoinCallMutationOptions(options));
+};
+
+/**
+ * @summary Leave the call (or end if last participant)
+ */
+export const getLeaveCallUrl = (id: number) => {
+  return `/api/calls/${id}/leave`;
+};
+
+export const leaveCall = async (
+  id: number,
+  options?: RequestInit,
+): Promise<OkResponse> => {
+  return customFetch<OkResponse>(getLeaveCallUrl(id), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getLeaveCallMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof leaveCall>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof leaveCall>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["leaveCall"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof leaveCall>>,
+    { id: number }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return leaveCall(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type LeaveCallMutationResult = NonNullable<
+  Awaited<ReturnType<typeof leaveCall>>
+>;
+
+export type LeaveCallMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Leave the call (or end if last participant)
+ */
+export const useLeaveCall = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof leaveCall>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof leaveCall>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  return useMutation(getLeaveCallMutationOptions(options));
+};
+
+/**
+ * @summary Send a WebRTC signaling message
+ */
+export const getSendCallSignalUrl = (id: number) => {
+  return `/api/calls/${id}/signals`;
+};
+
+export const sendCallSignal = async (
+  id: number,
+  callSignalBody: CallSignalBody,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getSendCallSignalUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(callSignalBody),
+  });
+};
+
+export const getSendCallSignalMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof sendCallSignal>>,
+    TError,
+    { id: number; data: BodyType<CallSignalBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof sendCallSignal>>,
+  TError,
+  { id: number; data: BodyType<CallSignalBody> },
+  TContext
+> => {
+  const mutationKey = ["sendCallSignal"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof sendCallSignal>>,
+    { id: number; data: BodyType<CallSignalBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return sendCallSignal(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SendCallSignalMutationResult = NonNullable<
+  Awaited<ReturnType<typeof sendCallSignal>>
+>;
+export type SendCallSignalMutationBody = BodyType<CallSignalBody>;
+export type SendCallSignalMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Send a WebRTC signaling message
+ */
+export const useSendCallSignal = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof sendCallSignal>>,
+    TError,
+    { id: number; data: BodyType<CallSignalBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof sendCallSignal>>,
+  TError,
+  { id: number; data: BodyType<CallSignalBody> },
+  TContext
+> => {
+  return useMutation(getSendCallSignalMutationOptions(options));
+};
+
+/**
+ * @summary Poll signaling messages addressed to me
+ */
+export const getGetCallSignalsUrl = (
+  id: number,
+  params?: GetCallSignalsParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/calls/${id}/signals?${stringifiedParams}`
+    : `/api/calls/${id}/signals`;
+};
+
+export const getCallSignals = async (
+  id: number,
+  params?: GetCallSignalsParams,
+  options?: RequestInit,
+): Promise<CallSignalList> => {
+  return customFetch<CallSignalList>(getGetCallSignalsUrl(id, params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetCallSignalsQueryKey = (
+  id: number,
+  params?: GetCallSignalsParams,
+) => {
+  return [`/api/calls/${id}/signals`, ...(params ? [params] : [])] as const;
+};
+
+export const getGetCallSignalsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getCallSignals>>,
+  TError = ErrorType<unknown>,
+>(
+  id: number,
+  params?: GetCallSignalsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getCallSignals>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetCallSignalsQueryKey(id, params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getCallSignals>>> = ({
+    signal,
+  }) => getCallSignals(id, params, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getCallSignals>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetCallSignalsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getCallSignals>>
+>;
+export type GetCallSignalsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Poll signaling messages addressed to me
+ */
+
+export function useGetCallSignals<
+  TData = Awaited<ReturnType<typeof getCallSignals>>,
+  TError = ErrorType<unknown>,
+>(
+  id: number,
+  params?: GetCallSignalsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getCallSignals>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetCallSignalsQueryOptions(id, params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
 
 /**
  * @summary List my accepted friends

@@ -16,6 +16,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { MessageBubble } from "@/components/MessageBubble";
+import { ImageUploadButton } from "@/components/ImageUploadButton";
+import { CallButton } from "@/components/CallButton";
 import {
   ArrowLeft,
   Hash,
@@ -97,6 +99,13 @@ export default function RoomChat({ tag }: { tag: string }) {
     });
   }
 
+  function sendImage(imageUrl: string) {
+    send.mutate({
+      tag: cleanTag,
+      data: { content: "", imageUrl, replyToId: replyTo?.id ?? null },
+    });
+  }
+
   function startReply(m: Message) {
     setReplyTo(m);
     setTimeout(() => inputRef.current?.focus(), 0);
@@ -131,6 +140,8 @@ export default function RoomChat({ tag }: { tag: string }) {
             )}
           </p>
         </div>
+        <CallButton roomTag={cleanTag} kind="voice" testId="button-room-call-voice" />
+        <CallButton roomTag={cleanTag} kind="video" testId="button-room-call-video" />
         {detail && (
           <Button
             size="sm"
@@ -212,6 +223,7 @@ export default function RoomChat({ tag }: { tag: string }) {
           </div>
         )}
         <div className="flex items-center gap-2">
+          <ImageUploadButton onUploaded={sendImage} testId="button-upload-room-image" />
           <Input
             ref={inputRef}
             placeholder={`Message #${cleanTag}…`}

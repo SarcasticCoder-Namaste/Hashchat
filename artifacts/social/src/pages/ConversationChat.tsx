@@ -5,16 +5,39 @@ import {
   useGetConversationMessages,
   useSendConversationMessage,
   useGetConversations,
+  useSetConversationBackground,
+  useClearConversationBackground,
   getGetConversationMessagesQueryKey,
   getGetConversationsQueryKey,
   type Message,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
+import { useUpload } from "@workspace/object-storage-web";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { MessageBubble } from "@/components/MessageBubble";
-import { ArrowLeft, Send, Loader2, Hash, X, Reply } from "lucide-react";
+import { ImageUploadButton } from "@/components/ImageUploadButton";
+import { CallButton } from "@/components/CallButton";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  ArrowLeft,
+  Send,
+  Loader2,
+  Hash,
+  X,
+  Reply,
+  MoreVertical,
+  Image as ImageLucide,
+  Trash2,
+} from "lucide-react";
+
+const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
 
 export default function ConversationChat({ id }: { id: number }) {
   const qc = useQueryClient();
@@ -48,6 +71,30 @@ export default function ConversationChat({ id }: { id: number }) {
       },
     },
   });
+
+  const setBg = useSetConversationBackground({
+    mutation: {
+      onSuccess: () => qc.invalidateQueries({ queryKey: getGetConversationsQueryKey() }),
+    },
+  });
+  const clearBg = useClearConversationBackground({
+    mutation: {
+      onSuccess: () => qc.invalidateQueries({ queryKey: getGetConversationsQueryKey() }),
+    },
+  });
+  const bgInputRef = useRef<HTMLInputElement>(null);
+  const { uploadFile: uploadBg, isUploading: bgUploading } = useUpload({
+    basePath: `${basePath}/api/storage`,
+    onSuccess: (r) =>
+      setBg.mutate({ id, data: { backgroundUrl: `${basePath}${r.objectPath}` } }),
+  });
+
+  function sendImage(imageUrl: string) {
+    send.mutate({
+      id,
+      data: { content: "", imageUrl, replyToId: replyTo?.id ?? null },
+    });
+  }
 
   useEffect(() => {
     scrollerRef.current?.scrollTo({
@@ -136,6 +183,52 @@ export default function ConversationChat({ id }: { id: number }) {
                 ))}
               </div>
             )}
+            <CallButton conversationId={id} kind="voice" testId="button-conv-call-voice" />
+            <CallButton conversationId={id} kind="video" testId="button-conv-call-video" />
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  data-testid="button-conv-menu"
+                  aria-label="Conversation menu"
+                >
+                  {bgUploading || setBg.isPending || clearBg.isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <MoreVertical className="h-4 w-4" />
+                  )}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem
+                  onSelect={() => bgInputRef.current?.click()}
+                  data-testid="menu-set-background"
+                >
+                  <ImageLucide className="mr-2 h-4 w-4" /> Set background
+                </DropdownMenuItem>
+                {conv.backgroundUrl && (
+                  <DropdownMenuItem
+                    onSelect={() => clearBg.mutate({ id })}
+                    data-testid="menu-clear-background"
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" /> Clear background
+                  </DropdownMenuItem>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <input
+              ref={bgInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) void uploadBg(f);
+                if (bgInputRef.current) bgInputRef.current.value = "";
+              }}
+              data-testid="input-set-background"
+            />
           </>
         ) : (
           <p className="text-sm text-muted-foreground">Loading…</p>
@@ -144,9 +237,22 @@ export default function ConversationChat({ id }: { id: number }) {
 
       <div
         ref={scrollerRef}
-        className="flex-1 overflow-y-auto bg-background px-4 py-6"
+        className="relative flex-1 overflow-y-auto bg-background px-4 py-6"
         data-testid="conv-message-list"
+        style={
+          conv?.backgroundUrl
+            ? {
+                backgroundImage: `url(${conv.backgroundUrl})`,
+                backgroundSize: "cover",
+                backgroundPosition: "center",
+              }
+            : undefined
+        }
       >
+        {conv?.backgroundUrl && (
+          <div className="pointer-events-none absolute inset-0 bg-background/70 backdrop-blur-sm" />
+        )}
+        <div className="relative">
         {msgs.isLoading ? (
           <div className="flex h-full items-center justify-center">
             <Loader2 className="h-5 w-5 animate-spin text-muted-foreground/70" />
@@ -172,6 +278,7 @@ export default function ConversationChat({ id }: { id: number }) {
             Say hi to start the conversation 👋
           </div>
         )}
+        </div>
       </div>
 
       <form
@@ -204,6 +311,7 @@ export default function ConversationChat({ id }: { id: number }) {
           </div>
         )}
         <div className="flex items-center gap-2">
+          <ImageUploadButton onUploaded={sendImage} testId="button-upload-dm-image" />
           <Input
             ref={inputRef}
             placeholder="Type a message…"

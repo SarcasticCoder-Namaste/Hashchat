@@ -22,6 +22,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { PresenceAvatar, UserNameLine } from "@/components/UserBadge";
+import { IncomingCallToast } from "@/components/IncomingCallToast";
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
 
@@ -251,6 +252,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
           </nav>
         </div>
       </div>
+      {me && <IncomingCallToast />}
     </div>
   );
 }

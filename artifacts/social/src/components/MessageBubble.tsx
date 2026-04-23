@@ -84,13 +84,26 @@ export function MessageBubble({
           )}
           <div
             className={[
-              "rounded-2xl px-3.5 py-2 text-sm shadow-sm",
+              "overflow-hidden rounded-2xl text-sm shadow-sm",
               isMine
                 ? "rounded-br-md bg-primary text-primary-foreground"
                 : "rounded-bl-md bg-card text-foreground",
             ].join(" ")}
           >
-            <p className="whitespace-pre-wrap break-words">{message.content}</p>
+            {message.imageUrl && (
+              <a href={message.imageUrl} target="_blank" rel="noreferrer">
+                <img
+                  src={message.imageUrl}
+                  alt=""
+                  className="block max-h-80 w-full object-cover"
+                  data-testid={`msg-image-${message.id}`}
+                />
+              </a>
+            )}
+            <div className="px-3.5 py-2">
+            {message.content && (
+              <p className="whitespace-pre-wrap break-words">{message.content}</p>
+            )}
             <p
               className={[
                 "mt-1 text-[10px]",
@@ -101,6 +114,7 @@ export function MessageBubble({
             >
               {time}
             </p>
+            </div>
           </div>
           {message.reactions.length > 0 && (
             <ReactionRow
@@ -158,9 +172,21 @@ export function MessageBubble({
             <span className="line-clamp-2">{message.replyToContent}</span>
           </div>
         )}
-        <p className="mt-0.5 whitespace-pre-wrap break-words text-sm text-foreground">
-          {message.content}
-        </p>
+        {message.imageUrl && (
+          <a href={message.imageUrl} target="_blank" rel="noreferrer" className="mt-1 block">
+            <img
+              src={message.imageUrl}
+              alt=""
+              className="max-h-80 max-w-full rounded-lg object-cover"
+              data-testid={`msg-image-${message.id}`}
+            />
+          </a>
+        )}
+        {message.content && (
+          <p className="mt-0.5 whitespace-pre-wrap break-words text-sm text-foreground">
+            {message.content}
+          </p>
+        )}
         {message.reactions.length > 0 && (
           <ReactionRow
             reactions={message.reactions}
