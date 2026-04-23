@@ -17,6 +17,18 @@ export interface User {
   bio?: string | null;
   /** @nullable */
   avatarUrl?: string | null;
+  /** @nullable */
+  bannerUrl?: string | null;
+  /** @nullable */
+  pronouns?: string | null;
+  /** @nullable */
+  location?: string | null;
+  /** @nullable */
+  website?: string | null;
+  /** @nullable */
+  statusEmoji?: string | null;
+  /** @nullable */
+  statusText?: string | null;
   status: string;
   /** @nullable */
   featuredHashtag?: string | null;
@@ -36,6 +48,18 @@ export interface UpdateUserBody {
   bio?: string | null;
   /** @nullable */
   avatarUrl?: string | null;
+  /** @nullable */
+  bannerUrl?: string | null;
+  /** @nullable */
+  pronouns?: string | null;
+  /** @nullable */
+  location?: string | null;
+  /** @nullable */
+  website?: string | null;
+  /** @nullable */
+  statusEmoji?: string | null;
+  /** @nullable */
+  statusText?: string | null;
   status?: string;
   /** @nullable */
   featuredHashtag?: string | null;

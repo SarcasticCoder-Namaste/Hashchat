@@ -871,6 +871,18 @@ components:
           type: ["string", "null"]
         avatarUrl:
           type: ["string", "null"]
+        bannerUrl:
+          type: ["string", "null"]
+        pronouns:
+          type: ["string", "null"]
+        location:
+          type: ["string", "null"]
+        website:
+          type: ["string", "null"]
+        statusEmoji:
+          type: ["string", "null"]
+        statusText:
+          type: ["string", "null"]
         status: { type: string }
         featuredHashtag:
           type: ["string", "null"]
@@ -895,6 +907,18 @@ components:
         bio:
           type: ["string", "null"]
         avatarUrl:
+          type: ["string", "null"]
+        bannerUrl:
+          type: ["string", "null"]
+        pronouns:
+          type: ["string", "null"]
+        location:
+          type: ["string", "null"]
+        website:
+          type: ["string", "null"]
+        statusEmoji:
+          type: ["string", "null"]
+        statusText:
           type: ["string", "null"]
         status: { type: string }
         featuredHashtag:

@@ -28,6 +28,12 @@ async function loadUser(userId: string) {
     displayName: user.displayName,
     bio: user.bio,
     avatarUrl: user.avatarUrl,
+    bannerUrl: user.bannerUrl,
+    pronouns: user.pronouns,
+    location: user.location,
+    website: user.website,
+    statusEmoji: user.statusEmoji,
+    statusText: user.statusText,
     status: user.status,
     featuredHashtag: user.featuredHashtag,
     discriminator: user.discriminator,
@@ -55,11 +61,50 @@ router.patch("/me", requireAuth, async (req, res): Promise<void> => {
     res.status(400).json({ error: parsed.error.message });
     return;
   }
+  const ALLOWED_PRESENCE = new Set(["online", "away", "busy", "invisible", "offline"]);
+  const trimNullable = (v: string | null | undefined, max: number): string | null | undefined => {
+    if (v === undefined) return undefined;
+    if (v === null) return null;
+    const t = v.trim().slice(0, max);
+    return t.length === 0 ? null : t;
+  };
+  const sanitizeUrl = (v: string | null | undefined): string | null | undefined => {
+    if (v === undefined) return undefined;
+    if (v === null) return null;
+    const t = v.trim();
+    if (t.length === 0) return null;
+    const candidate = /^https?:\/\//i.test(t) ? t : `https://${t}`;
+    try {
+      const u = new URL(candidate);
+      if (u.protocol !== "http:" && u.protocol !== "https:") return null;
+      return u.toString().slice(0, 200);
+    } catch {
+      return null;
+    }
+  };
+
   const updates: Record<string, unknown> = {};
-  if (parsed.data.displayName !== undefined) updates.displayName = parsed.data.displayName;
-  if (parsed.data.bio !== undefined) updates.bio = parsed.data.bio;
+  if (parsed.data.displayName !== undefined) {
+    const dn = parsed.data.displayName.trim().slice(0, 50);
+    if (dn.length > 0) updates.displayName = dn;
+  }
+  const bio = trimNullable(parsed.data.bio, 300);
+  if (bio !== undefined) updates.bio = bio;
   if (parsed.data.avatarUrl !== undefined) updates.avatarUrl = parsed.data.avatarUrl;
-  if (parsed.data.status !== undefined) updates.status = parsed.data.status;
+  if (parsed.data.bannerUrl !== undefined) updates.bannerUrl = parsed.data.bannerUrl;
+  const pronouns = trimNullable(parsed.data.pronouns, 32);
+  if (pronouns !== undefined) updates.pronouns = pronouns;
+  const location = trimNullable(parsed.data.location, 64);
+  if (location !== undefined) updates.location = location;
+  const website = sanitizeUrl(parsed.data.website);
+  if (website !== undefined) updates.website = website;
+  const statusEmoji = trimNullable(parsed.data.statusEmoji, 8);
+  if (statusEmoji !== undefined) updates.statusEmoji = statusEmoji;
+  const statusText = trimNullable(parsed.data.statusText, 80);
+  if (statusText !== undefined) updates.statusText = statusText;
+  if (parsed.data.status !== undefined && ALLOWED_PRESENCE.has(parsed.data.status)) {
+    updates.status = parsed.data.status;
+  }
   if (parsed.data.featuredHashtag !== undefined)
     updates.featuredHashtag = parsed.data.featuredHashtag;
   if (Object.keys(updates).length > 0) {

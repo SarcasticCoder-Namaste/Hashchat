@@ -49,7 +49,13 @@ import {
   Users,
   Image as ImageLucide,
   AlertTriangle,
+  MapPin,
+  Globe,
+  Smile,
+  Camera,
+  Circle,
 } from "lucide-react";
+import { ImageUploadButton } from "@/components/ImageUploadButton";
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
 
@@ -60,6 +66,14 @@ export default function Settings() {
   const { data: suggested } = useGetHashtagSuggestions();
   const [displayName, setDisplayName] = useState("");
   const [bio, setBio] = useState("");
+  const [pronouns, setPronouns] = useState("");
+  const [location, setLocation] = useState("");
+  const [website, setWebsite] = useState("");
+  const [statusEmoji, setStatusEmoji] = useState("");
+  const [statusText, setStatusText] = useState("");
+  const [presence, setPresence] = useState("online");
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [bannerUrl, setBannerUrl] = useState<string | null>(null);
   const [hashtags, setHashtags] = useState<string[]>([]);
   const [featuredHashtag, setFeaturedHashtag] = useState<string | null>(null);
   const [custom, setCustom] = useState("");
@@ -68,6 +82,14 @@ export default function Settings() {
     if (me) {
       setDisplayName(me.displayName);
       setBio(me.bio ?? "");
+      setPronouns(me.pronouns ?? "");
+      setLocation(me.location ?? "");
+      setWebsite(me.website ?? "");
+      setStatusEmoji(me.statusEmoji ?? "");
+      setStatusText(me.statusText ?? "");
+      setPresence(me.status ?? "online");
+      setAvatarUrl(me.avatarUrl ?? null);
+      setBannerUrl(me.bannerUrl ?? null);
       setHashtags(me.hashtags);
       setFeaturedHashtag(me.featuredHashtag ?? null);
     }
@@ -133,42 +155,112 @@ export default function Settings() {
 
   return (
     <div className="mx-auto max-w-3xl space-y-6 px-4 py-6 md:px-8 md:py-10">
-      <div className="flex items-center gap-4">
-        <Avatar className="h-16 w-16">
-          {me.avatarUrl ? (
-            <AvatarImage src={me.avatarUrl} alt={me.displayName} />
-          ) : null}
-          <AvatarFallback className="bg-primary/15 text-lg text-primary">
-            {initials}
-          </AvatarFallback>
-        </Avatar>
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            <h1 className="truncate text-2xl font-bold text-foreground">
-              {me.displayName}
-            </h1>
-            {me.featuredHashtag && (
+      <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+        <div
+          className="relative h-32 w-full bg-gradient-to-br from-violet-500/30 via-fuchsia-500/20 to-pink-500/30 md:h-40"
+          style={
+            bannerUrl
+              ? {
+                  backgroundImage: `url(${bannerUrl})`,
+                  backgroundSize: "cover",
+                  backgroundPosition: "center",
+                }
+              : undefined
+          }
+          data-testid="profile-banner"
+        />
+        <div className="relative px-4 pb-4 pt-0 md:px-6 md:pb-6">
+          <div className="-mt-10 flex items-end gap-4 md:-mt-12">
+            <div className="relative">
+              <Avatar className="h-20 w-20 ring-4 ring-card md:h-24 md:w-24">
+                {avatarUrl ? (
+                  <AvatarImage src={avatarUrl} alt={me.displayName} />
+                ) : null}
+                <AvatarFallback className="bg-primary/15 text-2xl text-primary">
+                  {initials}
+                </AvatarFallback>
+              </Avatar>
               <span
-                className="inline-flex items-center gap-0.5 rounded-full bg-gradient-to-r from-violet-500/20 to-pink-500/20 px-2 py-0.5 text-xs font-semibold text-foreground"
-                data-testid="profile-featured-hashtag"
-              >
-                <Hash className="h-3 w-3" />
-                {me.featuredHashtag}
+                className={[
+                  "absolute bottom-1 right-1 h-4 w-4 rounded-full ring-2 ring-card",
+                  presence === "online"
+                    ? "bg-emerald-500"
+                    : presence === "away"
+                    ? "bg-amber-500"
+                    : presence === "busy"
+                    ? "bg-rose-500"
+                    : "bg-muted-foreground/40",
+                ].join(" ")}
+                aria-label={`Status: ${presence}`}
+                data-testid="profile-presence-dot"
+              />
+            </div>
+            <div className="min-w-0 flex-1 pb-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <h1 className="truncate text-2xl font-bold text-foreground">
+                  {me.displayName}
+                </h1>
+                {me.featuredHashtag && (
+                  <span
+                    className="inline-flex items-center gap-0.5 rounded-full bg-gradient-to-r from-violet-500/20 to-pink-500/20 px-2 py-0.5 text-xs font-semibold text-foreground"
+                    data-testid="profile-featured-hashtag"
+                  >
+                    <Hash className="h-3 w-3" />
+                    {me.featuredHashtag}
+                  </span>
+                )}
+                {me.pronouns && (
+                  <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+                    {me.pronouns}
+                  </span>
+                )}
+              </div>
+              <p className="text-sm text-muted-foreground">
+                @{me.username}
+                {me.discriminator && (
+                  <span className="ml-1 text-muted-foreground/70">
+                    #{me.discriminator}
+                  </span>
+                )}
+              </p>
+            </div>
+          </div>
+          {(me.statusEmoji || me.statusText) && (
+            <div
+              className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-muted px-3 py-1 text-sm text-foreground"
+              data-testid="profile-custom-status"
+            >
+              {me.statusEmoji && <span>{me.statusEmoji}</span>}
+              {me.statusText && <span>{me.statusText}</span>}
+            </div>
+          )}
+          {me.bio && (
+            <p className="mt-3 max-w-2xl whitespace-pre-wrap text-sm text-foreground/90">
+              {me.bio}
+            </p>
+          )}
+          <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+            {me.location && (
+              <span className="inline-flex items-center gap-1">
+                <MapPin className="h-3 w-3" /> {me.location}
               </span>
+            )}
+            {me.website && (
+              <a
+                href={me.website.startsWith("http") ? me.website : `https://${me.website}`}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1 text-primary hover:underline"
+                data-testid="profile-website"
+              >
+                <Globe className="h-3 w-3" /> {me.website.replace(/^https?:\/\//, "")}
+              </a>
             )}
           </div>
-          <p className="text-muted-foreground">
-            @{me.username}
-            {me.discriminator && (
-              <span className="ml-1 text-muted-foreground/70">
-                #{me.discriminator}
-              </span>
-            )}
-          </p>
           {(me.role === "admin" ||
             me.role === "moderator" ||
             me.mvpPlan) && (
-            <div className="mt-1 flex flex-wrap gap-1.5">
+            <div className="mt-3 flex flex-wrap gap-1.5">
               {me.role === "admin" && (
                 <span className="inline-flex items-center gap-0.5 rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold text-amber-700 dark:text-amber-300">
                   Admin
@@ -221,20 +313,110 @@ export default function Settings() {
 
         <TabsContent
           value="profile"
-          className="mt-4 space-y-4 rounded-xl border border-border bg-card p-5 shadow-sm"
+          className="mt-4 space-y-5 rounded-xl border border-border bg-card p-5 shadow-sm"
         >
           <h2 className="text-lg font-semibold text-foreground">
             Public profile
           </h2>
+
           <div className="space-y-2">
-            <Label htmlFor="displayName">Display name</Label>
-            <Input
-              id="displayName"
-              value={displayName}
-              onChange={(e) => setDisplayName(e.target.value)}
-              data-testid="input-display-name"
-            />
+            <Label className="flex items-center gap-1.5">
+              <ImageLucide className="h-3.5 w-3.5 text-primary" /> Banner image
+            </Label>
+            <p className="text-xs text-muted-foreground">
+              A wide cover photo shown at the top of your profile.
+            </p>
+            <div className="flex items-start gap-3">
+              <div
+                className="relative h-20 w-40 overflow-hidden rounded-lg border border-border bg-gradient-to-br from-violet-500/30 via-fuchsia-500/20 to-pink-500/30"
+                style={
+                  bannerUrl
+                    ? {
+                        backgroundImage: `url(${bannerUrl})`,
+                        backgroundSize: "cover",
+                        backgroundPosition: "center",
+                      }
+                    : undefined
+                }
+                data-testid="banner-preview"
+              />
+              <div className="flex flex-col gap-1.5">
+                <ImageUploadButton
+                  testId="button-upload-banner"
+                  onUploaded={(url) => setBannerUrl(url)}
+                />
+                {bannerUrl && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setBannerUrl(null)}
+                    data-testid="button-clear-banner"
+                  >
+                    Remove
+                  </Button>
+                )}
+              </div>
+            </div>
           </div>
+
+          <div className="space-y-2">
+            <Label className="flex items-center gap-1.5">
+              <Camera className="h-3.5 w-3.5 text-primary" /> Avatar
+            </Label>
+            <div className="flex items-center gap-3">
+              <Avatar className="h-16 w-16">
+                {avatarUrl ? (
+                  <AvatarImage src={avatarUrl} alt={displayName} />
+                ) : null}
+                <AvatarFallback className="bg-primary/15 text-lg text-primary">
+                  {initials}
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex flex-col gap-1.5">
+                <ImageUploadButton
+                  testId="button-upload-avatar"
+                  onUploaded={(url) => setAvatarUrl(url)}
+                />
+                {avatarUrl && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setAvatarUrl(null)}
+                    data-testid="button-clear-avatar"
+                  >
+                    Remove
+                  </Button>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="displayName">Display name</Label>
+              <Input
+                id="displayName"
+                value={displayName}
+                onChange={(e) => setDisplayName(e.target.value)}
+                maxLength={50}
+                data-testid="input-display-name"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="pronouns">Pronouns</Label>
+              <Input
+                id="pronouns"
+                value={pronouns}
+                onChange={(e) => setPronouns(e.target.value)}
+                placeholder="she/her, he/him, they/them…"
+                maxLength={32}
+                data-testid="input-pronouns"
+              />
+            </div>
+          </div>
+
           <div className="space-y-2">
             <Label htmlFor="bio">Bio</Label>
             <Textarea
@@ -243,8 +425,136 @@ export default function Settings() {
               onChange={(e) => setBio(e.target.value)}
               placeholder="Tell people what you're into…"
               rows={3}
+              maxLength={300}
               data-testid="input-bio"
             />
+            <p className="text-right text-xs text-muted-foreground/70">
+              {bio.length}/300
+            </p>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="location" className="flex items-center gap-1.5">
+                <MapPin className="h-3.5 w-3.5 text-primary" /> Location
+              </Label>
+              <Input
+                id="location"
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
+                placeholder="Earth"
+                maxLength={64}
+                data-testid="input-location"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="website" className="flex items-center gap-1.5">
+                <Globe className="h-3.5 w-3.5 text-primary" /> Website
+              </Label>
+              <Input
+                id="website"
+                value={website}
+                onChange={(e) => setWebsite(e.target.value)}
+                placeholder="https://example.com"
+                maxLength={200}
+                data-testid="input-website"
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2 rounded-lg border border-border bg-muted/30 p-4">
+            <Label className="flex items-center gap-1.5">
+              <Smile className="h-3.5 w-3.5 text-primary" /> Custom status
+            </Label>
+            <p className="text-xs text-muted-foreground">
+              A short message that appears next to your name across the app.
+            </p>
+            <div className="flex items-stretch gap-2">
+              <Input
+                value={statusEmoji}
+                onChange={(e) => setStatusEmoji(e.target.value.slice(0, 4))}
+                placeholder="😎"
+                className="w-16 text-center text-lg"
+                data-testid="input-status-emoji"
+              />
+              <Input
+                value={statusText}
+                onChange={(e) => setStatusText(e.target.value)}
+                placeholder="What are you up to?"
+                maxLength={80}
+                className="flex-1"
+                data-testid="input-status-text"
+              />
+            </div>
+            <div className="flex flex-wrap gap-1.5 pt-1">
+              {[
+                { e: "🌴", t: "On vacation" },
+                { e: "💻", t: "Heads down coding" },
+                { e: "🎧", t: "In the zone" },
+                { e: "☕", t: "Coffee break" },
+                { e: "🌙", t: "Sleeping" },
+                { e: "🎮", t: "Gaming" },
+              ].map((p) => (
+                <button
+                  key={p.t}
+                  type="button"
+                  onClick={() => {
+                    setStatusEmoji(p.e);
+                    setStatusText(p.t);
+                  }}
+                  className="rounded-full border border-border bg-background px-2.5 py-1 text-xs text-foreground hover:bg-accent"
+                  data-testid={`preset-status-${p.t.toLowerCase().replace(/\s+/g, "-")}`}
+                >
+                  {p.e} {p.t}
+                </button>
+              ))}
+              {(statusEmoji || statusText) && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setStatusEmoji("");
+                    setStatusText("");
+                  }}
+                  className="rounded-full border border-border bg-background px-2.5 py-1 text-xs text-muted-foreground hover:bg-accent"
+                  data-testid="button-clear-status"
+                >
+                  Clear
+                </button>
+              )}
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label className="flex items-center gap-1.5">
+              <Circle className="h-3.5 w-3.5 text-primary" /> Presence
+            </Label>
+            <div className="flex flex-wrap gap-2">
+              {[
+                { v: "online", label: "Online", dot: "bg-emerald-500" },
+                { v: "away", label: "Away", dot: "bg-amber-500" },
+                { v: "busy", label: "Do not disturb", dot: "bg-rose-500" },
+                { v: "invisible", label: "Invisible", dot: "bg-muted-foreground/40" },
+              ].map((p) => {
+                const active = presence === p.v;
+                return (
+                  <button
+                    key={p.v}
+                    type="button"
+                    onClick={() => setPresence(p.v)}
+                    className={[
+                      "inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium",
+                      active
+                        ? "border-primary bg-primary/10 text-foreground"
+                        : "border-border text-muted-foreground hover:bg-accent",
+                    ].join(" ")}
+                    data-testid={`presence-${p.v}`}
+                  >
+                    <span className={`h-2 w-2 rounded-full ${p.dot}`} />
+                    {p.label}
+                  </button>
+                );
+              })}
+            </div>
           </div>
           <div className="space-y-2">
             <Label className="flex items-center gap-1.5">
@@ -302,6 +612,14 @@ export default function Settings() {
                 data: {
                   displayName,
                   bio: bio || null,
+                  pronouns: pronouns || null,
+                  location: location || null,
+                  website: website || null,
+                  statusEmoji: statusEmoji || null,
+                  statusText: statusText || null,
+                  status: presence,
+                  avatarUrl: avatarUrl,
+                  bannerUrl: bannerUrl,
                   featuredHashtag: featuredHashtag,
                 },
               })
