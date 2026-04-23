@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { MessageBubble } from "@/components/MessageBubble";
 import { ImageUploadButton } from "@/components/ImageUploadButton";
+import { VoiceMessageButton } from "@/components/VoiceMessageButton";
 import { CallButton } from "@/components/CallButton";
 import {
   ArrowLeft,
@@ -103,6 +104,13 @@ export default function RoomChat({ tag }: { tag: string }) {
     send.mutate({
       tag: cleanTag,
       data: { content: "", imageUrl, replyToId: replyTo?.id ?? null },
+    });
+  }
+
+  function sendAudio(audioUrl: string) {
+    send.mutate({
+      tag: cleanTag,
+      data: { content: "", audioUrl, replyToId: replyTo?.id ?? null },
     });
   }
 
@@ -224,6 +232,7 @@ export default function RoomChat({ tag }: { tag: string }) {
         )}
         <div className="flex items-center gap-2">
           <ImageUploadButton onUploaded={sendImage} testId="button-upload-room-image" />
+          <VoiceMessageButton onUploaded={sendAudio} testId="button-record-room-voice" />
           <Input
             ref={inputRef}
             placeholder={`Message #${cleanTag}…`}

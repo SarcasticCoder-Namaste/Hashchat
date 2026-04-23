@@ -16,7 +16,7 @@ import { normalizeTag } from "../lib/hashtags";
 
 const router: IRouter = Router();
 
-async function buildMessages(rows: { id: number; conversationId: number | null; roomTag: string | null; senderId: string; content: string; imageUrl: string | null; replyToId: number | null; createdAt: Date }[], myUserId: string) {
+async function buildMessages(rows: { id: number; conversationId: number | null; roomTag: string | null; senderId: string; content: string; imageUrl: string | null; audioUrl: string | null; replyToId: number | null; createdAt: Date }[], myUserId: string) {
   if (rows.length === 0) return [];
   const senderIds = Array.from(new Set(rows.map((r) => r.senderId)));
   const senders = await db
@@ -77,6 +77,7 @@ async function buildMessages(rows: { id: number; conversationId: number | null; 
       senderAvatarUrl: sender?.avatarUrl ?? null,
       content: r.content,
       imageUrl: r.imageUrl,
+      audioUrl: r.audioUrl,
       replyToId: r.replyToId,
       replyToContent: r.replyToId ? (replyMap.get(r.replyToId) ?? null) : null,
       reactions: reactionMap.get(r.id) ?? [],
@@ -221,6 +222,10 @@ router.post("/rooms/:tag/messages", requireAuth, async (req, res): Promise<void>
     res.status(400).json({ error: "imageUrl must reference an uploaded object" });
     return;
   }
+  if (parsed.data.audioUrl != null && !isValidStorageUrl(parsed.data.audioUrl)) {
+    res.status(400).json({ error: "audioUrl must reference an uploaded object" });
+    return;
+  }
   if (replyToId !== null) {
     const [refMsg] = await db
       .select({ id: messagesTable.id, roomTag: messagesTable.roomTag })
@@ -239,6 +244,7 @@ router.post("/rooms/:tag/messages", requireAuth, async (req, res): Promise<void>
       senderId: getUserId(req),
       content: parsed.data.content,
       imageUrl: parsed.data.imageUrl ?? null,
+      audioUrl: parsed.data.audioUrl ?? null,
       replyToId,
     })
     .returning();

@@ -100,6 +100,15 @@ export function MessageBubble({
                 />
               </a>
             )}
+            {message.audioUrl && (
+              <audio
+                controls
+                preload="metadata"
+                src={message.audioUrl}
+                className="block w-64 max-w-full px-2 pt-2"
+                data-testid={`msg-audio-${message.id}`}
+              />
+            )}
             <div className="px-3.5 py-2" data-msg-pad>
             {message.content && (
               <p className="whitespace-pre-wrap break-words">{message.content}</p>
@@ -181,6 +190,15 @@ export function MessageBubble({
               data-testid={`msg-image-${message.id}`}
             />
           </a>
+        )}
+        {message.audioUrl && (
+          <audio
+            controls
+            preload="metadata"
+            src={message.audioUrl}
+            className="mt-1 block w-72 max-w-full"
+            data-testid={`msg-audio-${message.id}`}
+          />
         )}
         {message.content && (
           <p className="mt-0.5 whitespace-pre-wrap break-words text-sm text-foreground">

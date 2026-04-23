@@ -296,6 +296,7 @@ export const GetConversationsResponseItem = zod.object({
         replyToId: zod.number().nullish(),
         replyToContent: zod.string().nullish(),
         imageUrl: zod.string().nullish(),
+        audioUrl: zod.string().nullish(),
         reactions: zod.array(
           zod.object({
             emoji: zod.string(),
@@ -356,6 +357,7 @@ export const OpenConversationResponse = zod.object({
         replyToId: zod.number().nullish(),
         replyToContent: zod.string().nullish(),
         imageUrl: zod.string().nullish(),
+        audioUrl: zod.string().nullish(),
         reactions: zod.array(
           zod.object({
             emoji: zod.string(),
@@ -391,6 +393,7 @@ export const GetConversationMessagesResponseItem = zod.object({
   replyToId: zod.number().nullish(),
   replyToContent: zod.string().nullish(),
   imageUrl: zod.string().nullish(),
+  audioUrl: zod.string().nullish(),
   reactions: zod.array(
     zod.object({
       emoji: zod.string(),
@@ -415,6 +418,7 @@ export const SendConversationMessageBody = zod.object({
   content: zod.string(),
   replyToId: zod.number().nullish(),
   imageUrl: zod.string().nullish(),
+  audioUrl: zod.string().nullish(),
 });
 
 /**
@@ -461,6 +465,7 @@ export const GetRoomsResponseItem = zod.object({
         replyToId: zod.number().nullish(),
         replyToContent: zod.string().nullish(),
         imageUrl: zod.string().nullish(),
+        audioUrl: zod.string().nullish(),
         reactions: zod.array(
           zod.object({
             emoji: zod.string(),
@@ -505,6 +510,7 @@ export const GetTrendingRoomsResponseItem = zod.object({
         replyToId: zod.number().nullish(),
         replyToContent: zod.string().nullish(),
         imageUrl: zod.string().nullish(),
+        audioUrl: zod.string().nullish(),
         reactions: zod.array(
           zod.object({
             emoji: zod.string(),
@@ -539,6 +545,7 @@ export const GetRoomMessagesResponseItem = zod.object({
   replyToId: zod.number().nullish(),
   replyToContent: zod.string().nullish(),
   imageUrl: zod.string().nullish(),
+  audioUrl: zod.string().nullish(),
   reactions: zod.array(
     zod.object({
       emoji: zod.string(),
@@ -561,6 +568,7 @@ export const SendRoomMessageBody = zod.object({
   content: zod.string(),
   replyToId: zod.number().nullish(),
   imageUrl: zod.string().nullish(),
+  audioUrl: zod.string().nullish(),
 });
 
 /**

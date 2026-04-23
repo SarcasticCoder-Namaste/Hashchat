@@ -29,7 +29,7 @@ export function ProfileGallery() {
 
   const { uploadFile, isUploading } = useUpload({
     basePath: `${basePath}/api/storage`,
-    onSuccess: (r) => add.mutate({ data: { imageUrl: `${basePath}${r.objectPath}` } }),
+    onSuccess: (r) => add.mutate({ data: { imageUrl: `${basePath}/api/storage${r.objectPath}` } }),
   });
 
   return (

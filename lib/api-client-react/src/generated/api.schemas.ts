@@ -126,6 +126,8 @@ export interface Message {
   replyToContent?: string | null;
   /** @nullable */
   imageUrl?: string | null;
+  /** @nullable */
+  audioUrl?: string | null;
   reactions: Reaction[];
   createdAt: string;
 }
@@ -256,6 +258,8 @@ export interface SendMessageBody {
   replyToId?: number | null;
   /** @nullable */
   imageUrl?: string | null;
+  /** @nullable */
+  audioUrl?: string | null;
 }
 
 export interface ReactionBody {

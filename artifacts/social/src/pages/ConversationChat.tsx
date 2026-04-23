@@ -18,6 +18,7 @@ import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { MessageBubble } from "@/components/MessageBubble";
 import { ImageUploadButton } from "@/components/ImageUploadButton";
+import { VoiceMessageButton } from "@/components/VoiceMessageButton";
 import { CallButton } from "@/components/CallButton";
 import {
   DropdownMenu,
@@ -86,13 +87,20 @@ export default function ConversationChat({ id }: { id: number }) {
   const { uploadFile: uploadBg, isUploading: bgUploading } = useUpload({
     basePath: `${basePath}/api/storage`,
     onSuccess: (r) =>
-      setBg.mutate({ id, data: { backgroundUrl: `${basePath}${r.objectPath}` } }),
+      setBg.mutate({ id, data: { backgroundUrl: `${basePath}/api/storage${r.objectPath}` } }),
   });
 
   function sendImage(imageUrl: string) {
     send.mutate({
       id,
       data: { content: "", imageUrl, replyToId: replyTo?.id ?? null },
+    });
+  }
+
+  function sendAudio(audioUrl: string) {
+    send.mutate({
+      id,
+      data: { content: "", audioUrl, replyToId: replyTo?.id ?? null },
     });
   }
 
@@ -312,6 +320,7 @@ export default function ConversationChat({ id }: { id: number }) {
         )}
         <div className="flex items-center gap-2">
           <ImageUploadButton onUploaded={sendImage} testId="button-upload-dm-image" />
+          <VoiceMessageButton onUploaded={sendAudio} testId="button-record-dm-voice" />
           <Input
             ref={inputRef}
             placeholder="Type a message…"

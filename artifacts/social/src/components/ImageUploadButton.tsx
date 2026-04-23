@@ -15,7 +15,7 @@ export function ImageUploadButton({
   const inputRef = useRef<HTMLInputElement>(null);
   const { uploadFile, isUploading } = useUpload({
     basePath: `${basePath}/api/storage`,
-    onSuccess: (r) => onUploaded(`${basePath}${r.objectPath}`),
+    onSuccess: (r) => onUploaded(`${basePath}/api/storage${r.objectPath}`),
   });
 
   return (

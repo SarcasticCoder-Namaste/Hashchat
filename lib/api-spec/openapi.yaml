@@ -1140,6 +1140,8 @@ components:
           type: ["string", "null"]
         imageUrl:
           type: ["string", "null"]
+        audioUrl:
+          type: ["string", "null"]
         reactions:
           type: array
           items: { $ref: "#/components/schemas/Reaction" }
@@ -1153,6 +1155,8 @@ components:
         replyToId:
           type: ["integer", "null"]
         imageUrl:
+          type: ["string", "null"]
+        audioUrl:
           type: ["string", "null"]
       required: [content]
 
