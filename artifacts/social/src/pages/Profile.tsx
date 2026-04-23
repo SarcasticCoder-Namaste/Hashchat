@@ -282,34 +282,72 @@ export default function Settings() {
       </div>
 
       <Tabs defaultValue="profile">
-        <div className="-mx-4 overflow-x-auto px-4 md:mx-0 md:overflow-visible md:px-0">
-          <TabsList className="flex w-max min-w-full justify-start md:flex-wrap">
-            <TabsTrigger value="profile" data-testid="tab-profile">
-              <UserIcon className="mr-1.5 h-4 w-4" /> Profile
-            </TabsTrigger>
-            <TabsTrigger value="hashtags" data-testid="tab-hashtags">
-              <Hash className="mr-1.5 h-4 w-4" /> Hashtags
-            </TabsTrigger>
-            <TabsTrigger value="appearance" data-testid="tab-appearance">
-              <Palette className="mr-1.5 h-4 w-4" /> Appearance
-            </TabsTrigger>
-            <TabsTrigger value="notifications" data-testid="tab-notifications">
-              <Bell className="mr-1.5 h-4 w-4" /> Notifications
-            </TabsTrigger>
-            <TabsTrigger value="privacy" data-testid="tab-privacy">
-              <Lock className="mr-1.5 h-4 w-4" /> Privacy
-            </TabsTrigger>
-            <TabsTrigger value="chat" data-testid="tab-chat">
-              <MessageSquare className="mr-1.5 h-4 w-4" /> Chat
-            </TabsTrigger>
-            <TabsTrigger value="gallery" data-testid="tab-gallery">
-              <ImageIcon className="mr-1.5 h-4 w-4" /> Gallery
-            </TabsTrigger>
-            <TabsTrigger value="account" data-testid="tab-account">
-              Account
-            </TabsTrigger>
-          </TabsList>
-        </div>
+        <TabsList className="grid h-auto w-full grid-cols-4 gap-1 p-1 sm:grid-cols-8">
+          <TabsTrigger
+            value="profile"
+            data-testid="tab-profile"
+            className="flex flex-col items-center gap-1 px-1 py-2 text-[11px] sm:flex-row sm:gap-1.5 sm:text-xs"
+          >
+            <UserIcon className="h-4 w-4 shrink-0" />
+            <span className="truncate">Profile</span>
+          </TabsTrigger>
+          <TabsTrigger
+            value="hashtags"
+            data-testid="tab-hashtags"
+            className="flex flex-col items-center gap-1 px-1 py-2 text-[11px] sm:flex-row sm:gap-1.5 sm:text-xs"
+          >
+            <Hash className="h-4 w-4 shrink-0" />
+            <span className="truncate">Tags</span>
+          </TabsTrigger>
+          <TabsTrigger
+            value="appearance"
+            data-testid="tab-appearance"
+            className="flex flex-col items-center gap-1 px-1 py-2 text-[11px] sm:flex-row sm:gap-1.5 sm:text-xs"
+          >
+            <Palette className="h-4 w-4 shrink-0" />
+            <span className="truncate">Theme</span>
+          </TabsTrigger>
+          <TabsTrigger
+            value="notifications"
+            data-testid="tab-notifications"
+            className="flex flex-col items-center gap-1 px-1 py-2 text-[11px] sm:flex-row sm:gap-1.5 sm:text-xs"
+          >
+            <Bell className="h-4 w-4 shrink-0" />
+            <span className="truncate">Alerts</span>
+          </TabsTrigger>
+          <TabsTrigger
+            value="privacy"
+            data-testid="tab-privacy"
+            className="flex flex-col items-center gap-1 px-1 py-2 text-[11px] sm:flex-row sm:gap-1.5 sm:text-xs"
+          >
+            <Lock className="h-4 w-4 shrink-0" />
+            <span className="truncate">Privacy</span>
+          </TabsTrigger>
+          <TabsTrigger
+            value="chat"
+            data-testid="tab-chat"
+            className="flex flex-col items-center gap-1 px-1 py-2 text-[11px] sm:flex-row sm:gap-1.5 sm:text-xs"
+          >
+            <MessageSquare className="h-4 w-4 shrink-0" />
+            <span className="truncate">Chat</span>
+          </TabsTrigger>
+          <TabsTrigger
+            value="gallery"
+            data-testid="tab-gallery"
+            className="flex flex-col items-center gap-1 px-1 py-2 text-[11px] sm:flex-row sm:gap-1.5 sm:text-xs"
+          >
+            <ImageIcon className="h-4 w-4 shrink-0" />
+            <span className="truncate">Photos</span>
+          </TabsTrigger>
+          <TabsTrigger
+            value="account"
+            data-testid="tab-account"
+            className="flex flex-col items-center gap-1 px-1 py-2 text-[11px] sm:flex-row sm:gap-1.5 sm:text-xs"
+          >
+            <UserIcon className="h-4 w-4 shrink-0" />
+            <span className="truncate">Account</span>
+          </TabsTrigger>
+        </TabsList>
 
         <TabsContent
           value="profile"
