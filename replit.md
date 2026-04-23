@@ -35,12 +35,28 @@ Hashtag-driven social chat web app. React + Vite + Wouter routing, TanStack Quer
 Routes (relative to base path):
 - `/` — Landing (signed out) or redirect to `/app/discover` (signed in)
 - `/sign-in/*?`, `/sign-up/*?` — Clerk SignIn/SignUp (`routing="path"`)
-- `/onboarding` — first-time hashtag picker (>=3 required)
+- `/onboarding` — first-time hashtag picker (>=3 required), with starter rooms grid
 - `/app/discover` — smart matches + trending tags
 - `/app/trending` — searchable trending tags + follow/unfollow
 - `/app/rooms`, `/app/rooms/:tag` — hashtag rooms list & chat
 - `/app/messages`, `/app/messages/:id` — DM list & conversation
-- `/app/profile` — edit display name, bio, hashtags
+- `/app/reels` — YouTube Shorts feed (Instagram coming soon)
+- `/app/admin` — role-gated admin panel (Users / MVP Codes / Stats)
+- `/app/friends` — friend requests + connections
+- `/app/settings` — profile, hashtags, appearance, account (with MVP code redeem)
+
+V3 additions:
+- 5-digit `discriminator` per user (e.g. `@alice #12345`), backfilled lazily on auth.
+- Online presence: `lastSeenAt` updated on each request (30s throttle); online dot if < 5min.
+- Roles: `user` / `moderator` / `admin`. Bootstrap admin via `ADMIN_USER_IDS` env (comma-separated **Clerk user IDs**, immutable). Username-based promotion was removed for security.
+- MVP plan: admin generates one-time codes; users redeem via Settings → Account.
+- Banned users (`bannedAt` set) are rejected at auth with 403.
+- Soft-deleted messages (`deletedAt`) are filtered everywhere they could surface (lists, reply previews, unread counts, replyTo target validation).
+- Motion polish: framer-motion bubble entry, card stagger, CTA hover scale.
+
+Required env (optional but recommended):
+- `ADMIN_USER_IDS` — comma-separated Clerk user IDs to auto-promote to admin.
+- `YOUTUBE_API_KEY` — YouTube Data API v3 key for Reels (degrades to a config card if missing).
 
 Real-time is implemented via TanStack Query polling (`refetchInterval` 2.5–5s).
 

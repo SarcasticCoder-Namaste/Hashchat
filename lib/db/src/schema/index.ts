@@ -4,6 +4,7 @@ import {
   serial,
   integer,
   timestamp,
+  boolean,
   primaryKey,
   uniqueIndex,
   index,
@@ -17,10 +18,17 @@ export const usersTable = pgTable("users", {
   avatarUrl: text("avatar_url"),
   status: text("status").notNull().default("online"),
   featuredHashtag: text("featured_hashtag"),
+  discriminator: text("discriminator"),
+  role: text("role").notNull().default("user"),
+  mvpPlan: boolean("mvp_plan").notNull().default(false),
+  bannedAt: timestamp("banned_at", { withTimezone: true }),
+  lastSeenAt: timestamp("last_seen_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
-});
+}, (t) => [uniqueIndex("users_discriminator_unique").on(t.discriminator)]);
 
 export const hashtagsTable = pgTable("hashtags", {
   tag: text("tag").primaryKey(),
@@ -113,6 +121,7 @@ export const messagesTable = pgTable(
       .references(() => usersTable.id, { onDelete: "cascade" }),
     content: text("content").notNull(),
     replyToId: integer("reply_to_id"),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -122,6 +131,21 @@ export const messagesTable = pgTable(
     index("messages_room_idx").on(t.roomTag, t.createdAt),
   ],
 );
+
+export const mvpCodesTable = pgTable("mvp_codes", {
+  code: text("code").primaryKey(),
+  createdBy: text("created_by")
+    .notNull()
+    .references(() => usersTable.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  redeemedBy: text("redeemed_by").references(() => usersTable.id, {
+    onDelete: "set null",
+  }),
+  redeemedAt: timestamp("redeemed_at", { withTimezone: true }),
+  note: text("note"),
+});
 
 export const reactionsTable = pgTable(
   "reactions",
@@ -160,6 +184,7 @@ export const friendshipsTable = pgTable(
   (t) => [primaryKey({ columns: [t.requesterId, t.addresseeId] })],
 );
 
+export type MvpCode = typeof mvpCodesTable.$inferSelect;
 export type Friendship = typeof friendshipsTable.$inferSelect;
 export type User = typeof usersTable.$inferSelect;
 export type Hashtag = typeof hashtagsTable.$inferSelect;

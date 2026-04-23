@@ -8,6 +8,9 @@ import messagesRouter from "./messages";
 import roomsRouter from "./rooms";
 import statsRouter from "./stats";
 import friendsRouter from "./friends";
+import adminRouter from "./admin";
+import mvpRouter from "./mvp";
+import reelsRouter from "./reels";
 
 const router: IRouter = Router();
 
@@ -20,5 +23,8 @@ router.use(messagesRouter);
 router.use(roomsRouter);
 router.use(statsRouter);
 router.use(friendsRouter);
+router.use(adminRouter);
+router.use(mvpRouter);
+router.use(reelsRouter);
 
 export default router;

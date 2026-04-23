@@ -31,6 +31,8 @@ import Conversations from "@/pages/Conversations";
 import ConversationChat from "@/pages/ConversationChat";
 import Profile from "@/pages/Profile";
 import Friends from "@/pages/Friends";
+import Reels from "@/pages/Reels";
+import AdminPanel from "@/pages/AdminPanel";
 import NotFound from "@/pages/not-found";
 import AppShell from "@/components/AppShell";
 
@@ -241,6 +243,16 @@ function ClerkProviderWithRoutes() {
             <Route path="/app/friends">
               <ProtectedShell>
                 <Friends />
+              </ProtectedShell>
+            </Route>
+            <Route path="/app/reels">
+              <ProtectedShell>
+                <Reels />
+              </ProtectedShell>
+            </Route>
+            <Route path="/app/admin">
+              <ProtectedShell>
+                <AdminPanel />
               </ProtectedShell>
             </Route>
             <Route path="/app/settings">

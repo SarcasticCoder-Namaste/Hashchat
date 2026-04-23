@@ -5,6 +5,7 @@ import {
   useUpdateMe,
   useSetMyHashtags,
   useGetHashtagSuggestions,
+  useRedeemMvpCode,
   getGetMeQueryKey,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -140,7 +141,35 @@ export default function Settings() {
               </span>
             )}
           </div>
-          <p className="text-muted-foreground">@{me.username}</p>
+          <p className="text-muted-foreground">
+            @{me.username}
+            {me.discriminator && (
+              <span className="ml-1 text-muted-foreground/70">
+                #{me.discriminator}
+              </span>
+            )}
+          </p>
+          {(me.role === "admin" ||
+            me.role === "moderator" ||
+            me.mvpPlan) && (
+            <div className="mt-1 flex flex-wrap gap-1.5">
+              {me.role === "admin" && (
+                <span className="inline-flex items-center gap-0.5 rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold text-amber-700 dark:text-amber-300">
+                  Admin
+                </span>
+              )}
+              {me.role === "moderator" && (
+                <span className="inline-flex items-center gap-0.5 rounded-full bg-sky-500/15 px-2 py-0.5 text-[10px] font-semibold text-sky-700 dark:text-sky-300">
+                  Moderator
+                </span>
+              )}
+              {me.mvpPlan && (
+                <span className="inline-flex items-center gap-0.5 rounded-full bg-gradient-to-r from-violet-500/30 to-pink-500/30 px-2 py-0.5 text-[10px] font-semibold text-foreground">
+                  <Sparkles className="h-2.5 w-2.5" /> MVP
+                </span>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
@@ -338,8 +367,16 @@ export default function Settings() {
           <h2 className="text-lg font-semibold text-foreground">Account</h2>
           <div className="space-y-1">
             <p className="text-sm text-muted-foreground">Username</p>
-            <p className="font-medium text-foreground">@{me.username}</p>
+            <p className="font-medium text-foreground">
+              @{me.username}
+              {me.discriminator && (
+                <span className="ml-1 text-muted-foreground/70">
+                  #{me.discriminator}
+                </span>
+              )}
+            </p>
           </div>
+          <MvpRedeemSection isMvp={me.mvpPlan} />
           <div className="space-y-1">
             <p className="text-sm text-muted-foreground">Member since</p>
             <p className="font-medium text-foreground">
@@ -362,6 +399,82 @@ export default function Settings() {
           </div>
         </TabsContent>
       </Tabs>
+    </div>
+  );
+}
+
+function MvpRedeemSection({ isMvp }: { isMvp: boolean }) {
+  const qc = useQueryClient();
+  const [code, setCode] = useState("");
+  const [msg, setMsg] = useState<string | null>(null);
+  const redeem = useRedeemMvpCode({
+    mutation: {
+      onSuccess: () => {
+        setMsg("MVP unlocked! 🎉");
+        setCode("");
+        qc.invalidateQueries({ queryKey: getGetMeQueryKey() });
+      },
+      onError: (err: unknown) => {
+        const e = err as { status?: number };
+        if (e?.status === 409) setMsg("That code has already been used.");
+        else if (e?.status === 404) setMsg("That code isn't valid.");
+        else setMsg("Couldn't redeem. Try again.");
+      },
+    },
+  });
+
+  if (isMvp) {
+    return (
+      <div className="rounded-lg border border-primary/30 bg-gradient-to-r from-violet-500/10 to-pink-500/10 p-3">
+        <p className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
+          <Sparkles className="h-3.5 w-3.5 text-primary" /> MVP plan active
+        </p>
+        <p className="mt-0.5 text-xs text-muted-foreground">
+          Thanks for being a HashChat MVP.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-2 border-t border-border pt-4">
+      <p className="text-sm font-semibold text-foreground">
+        Have an MVP code?
+      </p>
+      <p className="text-xs text-muted-foreground">
+        Redeem it to unlock your MVP badge across HashChat.
+      </p>
+      <div className="flex gap-2">
+        <Input
+          value={code}
+          onChange={(e) => {
+            setCode(e.target.value);
+            setMsg(null);
+          }}
+          placeholder="Paste your code"
+          data-testid="input-mvp-code"
+        />
+        <Button
+          onClick={() =>
+            redeem.mutate({ data: { code: code.trim() } })
+          }
+          disabled={!code.trim() || redeem.isPending}
+          data-testid="button-redeem-mvp"
+        >
+          {redeem.isPending && (
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          )}
+          Redeem
+        </Button>
+      </div>
+      {msg && (
+        <p
+          className="text-xs text-muted-foreground"
+          data-testid="mvp-redeem-msg"
+        >
+          {msg}
+        </p>
+      )}
     </div>
   );
 }

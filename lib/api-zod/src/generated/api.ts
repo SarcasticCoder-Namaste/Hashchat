@@ -25,6 +25,10 @@ export const GetMeResponse = zod.object({
   avatarUrl: zod.string().nullish(),
   status: zod.string(),
   featuredHashtag: zod.string().nullish(),
+  discriminator: zod.string().nullish(),
+  role: zod.string(),
+  mvpPlan: zod.boolean(),
+  lastSeenAt: zod.coerce.date(),
   hashtags: zod.array(zod.string()),
   followedHashtags: zod.array(zod.string()),
   createdAt: zod.coerce.date(),
@@ -49,6 +53,10 @@ export const UpdateMeResponse = zod.object({
   avatarUrl: zod.string().nullish(),
   status: zod.string(),
   featuredHashtag: zod.string().nullish(),
+  discriminator: zod.string().nullish(),
+  role: zod.string(),
+  mvpPlan: zod.boolean(),
+  lastSeenAt: zod.coerce.date(),
   hashtags: zod.array(zod.string()),
   followedHashtags: zod.array(zod.string()),
   createdAt: zod.coerce.date(),
@@ -108,6 +116,10 @@ export const GetUserResponse = zod.object({
   avatarUrl: zod.string().nullish(),
   status: zod.string(),
   featuredHashtag: zod.string().nullish(),
+  discriminator: zod.string().nullish(),
+  role: zod.string(),
+  mvpPlan: zod.boolean(),
+  lastSeenAt: zod.coerce.date(),
   hashtags: zod.array(zod.string()),
   followedHashtags: zod.array(zod.string()),
   createdAt: zod.coerce.date(),
@@ -185,6 +197,10 @@ export const GetHashtagResponse = zod.object({
       avatarUrl: zod.string().nullish(),
       status: zod.string(),
       featuredHashtag: zod.string().nullish(),
+      discriminator: zod.string().nullish(),
+      role: zod.string(),
+      mvpPlan: zod.boolean(),
+      lastSeenAt: zod.coerce.date(),
       hashtags: zod.array(zod.string()),
       sharedHashtags: zod.array(zod.string()),
       matchScore: zod.number(),
@@ -228,6 +244,10 @@ export const DiscoverPeopleResponseItem = zod.object({
   avatarUrl: zod.string().nullish(),
   status: zod.string(),
   featuredHashtag: zod.string().nullish(),
+  discriminator: zod.string().nullish(),
+  role: zod.string(),
+  mvpPlan: zod.boolean(),
+  lastSeenAt: zod.coerce.date(),
   hashtags: zod.array(zod.string()),
   sharedHashtags: zod.array(zod.string()),
   matchScore: zod.number(),
@@ -251,6 +271,10 @@ export const GetConversationsResponseItem = zod.object({
     avatarUrl: zod.string().nullish(),
     status: zod.string(),
     featuredHashtag: zod.string().nullish(),
+    discriminator: zod.string().nullish(),
+    role: zod.string(),
+    mvpPlan: zod.boolean(),
+    lastSeenAt: zod.coerce.date(),
     hashtags: zod.array(zod.string()),
     sharedHashtags: zod.array(zod.string()),
     matchScore: zod.number(),
@@ -305,6 +329,10 @@ export const OpenConversationResponse = zod.object({
     avatarUrl: zod.string().nullish(),
     status: zod.string(),
     featuredHashtag: zod.string().nullish(),
+    discriminator: zod.string().nullish(),
+    role: zod.string(),
+    mvpPlan: zod.boolean(),
+    lastSeenAt: zod.coerce.date(),
     hashtags: zod.array(zod.string()),
     sharedHashtags: zod.array(zod.string()),
     matchScore: zod.number(),
@@ -536,6 +564,10 @@ export const GetMyFriendsResponseItem = zod.object({
   avatarUrl: zod.string().nullish(),
   status: zod.string(),
   featuredHashtag: zod.string().nullish(),
+  discriminator: zod.string().nullish(),
+  role: zod.string(),
+  mvpPlan: zod.boolean(),
+  lastSeenAt: zod.coerce.date(),
   hashtags: zod.array(zod.string()),
   sharedHashtags: zod.array(zod.string()),
   matchScore: zod.number(),
@@ -559,6 +591,10 @@ export const GetFriendRequestsResponse = zod.object({
       avatarUrl: zod.string().nullish(),
       status: zod.string(),
       featuredHashtag: zod.string().nullish(),
+      discriminator: zod.string().nullish(),
+      role: zod.string(),
+      mvpPlan: zod.boolean(),
+      lastSeenAt: zod.coerce.date(),
       hashtags: zod.array(zod.string()),
       sharedHashtags: zod.array(zod.string()),
       matchScore: zod.number(),
@@ -577,6 +613,10 @@ export const GetFriendRequestsResponse = zod.object({
       avatarUrl: zod.string().nullish(),
       status: zod.string(),
       featuredHashtag: zod.string().nullish(),
+      discriminator: zod.string().nullish(),
+      role: zod.string(),
+      mvpPlan: zod.boolean(),
+      lastSeenAt: zod.coerce.date(),
       hashtags: zod.array(zod.string()),
       sharedHashtags: zod.array(zod.string()),
       matchScore: zod.number(),
@@ -631,4 +671,95 @@ export const GetOverviewStatsResponse = zod.object({
   hashtagCount: zod.number(),
   messageCount: zod.number(),
   roomCount: zod.number(),
+});
+
+/**
+ * @summary Redeem an MVP plan code
+ */
+export const RedeemMvpCodeBody = zod.object({
+  code: zod.string(),
+});
+
+export const RedeemMvpCodeResponse = zod.object({
+  ok: zod.boolean(),
+});
+
+/**
+ * @summary List all users (moderator+)
+ */
+export const AdminListUsersResponseItem = zod.object({
+  id: zod.string(),
+  username: zod.string(),
+  displayName: zod.string(),
+  bio: zod.string().nullish(),
+  avatarUrl: zod.string().nullish(),
+  status: zod.string(),
+  featuredHashtag: zod.string().nullish(),
+  discriminator: zod.string().nullish(),
+  role: zod.string(),
+  mvpPlan: zod.boolean(),
+  lastSeenAt: zod.coerce.date(),
+  bannedAt: zod.coerce.date().nullish(),
+  createdAt: zod.coerce.date(),
+});
+export const AdminListUsersResponse = zod.array(AdminListUsersResponseItem);
+
+export const AdminBanUserParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const AdminUnbanUserParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const AdminSetUserRoleParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const AdminSetUserRoleBody = zod.object({
+  role: zod.enum(["user", "moderator", "admin"]),
+});
+
+export const AdminDeleteMessageParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const AdminListMvpCodesResponseItem = zod.object({
+  code: zod.string(),
+  createdBy: zod.string(),
+  createdAt: zod.coerce.date(),
+  redeemedBy: zod.string().nullish(),
+  redeemedAt: zod.coerce.date().nullish(),
+  note: zod.string().nullish(),
+});
+export const AdminListMvpCodesResponse = zod.array(
+  AdminListMvpCodesResponseItem,
+);
+
+export const AdminCreateMvpCodeBody = zod.object({
+  note: zod.string().nullish(),
+});
+
+export const AdminStatsResponse = zod.object({
+  users: zod.number(),
+  messages: zod.number(),
+  mvp: zod.number(),
+  banned: zod.number(),
+});
+
+export const GetYoutubeReelsQueryParams = zod.object({
+  q: zod.coerce.string().optional(),
+  max: zod.coerce.number().optional(),
+});
+
+export const GetYoutubeReelsResponse = zod.object({
+  items: zod.array(
+    zod.object({
+      id: zod.string(),
+      title: zod.string(),
+      channel: zod.string(),
+      thumbnail: zod.string(),
+      publishedAt: zod.coerce.date(),
+    }),
+  ),
 });

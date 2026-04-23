@@ -16,10 +16,12 @@ import {
   Settings as SettingsIcon,
   LogOut,
   Loader2,
+  Film,
+  ShieldCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { PresenceAvatar, UserNameLine } from "@/components/UserBadge";
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
 
@@ -27,6 +29,7 @@ const NAV = [
   { href: "/app/discover", label: "Discover", icon: Compass },
   { href: "/app/trending", label: "Trending", icon: TrendingUp },
   { href: "/app/rooms", label: "Rooms", icon: Hash },
+  { href: "/app/reels", label: "Reels", icon: Film },
   { href: "/app/messages", label: "Messages", icon: MessageCircle },
   { href: "/app/friends", label: "Friends", icon: UserPlus },
   { href: "/app/settings", label: "Settings", icon: SettingsIcon },
@@ -37,7 +40,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
   const { user: clerkUser, isLoaded } = useUser();
   const { signOut } = useClerk();
   const { data: me, isLoading, error } = useGetMe({
-    query: { queryKey: getGetMeQueryKey(), enabled: !!clerkUser },
+    query: { queryKey: getGetMeQueryKey(), enabled: !!clerkUser, refetchInterval: 60000 },
   });
   const { data: friendReqs } = useGetFriendRequests({
     query: {
@@ -47,6 +50,15 @@ export default function AppShell({ children }: { children: ReactNode }) {
     },
   });
   const incomingCount = friendReqs?.incoming.length ?? 0;
+  const isStaff = me?.role === "admin" || me?.role === "moderator";
+
+  const nav = [
+    ...NAV.slice(0, 6),
+    ...(isStaff
+      ? [{ href: "/app/admin", label: "Admin", icon: ShieldCheck }]
+      : []),
+    NAV[6],
+  ];
 
   useEffect(() => {
     if (
@@ -92,13 +104,6 @@ export default function AppShell({ children }: { children: ReactNode }) {
     return <Redirect to="/onboarding" />;
   }
 
-  const initials = (me?.displayName || me?.username || "?")
-    .split(" ")
-    .map((s) => s[0])
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
-
   return (
     <div className="min-h-[100dvh] bg-background">
       <div className="mx-auto flex min-h-[100dvh] max-w-7xl">
@@ -118,7 +123,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
             </span>
           </Link>
           <nav className="flex flex-1 flex-col gap-1">
-            {NAV.map(({ href, label, icon: Icon }) => {
+            {nav.map(({ href, label, icon: Icon }) => {
               const active =
                 location === href ||
                 (href !== "/app/discover" && location.startsWith(href));
@@ -157,22 +162,19 @@ export default function AppShell({ children }: { children: ReactNode }) {
                 className="flex items-center gap-3"
                 data-testid="link-profile-card"
               >
-                <Avatar className="h-10 w-10">
-                  {me.avatarUrl ? (
-                    <AvatarImage src={me.avatarUrl} alt={me.displayName} />
-                  ) : null}
-                  <AvatarFallback className="bg-primary/15 text-primary">
-                    {initials}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium text-foreground">
-                    {me.displayName}
-                  </p>
-                  <p className="truncate text-xs text-muted-foreground">
-                    @{me.username}
-                  </p>
-                </div>
+                <PresenceAvatar
+                  displayName={me.displayName}
+                  avatarUrl={me.avatarUrl}
+                  lastSeenAt={me.lastSeenAt}
+                />
+                <UserNameLine
+                  displayName={me.displayName}
+                  username={me.username}
+                  discriminator={me.discriminator}
+                  role={me.role}
+                  mvpPlan={me.mvpPlan}
+                  className="flex-1"
+                />
               </Link>
               <Button
                 variant="ghost"
@@ -215,8 +217,13 @@ export default function AppShell({ children }: { children: ReactNode }) {
 
           <main className="flex-1 overflow-y-auto">{children}</main>
 
-          <nav className="sticky bottom-0 grid grid-cols-6 border-t border-border bg-card md:hidden">
-            {NAV.map(({ href, label, icon: Icon }) => {
+          <nav
+            className={[
+              "sticky bottom-0 grid border-t border-border bg-card md:hidden",
+              isStaff ? "grid-cols-8" : "grid-cols-7",
+            ].join(" ")}
+          >
+            {nav.map(({ href, label, icon: Icon }) => {
               const active =
                 location === href ||
                 (href !== "/app/discover" && location.startsWith(href));

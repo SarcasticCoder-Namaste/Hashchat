@@ -20,6 +20,11 @@ export interface User {
   status: string;
   /** @nullable */
   featuredHashtag?: string | null;
+  /** @nullable */
+  discriminator?: string | null;
+  role: string;
+  mvpPlan: boolean;
+  lastSeenAt: string;
   hashtags: string[];
   followedHashtags: string[];
   createdAt: string;
@@ -67,6 +72,11 @@ export interface MatchUser {
   status: string;
   /** @nullable */
   featuredHashtag?: string | null;
+  /** @nullable */
+  discriminator?: string | null;
+  role: string;
+  mvpPlan: boolean;
+  lastSeenAt: string;
   hashtags: string[];
   sharedHashtags: string[];
   matchScore: number;
@@ -157,6 +167,93 @@ export interface OverviewStats {
   roomCount: number;
 }
 
+export interface AdminUser {
+  id: string;
+  username: string;
+  displayName: string;
+  /** @nullable */
+  bio?: string | null;
+  /** @nullable */
+  avatarUrl?: string | null;
+  status: string;
+  /** @nullable */
+  featuredHashtag?: string | null;
+  /** @nullable */
+  discriminator?: string | null;
+  role: string;
+  mvpPlan: boolean;
+  lastSeenAt: string;
+  /** @nullable */
+  bannedAt?: string | null;
+  createdAt: string;
+}
+
+export type SetRoleBodyRole =
+  (typeof SetRoleBodyRole)[keyof typeof SetRoleBodyRole];
+
+export const SetRoleBodyRole = {
+  user: "user",
+  moderator: "moderator",
+  admin: "admin",
+} as const;
+
+export interface SetRoleBody {
+  role: SetRoleBodyRole;
+}
+
+export interface RedeemCodeBody {
+  code: string;
+}
+
+export interface OkResponse {
+  ok: boolean;
+}
+
+export interface MvpCode {
+  code: string;
+  createdBy: string;
+  createdAt: string;
+  /** @nullable */
+  redeemedBy?: string | null;
+  /** @nullable */
+  redeemedAt?: string | null;
+  /** @nullable */
+  note?: string | null;
+}
+
+export interface CreateMvpCodeBody {
+  /** @nullable */
+  note?: string | null;
+}
+
+export interface CreatedCode {
+  code: string;
+}
+
+export interface AdminStats {
+  users: number;
+  messages: number;
+  mvp: number;
+  banned: number;
+}
+
+export interface ReelItem {
+  id: string;
+  title: string;
+  channel: string;
+  thumbnail: string;
+  publishedAt: string;
+}
+
+export interface ReelsList {
+  items: ReelItem[];
+}
+
+export interface ReelsConfigError {
+  error: string;
+  message: string;
+}
+
 export type GetTrendingHashtagsParams = {
   limit?: number;
 };
@@ -175,4 +272,9 @@ export type RemoveMessageReactionParams = {
 
 export type GetTrendingRoomsParams = {
   limit?: number;
+};
+
+export type GetYoutubeReelsParams = {
+  q?: string;
+  max?: number;
 };

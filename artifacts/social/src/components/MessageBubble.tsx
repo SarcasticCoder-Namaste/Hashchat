@@ -4,6 +4,7 @@ import {
   useRemoveMessageReaction,
   type Message,
 } from "@workspace/api-client-react";
+import { motion } from "framer-motion";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -54,7 +55,11 @@ export function MessageBubble({
 
   if (variant === "dm") {
     return (
-      <div
+      <motion.div
+        layout
+        initial={{ opacity: 0, y: 8, scale: 0.98 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ type: "spring", stiffness: 360, damping: 28 }}
         className={[
           "group flex items-end gap-1.5",
           isMine ? "flex-row-reverse" : "flex-row",
@@ -111,12 +116,16 @@ export function MessageBubble({
           onReply={() => onReply(message)}
           onPick={(e) => toggleEmoji(e, false)}
         />
-      </div>
+      </motion.div>
     );
   }
 
   return (
-    <div
+    <motion.div
+      layout
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ type: "spring", stiffness: 360, damping: 28 }}
       className="group flex gap-3"
       data-testid={`msg-${message.id}`}
     >
@@ -166,7 +175,7 @@ export function MessageBubble({
         onReply={() => onReply(message)}
         onPick={(e) => toggleEmoji(e, false)}
       />
-    </div>
+    </motion.div>
   );
 }
 

@@ -36,7 +36,13 @@ async function buildMessages(rows: { id: number; conversationId: number | null; 
       const replies = await db
         .select({ id: messagesTable.id, content: messagesTable.content })
         .from(messagesTable)
-        .where(and(inArray(messagesTable.id, replyIds), or(...scopeFilters)));
+        .where(
+          and(
+            inArray(messagesTable.id, replyIds),
+            or(...scopeFilters),
+            sql`${messagesTable.deletedAt} IS NULL`,
+          ),
+        );
       for (const r of replies) replyMap.set(r.id, r.content);
     }
   }
@@ -112,7 +118,7 @@ async function roomDataFor(tags: string[], myUserId: string, followedSet: Set<st
     const lastRows = await db
       .select()
       .from(messagesTable)
-      .where(eq(messagesTable.roomTag, tag))
+      .where(and(eq(messagesTable.roomTag, tag), sql`${messagesTable.deletedAt} IS NULL`))
       .orderBy(desc(messagesTable.createdAt))
       .limit(1);
     const built = await buildMessages(lastRows, myUserId);
@@ -189,7 +195,7 @@ router.get("/rooms/:tag/messages", requireAuth, async (req, res): Promise<void> 
   const rows = await db
     .select()
     .from(messagesTable)
-    .where(eq(messagesTable.roomTag, tag))
+    .where(and(eq(messagesTable.roomTag, tag), sql`${messagesTable.deletedAt} IS NULL`))
     .orderBy(messagesTable.createdAt)
     .limit(200);
   res.json(await buildMessages(rows, getUserId(req)));
@@ -213,7 +219,7 @@ router.post("/rooms/:tag/messages", requireAuth, async (req, res): Promise<void>
     const [refMsg] = await db
       .select({ id: messagesTable.id, roomTag: messagesTable.roomTag })
       .from(messagesTable)
-      .where(eq(messagesTable.id, replyToId))
+      .where(and(eq(messagesTable.id, replyToId), sql`${messagesTable.deletedAt} IS NULL`))
       .limit(1);
     if (!refMsg || refMsg.roomTag !== tag) {
       res.status(400).json({ error: "Invalid replyToId" });

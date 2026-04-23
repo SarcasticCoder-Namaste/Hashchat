@@ -13,8 +13,9 @@ import {
   type MatchUser,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { motion } from "framer-motion";
+import { PresenceAvatar } from "@/components/UserBadge";
 import {
   Hash,
   Sparkles,
@@ -25,6 +26,7 @@ import {
   UserCheck,
   Check,
   Star,
+  Crown,
 } from "lucide-react";
 
 export default function Discover() {
@@ -56,8 +58,15 @@ export default function Discover() {
           </div>
         ) : matches && matches.length > 0 ? (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {matches.map((m) => (
-              <MatchCard key={m.id} m={m} />
+            {matches.map((m, idx) => (
+              <motion.div
+                key={m.id}
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: idx * 0.04, duration: 0.25 }}
+              >
+                <MatchCard m={m} />
+              </motion.div>
             ))}
           </div>
         ) : (
@@ -113,13 +122,6 @@ function MatchCard({ m }: { m: MatchUser }) {
   const acceptReq = useAcceptFriendRequest({
     mutation: { onSuccess: invalidate },
   });
-
-  const initials = m.displayName
-    .split(" ")
-    .map((s) => s[0])
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
 
   const status = m.friendStatus ?? "none";
   const friendBusy =
@@ -182,19 +184,27 @@ function MatchCard({ m }: { m: MatchUser }) {
       data-testid={`match-${m.username}`}
     >
       <div className="flex items-center gap-3">
-        <Avatar className="h-12 w-12">
-          {m.avatarUrl ? (
-            <AvatarImage src={m.avatarUrl} alt={m.displayName} />
-          ) : null}
-          <AvatarFallback className="bg-primary/15 text-primary">
-            {initials}
-          </AvatarFallback>
-        </Avatar>
+        <PresenceAvatar
+          displayName={m.displayName}
+          avatarUrl={m.avatarUrl}
+          lastSeenAt={m.lastSeenAt}
+          size="lg"
+        />
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-1.5">
+          <div className="flex flex-wrap items-center gap-1.5">
             <p className="truncate font-semibold text-foreground">
               {m.displayName}
             </p>
+            {m.role === "admin" && (
+              <span className="inline-flex items-center gap-0.5 rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700 dark:text-amber-300">
+                <Crown className="h-2.5 w-2.5" /> Admin
+              </span>
+            )}
+            {m.mvpPlan && (
+              <span className="inline-flex items-center gap-0.5 rounded-full bg-gradient-to-r from-violet-500/30 to-pink-500/30 px-1.5 py-0.5 text-[10px] font-semibold text-foreground">
+                <Sparkles className="h-2.5 w-2.5" /> MVP
+              </span>
+            )}
             {m.featuredHashtag && (
               <span
                 className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-gradient-to-r from-violet-500/20 to-pink-500/20 px-1.5 py-0.5 text-[10px] font-semibold text-foreground"
@@ -207,6 +217,11 @@ function MatchCard({ m }: { m: MatchUser }) {
           </div>
           <p className="truncate text-sm text-muted-foreground">
             @{m.username}
+            {m.discriminator && (
+              <span className="ml-1 text-muted-foreground/70">
+                #{m.discriminator}
+              </span>
+            )}
           </p>
         </div>
         <span

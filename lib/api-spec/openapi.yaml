@@ -503,6 +503,153 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/OverviewStats" }
 
+  /me/redeem-mvp-code:
+    post:
+      operationId: redeemMvpCode
+      tags: [users]
+      summary: Redeem an MVP plan code
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/RedeemCodeBody" }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/OkResponse" }
+        "404": { description: Invalid code }
+        "409": { description: Already redeemed }
+
+  /admin/users:
+    get:
+      operationId: adminListUsers
+      tags: [admin]
+      summary: List all users (moderator+)
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/AdminUser" }
+
+  /admin/users/{id}/ban:
+    post:
+      operationId: adminBanUser
+      tags: [admin]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "204": { description: No content }
+    delete:
+      operationId: adminUnbanUser
+      tags: [admin]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "204": { description: No content }
+
+  /admin/users/{id}/role:
+    post:
+      operationId: adminSetUserRole
+      tags: [admin]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SetRoleBody" }
+      responses:
+        "204": { description: No content }
+
+  /admin/messages/{id}:
+    delete:
+      operationId: adminDeleteMessage
+      tags: [admin]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "204": { description: No content }
+
+  /admin/mvp-codes:
+    get:
+      operationId: adminListMvpCodes
+      tags: [admin]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/MvpCode" }
+    post:
+      operationId: adminCreateMvpCode
+      tags: [admin]
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateMvpCodeBody" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CreatedCode" }
+
+  /admin/stats:
+    get:
+      operationId: adminStats
+      tags: [admin]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AdminStats" }
+
+  /reels/youtube:
+    get:
+      operationId: getYoutubeReels
+      tags: [reels]
+      parameters:
+        - name: q
+          in: query
+          required: false
+          schema: { type: string }
+        - name: max
+          in: query
+          required: false
+          schema: { type: integer }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ReelsList" }
+        "503":
+          description: YouTube API key not configured
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ReelsConfigError" }
+
 components:
   schemas:
     HealthStatus:
@@ -524,6 +671,11 @@ components:
         status: { type: string }
         featuredHashtag:
           type: ["string", "null"]
+        discriminator:
+          type: ["string", "null"]
+        role: { type: string }
+        mvpPlan: { type: boolean }
+        lastSeenAt: { type: string, format: date-time }
         hashtags:
           type: array
           items: { type: string }
@@ -531,7 +683,7 @@ components:
           type: array
           items: { type: string }
         createdAt: { type: string, format: date-time }
-      required: [id, username, displayName, status, hashtags, followedHashtags, createdAt]
+      required: [id, username, displayName, status, role, mvpPlan, lastSeenAt, hashtags, followedHashtags, createdAt]
 
     UpdateUserBody:
       type: object
@@ -603,6 +755,11 @@ components:
         status: { type: string }
         featuredHashtag:
           type: ["string", "null"]
+        discriminator:
+          type: ["string", "null"]
+        role: { type: string }
+        mvpPlan: { type: boolean }
+        lastSeenAt: { type: string, format: date-time }
         hashtags:
           type: array
           items: { type: string }
@@ -613,7 +770,7 @@ components:
         friendStatus:
           type: ["string", "null"]
           description: "One of: friends, request_sent, request_received, none"
-      required: [id, username, displayName, status, hashtags, sharedHashtags, matchScore]
+      required: [id, username, displayName, status, role, mvpPlan, lastSeenAt, hashtags, sharedHashtags, matchScore]
 
     FriendRequestList:
       type: object
@@ -713,3 +870,106 @@ components:
         messageCount: { type: integer }
         roomCount: { type: integer }
       required: [userCount, hashtagCount, messageCount, roomCount]
+
+    AdminUser:
+      type: object
+      properties:
+        id: { type: string }
+        username: { type: string }
+        displayName: { type: string }
+        bio:
+          type: ["string", "null"]
+        avatarUrl:
+          type: ["string", "null"]
+        status: { type: string }
+        featuredHashtag:
+          type: ["string", "null"]
+        discriminator:
+          type: ["string", "null"]
+        role: { type: string }
+        mvpPlan: { type: boolean }
+        lastSeenAt: { type: string, format: date-time }
+        bannedAt:
+          type: ["string", "null"]
+          format: date-time
+        createdAt: { type: string, format: date-time }
+      required: [id, username, displayName, status, role, mvpPlan, lastSeenAt, createdAt]
+
+    SetRoleBody:
+      type: object
+      properties:
+        role: { type: string, enum: [user, moderator, admin] }
+      required: [role]
+
+    RedeemCodeBody:
+      type: object
+      properties:
+        code: { type: string }
+      required: [code]
+
+    OkResponse:
+      type: object
+      properties:
+        ok: { type: boolean }
+      required: [ok]
+
+    MvpCode:
+      type: object
+      properties:
+        code: { type: string }
+        createdBy: { type: string }
+        createdAt: { type: string, format: date-time }
+        redeemedBy:
+          type: ["string", "null"]
+        redeemedAt:
+          type: ["string", "null"]
+          format: date-time
+        note:
+          type: ["string", "null"]
+      required: [code, createdBy, createdAt]
+
+    CreateMvpCodeBody:
+      type: object
+      properties:
+        note:
+          type: ["string", "null"]
+
+    CreatedCode:
+      type: object
+      properties:
+        code: { type: string }
+      required: [code]
+
+    AdminStats:
+      type: object
+      properties:
+        users: { type: integer }
+        messages: { type: integer }
+        mvp: { type: integer }
+        banned: { type: integer }
+      required: [users, messages, mvp, banned]
+
+    ReelItem:
+      type: object
+      properties:
+        id: { type: string }
+        title: { type: string }
+        channel: { type: string }
+        thumbnail: { type: string }
+        publishedAt: { type: string, format: date-time }
+      required: [id, title, channel, thumbnail, publishedAt]
+
+    ReelsList:
+      type: object
+      properties:
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/ReelItem" }
+      required: [items]
+
+    ReelsConfigError:
+      type: object
+      properties:
+        error: { type: string }
+        message: { type: string }
+      required: [error, message]

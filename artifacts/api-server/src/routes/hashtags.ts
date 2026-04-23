@@ -191,6 +191,11 @@ router.get("/hashtags/:tag", requireAuth, async (req, res): Promise<void> => {
       bio: usersTable.bio,
       avatarUrl: usersTable.avatarUrl,
       status: usersTable.status,
+      featuredHashtag: usersTable.featuredHashtag,
+      discriminator: usersTable.discriminator,
+      role: usersTable.role,
+      mvpPlan: usersTable.mvpPlan,
+      lastSeenAt: usersTable.lastSeenAt,
     })
     .from(userHashtagsTable)
     .innerJoin(usersTable, eq(userHashtagsTable.userId, usersTable.id))
@@ -226,6 +231,11 @@ router.get("/hashtags/:tag", requireAuth, async (req, res): Promise<void> => {
       bio: m.bio,
       avatarUrl: m.avatarUrl,
       status: m.status,
+      featuredHashtag: m.featuredHashtag,
+      discriminator: m.discriminator,
+      role: m.role,
+      mvpPlan: m.mvpPlan,
+      lastSeenAt: (m.lastSeenAt ?? new Date(0)).toISOString(),
       hashtags: tags,
       sharedHashtags: shared,
       matchScore: shared.length,

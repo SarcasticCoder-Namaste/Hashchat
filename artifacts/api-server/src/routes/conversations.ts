@@ -39,7 +39,13 @@ async function buildMessages(rows: { id: number; conversationId: number | null; 
       const replies = await db
         .select({ id: messagesTable.id, content: messagesTable.content })
         .from(messagesTable)
-        .where(and(inArray(messagesTable.id, replyIds), or(...scopeFilters)));
+        .where(
+          and(
+            inArray(messagesTable.id, replyIds),
+            or(...scopeFilters),
+            sql`${messagesTable.deletedAt} IS NULL`,
+          ),
+        );
       for (const r of replies) replyMap.set(r.id, r.content);
     }
   }
@@ -122,7 +128,7 @@ router.get("/conversations", requireAuth, async (req, res): Promise<void> => {
     const lastMessages = await db
       .select()
       .from(messagesTable)
-      .where(eq(messagesTable.conversationId, c.id))
+      .where(and(eq(messagesTable.conversationId, c.id), sql`${messagesTable.deletedAt} IS NULL`))
       .orderBy(desc(messagesTable.createdAt))
       .limit(1);
     const built = await buildMessages(lastMessages, me);
@@ -148,6 +154,11 @@ router.get("/conversations", requireAuth, async (req, res): Promise<void> => {
         bio: other.bio,
         avatarUrl: other.avatarUrl,
         status: other.status,
+        featuredHashtag: other.featuredHashtag,
+        discriminator: other.discriminator,
+        role: other.role,
+        mvpPlan: other.mvpPlan,
+        lastSeenAt: other.lastSeenAt.toISOString(),
         hashtags: tags,
         sharedHashtags: shared,
         matchScore: shared.length,
@@ -211,6 +222,11 @@ router.post("/conversations", requireAuth, async (req, res): Promise<void> => {
       bio: other.bio,
       avatarUrl: other.avatarUrl,
       status: other.status,
+      featuredHashtag: other.featuredHashtag,
+      discriminator: other.discriminator,
+      role: other.role,
+      mvpPlan: other.mvpPlan,
+      lastSeenAt: other.lastSeenAt.toISOString(),
       hashtags: otherTags,
       sharedHashtags: shared,
       matchScore: shared.length,
@@ -237,7 +253,7 @@ router.get("/conversations/:id/messages", requireAuth, async (req, res): Promise
   const rows = await db
     .select()
     .from(messagesTable)
-    .where(eq(messagesTable.conversationId, id))
+    .where(and(eq(messagesTable.conversationId, id), sql`${messagesTable.deletedAt} IS NULL`))
     .orderBy(messagesTable.createdAt)
     .limit(200);
 
@@ -272,10 +288,11 @@ router.post("/conversations/:id/messages", requireAuth, async (req, res): Promis
   }
   const replyToId = parsed.data.replyToId ?? null;
   if (replyToId !== null) {
+    // Validate target exists and isn't soft-deleted
     const [refMsg] = await db
       .select({ id: messagesTable.id, conversationId: messagesTable.conversationId })
       .from(messagesTable)
-      .where(eq(messagesTable.id, replyToId))
+      .where(and(eq(messagesTable.id, replyToId), sql`${messagesTable.deletedAt} IS NULL`))
       .limit(1);
     if (!refMsg || refMsg.conversationId !== id) {
       res.status(400).json({ error: "Invalid replyToId" });

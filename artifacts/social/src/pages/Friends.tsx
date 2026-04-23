@@ -19,10 +19,10 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { motion } from "framer-motion";
+import { PresenceAvatar, UserNameLine } from "@/components/UserBadge";
 import {
-  Hash,
   MessageCircle,
   UserPlus,
   Check,
@@ -31,15 +31,6 @@ import {
   UserMinus,
   Users,
 } from "lucide-react";
-
-function initialsFor(name: string) {
-  return name
-    .split(" ")
-    .map((s) => s[0])
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
-}
 
 function useInvalidateFriends() {
   const qc = useQueryClient();
@@ -145,43 +136,33 @@ function UserList({
   return (
     <ul className="overflow-hidden rounded-xl border border-border bg-card">
       {users.map((u, i) => (
-        <li
+        <motion.li
           key={u.id}
+          initial={{ opacity: 0, x: -8 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: i * 0.03, duration: 0.2 }}
           className={[
             "flex items-center gap-3 p-4",
             i > 0 ? "border-t border-border" : "",
           ].join(" ")}
           data-testid={`friend-row-${u.username}`}
         >
-          <Avatar className="h-11 w-11">
-            {u.avatarUrl ? (
-              <AvatarImage src={u.avatarUrl} alt={u.displayName} />
-            ) : null}
-            <AvatarFallback className="bg-primary/15 text-primary">
-              {initialsFor(u.displayName)}
-            </AvatarFallback>
-          </Avatar>
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2">
-              <p className="truncate text-sm font-semibold text-foreground">
-                {u.displayName}
-              </p>
-              {u.featuredHashtag && (
-                <span className="inline-flex items-center gap-0.5 rounded-full bg-accent px-1.5 py-0.5 text-[10px] font-medium text-accent-foreground">
-                  <Hash className="h-2.5 w-2.5" />
-                  {u.featuredHashtag}
-                </span>
-              )}
-            </div>
-            <p className="truncate text-xs text-muted-foreground">
-              @{u.username}
-              {u.sharedHashtags.length > 0 && (
-                <> · {u.sharedHashtags.length} shared tags</>
-              )}
-            </p>
-          </div>
+          <PresenceAvatar
+            displayName={u.displayName}
+            avatarUrl={u.avatarUrl}
+            lastSeenAt={u.lastSeenAt}
+          />
+          <UserNameLine
+            displayName={u.displayName}
+            username={u.username}
+            discriminator={u.discriminator}
+            role={u.role}
+            mvpPlan={u.mvpPlan}
+            featuredHashtag={u.featuredHashtag}
+            className="flex-1"
+          />
           <div className="flex items-center gap-1.5">{renderActions(u)}</div>
-        </li>
+        </motion.li>
       ))}
     </ul>
   );
