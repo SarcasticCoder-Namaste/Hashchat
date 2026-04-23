@@ -114,8 +114,8 @@ export default function RoomChat({ tag }: { tag: string }) {
   const detail = hashtagQ.data;
 
   return (
-    <div className="flex h-[calc(100dvh-58px)] flex-col md:h-[100dvh]">
-      <header className="flex items-center gap-3 border-b border-border bg-card px-4 py-3">
+    <div className="flex h-full min-h-0 flex-col">
+      <header className="flex shrink-0 items-center gap-3 border-b border-border bg-card px-4 py-3">
         <Link
           href="/app/rooms"
           className="text-muted-foreground hover:text-foreground"
@@ -166,7 +166,7 @@ export default function RoomChat({ tag }: { tag: string }) {
 
       <div
         ref={scrollerRef}
-        className="flex-1 overflow-y-auto bg-background px-4 py-6"
+        className="min-h-0 flex-1 overflow-y-auto bg-background px-4 py-6"
         data-testid="room-message-list"
       >
         {messagesQ.isLoading ? (
@@ -195,7 +195,7 @@ export default function RoomChat({ tag }: { tag: string }) {
 
       <form
         onSubmit={submit}
-        className="flex flex-col gap-2 border-t border-border bg-card p-3"
+        className="flex shrink-0 flex-col gap-2 border-t border-border bg-card p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]"
       >
         {replyTo && (
           <div
