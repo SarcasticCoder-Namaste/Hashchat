@@ -215,6 +215,311 @@
 
 }
 
+/* ============================================================
+ * Color themes
+ * Each [data-theme="X"] overrides the brand variables.
+ * For dark themes, ThemeProvider also adds the `.dark` class so
+ * the base dark surfaces apply first; the data-theme block then
+ * tweaks brand colors and surface tone.
+ * ============================================================ */
+
+/* Dark — improved version of the default dark mode */
+[data-theme="dark"] {
+  --background: 240 10% 4%;
+  --foreground: 210 20% 98%;
+  --border: 240 6% 18%;
+  --card: 240 9% 7%;
+  --card-foreground: 210 20% 98%;
+  --card-border: 240 6% 18%;
+  --sidebar: 240 10% 4%;
+  --sidebar-foreground: 210 20% 98%;
+  --sidebar-border: 240 6% 18%;
+  --sidebar-primary: 263 90% 72%;
+  --sidebar-primary-foreground: 240 10% 4%;
+  --sidebar-accent: 263 50% 18%;
+  --sidebar-accent-foreground: 263 90% 88%;
+  --sidebar-ring: 263 90% 72%;
+  --popover: 240 9% 7%;
+  --popover-foreground: 210 20% 98%;
+  --popover-border: 240 6% 18%;
+  --primary: 263 90% 72%;
+  --primary-foreground: 240 10% 4%;
+  --secondary: 240 6% 16%;
+  --secondary-foreground: 210 20% 98%;
+  --muted: 240 6% 14%;
+  --muted-foreground: 218 11% 70%;
+  --accent: 263 50% 18%;
+  --accent-foreground: 263 90% 88%;
+  --destructive: 0 70% 55%;
+  --destructive-foreground: 210 20% 98%;
+  --input: 240 6% 22%;
+  --ring: 263 90% 72%;
+}
+
+/* Midnight — true black with electric cyan */
+[data-theme="midnight"] {
+  --background: 0 0% 0%;
+  --foreground: 180 20% 98%;
+  --border: 187 30% 14%;
+  --card: 200 30% 4%;
+  --card-foreground: 180 20% 98%;
+  --card-border: 187 30% 14%;
+  --sidebar: 0 0% 0%;
+  --sidebar-foreground: 180 20% 98%;
+  --sidebar-border: 187 30% 14%;
+  --sidebar-primary: 187 100% 60%;
+  --sidebar-primary-foreground: 0 0% 0%;
+  --sidebar-accent: 187 60% 14%;
+  --sidebar-accent-foreground: 187 100% 85%;
+  --sidebar-ring: 187 100% 60%;
+  --popover: 200 30% 4%;
+  --popover-foreground: 180 20% 98%;
+  --popover-border: 187 30% 14%;
+  --primary: 187 100% 60%;
+  --primary-foreground: 200 30% 4%;
+  --secondary: 187 30% 14%;
+  --secondary-foreground: 180 20% 98%;
+  --muted: 200 25% 10%;
+  --muted-foreground: 187 15% 70%;
+  --accent: 187 60% 14%;
+  --accent-foreground: 187 100% 85%;
+  --destructive: 0 80% 60%;
+  --destructive-foreground: 0 0% 0%;
+  --input: 187 30% 18%;
+  --ring: 187 100% 60%;
+}
+
+/* Mocha — warm dark brown with amber */
+[data-theme="mocha"] {
+  --background: 25 18% 8%;
+  --foreground: 32 30% 95%;
+  --border: 25 14% 22%;
+  --card: 25 18% 11%;
+  --card-foreground: 32 30% 95%;
+  --card-border: 25 14% 22%;
+  --sidebar: 25 18% 8%;
+  --sidebar-foreground: 32 30% 95%;
+  --sidebar-border: 25 14% 22%;
+  --sidebar-primary: 32 95% 60%;
+  --sidebar-primary-foreground: 25 18% 8%;
+  --sidebar-accent: 25 35% 18%;
+  --sidebar-accent-foreground: 32 95% 82%;
+  --sidebar-ring: 32 95% 60%;
+  --popover: 25 18% 11%;
+  --popover-foreground: 32 30% 95%;
+  --popover-border: 25 14% 22%;
+  --primary: 32 95% 60%;
+  --primary-foreground: 25 18% 8%;
+  --secondary: 25 14% 18%;
+  --secondary-foreground: 32 30% 95%;
+  --muted: 25 14% 14%;
+  --muted-foreground: 30 15% 70%;
+  --accent: 25 35% 18%;
+  --accent-foreground: 32 95% 82%;
+  --destructive: 0 70% 55%;
+  --destructive-foreground: 32 30% 95%;
+  --input: 25 14% 22%;
+  --ring: 32 95% 60%;
+}
+
+/* Emerald Night — deep forest dark with bright emerald */
+[data-theme="emerald"] {
+  --background: 160 30% 6%;
+  --foreground: 150 20% 96%;
+  --border: 160 20% 18%;
+  --card: 160 25% 9%;
+  --card-foreground: 150 20% 96%;
+  --card-border: 160 20% 18%;
+  --sidebar: 160 30% 6%;
+  --sidebar-foreground: 150 20% 96%;
+  --sidebar-border: 160 20% 18%;
+  --sidebar-primary: 152 76% 50%;
+  --sidebar-primary-foreground: 160 30% 6%;
+  --sidebar-accent: 152 50% 16%;
+  --sidebar-accent-foreground: 152 76% 82%;
+  --sidebar-ring: 152 76% 50%;
+  --popover: 160 25% 9%;
+  --popover-foreground: 150 20% 96%;
+  --popover-border: 160 20% 18%;
+  --primary: 152 76% 50%;
+  --primary-foreground: 160 30% 6%;
+  --secondary: 160 20% 16%;
+  --secondary-foreground: 150 20% 96%;
+  --muted: 160 20% 12%;
+  --muted-foreground: 150 12% 70%;
+  --accent: 152 50% 16%;
+  --accent-foreground: 152 76% 82%;
+  --destructive: 0 70% 55%;
+  --destructive-foreground: 150 20% 96%;
+  --input: 160 20% 20%;
+  --ring: 152 76% 50%;
+}
+
+/* Ocean — light aqua with deep sky */
+[data-theme="ocean"] {
+  --background: 200 60% 98%;
+  --foreground: 210 50% 12%;
+  --border: 200 30% 88%;
+  --card: 0 0% 100%;
+  --card-foreground: 210 50% 12%;
+  --card-border: 200 30% 88%;
+  --sidebar: 200 60% 98%;
+  --sidebar-foreground: 210 50% 12%;
+  --sidebar-border: 200 30% 88%;
+  --sidebar-primary: 199 89% 48%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 199 89% 92%;
+  --sidebar-accent-foreground: 199 89% 25%;
+  --sidebar-ring: 199 89% 48%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 210 50% 12%;
+  --popover-border: 200 30% 88%;
+  --primary: 199 89% 48%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 200 30% 94%;
+  --secondary-foreground: 210 50% 12%;
+  --muted: 200 30% 94%;
+  --muted-foreground: 210 20% 42%;
+  --accent: 199 89% 92%;
+  --accent-foreground: 199 89% 25%;
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 100%;
+  --input: 200 30% 88%;
+  --ring: 199 89% 48%;
+}
+
+/* Forest — soft cream with deep emerald */
+[data-theme="forest"] {
+  --background: 80 30% 98%;
+  --foreground: 140 25% 12%;
+  --border: 100 20% 88%;
+  --card: 0 0% 100%;
+  --card-foreground: 140 25% 12%;
+  --card-border: 100 20% 88%;
+  --sidebar: 80 30% 98%;
+  --sidebar-foreground: 140 25% 12%;
+  --sidebar-border: 100 20% 88%;
+  --sidebar-primary: 142 71% 38%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 142 71% 92%;
+  --sidebar-accent-foreground: 142 71% 22%;
+  --sidebar-ring: 142 71% 38%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 140 25% 12%;
+  --popover-border: 100 20% 88%;
+  --primary: 142 71% 38%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 100 20% 94%;
+  --secondary-foreground: 140 25% 12%;
+  --muted: 100 20% 94%;
+  --muted-foreground: 140 12% 42%;
+  --accent: 142 71% 92%;
+  --accent-foreground: 142 71% 22%;
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 100%;
+  --input: 100 20% 88%;
+  --ring: 142 71% 38%;
+}
+
+/* Sunset — warm peach with coral */
+[data-theme="sunset"] {
+  --background: 30 70% 97%;
+  --foreground: 20 35% 14%;
+  --border: 30 40% 88%;
+  --card: 0 0% 100%;
+  --card-foreground: 20 35% 14%;
+  --card-border: 30 40% 88%;
+  --sidebar: 30 70% 97%;
+  --sidebar-foreground: 20 35% 14%;
+  --sidebar-border: 30 40% 88%;
+  --sidebar-primary: 14 90% 55%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 14 90% 92%;
+  --sidebar-accent-foreground: 14 90% 30%;
+  --sidebar-ring: 14 90% 55%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 20 35% 14%;
+  --popover-border: 30 40% 88%;
+  --primary: 14 90% 55%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 30 40% 94%;
+  --secondary-foreground: 20 35% 14%;
+  --muted: 30 40% 94%;
+  --muted-foreground: 20 18% 42%;
+  --accent: 14 90% 92%;
+  --accent-foreground: 14 90% 30%;
+  --destructive: 0 84% 50%;
+  --destructive-foreground: 0 0% 100%;
+  --input: 30 40% 88%;
+  --ring: 14 90% 55%;
+}
+
+/* Rose — soft pink with rose accents */
+[data-theme="rose"] {
+  --background: 340 60% 98%;
+  --foreground: 340 30% 14%;
+  --border: 340 30% 90%;
+  --card: 0 0% 100%;
+  --card-foreground: 340 30% 14%;
+  --card-border: 340 30% 90%;
+  --sidebar: 340 60% 98%;
+  --sidebar-foreground: 340 30% 14%;
+  --sidebar-border: 340 30% 90%;
+  --sidebar-primary: 340 82% 52%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 340 82% 94%;
+  --sidebar-accent-foreground: 340 82% 30%;
+  --sidebar-ring: 340 82% 52%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 340 30% 14%;
+  --popover-border: 340 30% 90%;
+  --primary: 340 82% 52%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 340 40% 95%;
+  --secondary-foreground: 340 30% 14%;
+  --muted: 340 40% 95%;
+  --muted-foreground: 340 15% 42%;
+  --accent: 340 82% 94%;
+  --accent-foreground: 340 82% 30%;
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 100%;
+  --input: 340 30% 90%;
+  --ring: 340 82% 52%;
+}
+
+/* Lavender — soft lilac with plum */
+[data-theme="lavender"] {
+  --background: 270 50% 98%;
+  --foreground: 270 30% 14%;
+  --border: 270 30% 90%;
+  --card: 0 0% 100%;
+  --card-foreground: 270 30% 14%;
+  --card-border: 270 30% 90%;
+  --sidebar: 270 50% 98%;
+  --sidebar-foreground: 270 30% 14%;
+  --sidebar-border: 270 30% 90%;
+  --sidebar-primary: 280 65% 52%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 280 65% 94%;
+  --sidebar-accent-foreground: 280 65% 30%;
+  --sidebar-ring: 280 65% 52%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 270 30% 14%;
+  --popover-border: 270 30% 90%;
+  --primary: 280 65% 52%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 270 40% 95%;
+  --secondary-foreground: 270 30% 14%;
+  --muted: 270 40% 95%;
+  --muted-foreground: 270 15% 42%;
+  --accent: 280 65% 94%;
+  --accent-foreground: 280 65% 30%;
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 100%;
+  --input: 270 30% 90%;
+  --ring: 280 65% 52%;
+}
+
 @layer base {
   * {
     @apply border-border;

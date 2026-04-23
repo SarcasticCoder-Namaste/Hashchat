@@ -13,7 +13,7 @@ import {
   getGetMeQueryKey,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
-import { useTheme } from "next-themes";
+import { useTheme } from "@/components/ThemeProvider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -38,9 +38,6 @@ import {
   Palette,
   LogOut,
   Sparkles,
-  Sun,
-  Moon,
-  Monitor,
   Check,
   ImageIcon,
   Bell,
@@ -500,41 +497,69 @@ function MvpRedeemSection({ isMvp }: { isMvp: boolean }) {
 }
 
 function AppearanceTab() {
-  const { theme, setTheme } = useTheme();
-  const options = [
-    { id: "light", label: "Light", icon: Sun },
-    { id: "dark", label: "Dark", icon: Moon },
-    { id: "system", label: "System", icon: Monitor },
-  ] as const;
+  const { theme, setTheme, themes } = useTheme();
   return (
     <div className="space-y-4 rounded-xl border border-border bg-card p-5 shadow-sm">
-      <h2 className="text-lg font-semibold text-foreground">Appearance</h2>
-      <p className="text-sm text-muted-foreground">
-        Pick how HashChat looks. System follows your device setting.
-      </p>
-      <div className="grid gap-3 sm:grid-cols-3">
-        {options.map(({ id, label, icon: Icon }) => {
-          const active = theme === id;
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h2 className="text-lg font-semibold text-foreground">Appearance</h2>
+          <p className="mt-0.5 text-sm text-muted-foreground">
+            Pick a theme — six light palettes and four dark ones. Saved on this device.
+          </p>
+        </div>
+        <span className="hidden rounded-full bg-accent px-2 py-0.5 text-[10px] font-semibold text-accent-foreground sm:inline-block">
+          {themes.length} themes
+        </span>
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {themes.map((t) => {
+          const active = theme === t.id;
           return (
             <button
-              key={id}
+              key={t.id}
               type="button"
-              onClick={() => setTheme(id)}
-              data-testid={`appearance-${id}`}
+              onClick={() => setTheme(t.id)}
+              data-testid={`appearance-${t.id}`}
               className={[
-                "flex flex-col items-start gap-2 rounded-xl border p-4 text-left transition-colors",
+                "group relative flex items-center gap-3 overflow-hidden rounded-xl border p-3 text-left transition-all",
                 active
-                  ? "border-primary bg-primary/10 text-foreground"
-                  : "border-border text-foreground hover:bg-accent",
+                  ? "border-primary bg-primary/5 ring-2 ring-primary/40"
+                  : "border-border hover:bg-accent/50",
               ].join(" ")}
             >
-              <Icon className="h-5 w-5 text-primary" />
-              <span className="text-sm font-medium">{label}</span>
-              {active && (
-                <span className="inline-flex items-center gap-1 text-xs text-primary">
-                  <Check className="h-3 w-3" /> Active
+              <div
+                className="relative h-14 w-14 shrink-0 overflow-hidden rounded-lg border border-border shadow-inner"
+                style={{ background: t.swatch.bg }}
+              >
+                <span
+                  className="absolute bottom-1.5 left-1.5 h-3.5 w-3.5 rounded-full border border-white/20"
+                  style={{ background: t.swatch.primary }}
+                />
+                <span
+                  className="absolute bottom-1.5 left-6 h-3.5 w-3.5 rounded-full border border-white/20"
+                  style={{ background: t.swatch.accent }}
+                />
+                <span
+                  className="absolute right-1 top-1 rounded-sm px-1 py-0.5 text-[8px] font-bold uppercase"
+                  style={{
+                    background: t.isDark ? "rgba(255,255,255,.12)" : "rgba(0,0,0,.08)",
+                    color: t.isDark ? "rgba(255,255,255,.85)" : "rgba(0,0,0,.6)",
+                  }}
+                >
+                  {t.isDark ? "Dark" : "Light"}
                 </span>
-              )}
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-1.5">
+                  <span className="truncate text-sm font-semibold text-foreground">
+                    {t.label}
+                  </span>
+                  {active && <Check className="h-3.5 w-3.5 shrink-0 text-primary" />}
+                </div>
+                <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">
+                  {t.description}
+                </p>
+              </div>
             </button>
           );
         })}

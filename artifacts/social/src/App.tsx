@@ -18,7 +18,7 @@ import {
   Router as WouterRouter,
 } from "wouter";
 import { QueryClientProvider, useQueryClient } from "@tanstack/react-query";
-import { useTheme } from "next-themes";
+import { useTheme } from "@/components/ThemeProvider";
 import { queryClient } from "@/lib/queryClient";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
