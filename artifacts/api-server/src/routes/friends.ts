@@ -56,6 +56,43 @@ async function loadMatchUsers(myId: string, otherIds: string[]) {
   });
 }
 
+router.get("/users/lookup", requireAuth, async (req, res): Promise<void> => {
+  const me = getUserId(req);
+  const raw = req.query.code;
+  const code = (Array.isArray(raw) ? raw[0] : raw)?.toString().trim() ?? "";
+  if (!code) {
+    res.status(400).json({ error: "Missing code" });
+    return;
+  }
+  const cleaned = code.replace(/^@/, "");
+  const [usernamePart, discPart] = cleaned.split("#");
+  const username = usernamePart?.trim().toLowerCase();
+  const disc = discPart?.trim();
+  if (!username) {
+    res.status(400).json({ error: "Invalid code" });
+    return;
+  }
+  const where = disc
+    ? and(eq(usersTable.username, username), eq(usersTable.discriminator, disc))
+    : eq(usersTable.username, username);
+  const [match] = await db
+    .select({ id: usersTable.id })
+    .from(usersTable)
+    .where(where)
+    .limit(1);
+  if (!match) {
+    res.status(404).json({ error: "No user found with that code" });
+    return;
+  }
+  if (match.id === me) {
+    res.status(400).json({ error: "That's you!" });
+    return;
+  }
+  const [user] = await loadMatchUsers(me, [match.id]);
+  const statusMap = await loadFriendStatuses(me, [match.id]);
+  res.json({ ...user, friendStatus: statusMap.get(match.id) ?? null });
+});
+
 router.get("/me/friends", requireAuth, async (req, res): Promise<void> => {
   const me = getUserId(req);
   const rows = await db

@@ -631,6 +631,27 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/FriendRequestList" }
 
+  /users/lookup:
+    get:
+      operationId: lookupUserByCode
+      tags: [friends]
+      summary: Look up a user by their friend code (username#discriminator)
+      parameters:
+        - name: code
+          in: query
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Match
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MatchUser" }
+        "400":
+          description: Bad request
+        "404":
+          description: Not found
+
   /users/{id}/friend-request:
     post:
       operationId: sendFriendRequest

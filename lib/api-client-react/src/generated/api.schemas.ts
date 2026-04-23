@@ -418,6 +418,10 @@ export type GetCallSignalsParams = {
   since?: number;
 };
 
+export type LookupUserByCodeParams = {
+  code: string;
+};
+
 export type GetYoutubeReelsParams = {
   q?: string;
   max?: number;

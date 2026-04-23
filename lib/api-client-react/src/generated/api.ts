@@ -36,6 +36,7 @@ import type {
   HashtagDetail,
   HealthStatus,
   InitiateCallBody,
+  LookupUserByCodeParams,
   MatchUser,
   Message,
   MvpCode,
@@ -3418,6 +3419,103 @@ export function useGetFriendRequests<
   request?: SecondParameter<typeof customFetch>;
 }): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getGetFriendRequestsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Look up a user by their friend code (username#discriminator)
+ */
+export const getLookupUserByCodeUrl = (params: LookupUserByCodeParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/users/lookup?${stringifiedParams}`
+    : `/api/users/lookup`;
+};
+
+export const lookupUserByCode = async (
+  params: LookupUserByCodeParams,
+  options?: RequestInit,
+): Promise<MatchUser> => {
+  return customFetch<MatchUser>(getLookupUserByCodeUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getLookupUserByCodeQueryKey = (
+  params?: LookupUserByCodeParams,
+) => {
+  return [`/api/users/lookup`, ...(params ? [params] : [])] as const;
+};
+
+export const getLookupUserByCodeQueryOptions = <
+  TData = Awaited<ReturnType<typeof lookupUserByCode>>,
+  TError = ErrorType<void>,
+>(
+  params: LookupUserByCodeParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof lookupUserByCode>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getLookupUserByCodeQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof lookupUserByCode>>
+  > = ({ signal }) => lookupUserByCode(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof lookupUserByCode>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type LookupUserByCodeQueryResult = NonNullable<
+  Awaited<ReturnType<typeof lookupUserByCode>>
+>;
+export type LookupUserByCodeQueryError = ErrorType<void>;
+
+/**
+ * @summary Look up a user by their friend code (username#discriminator)
+ */
+
+export function useLookupUserByCode<
+  TData = Awaited<ReturnType<typeof lookupUserByCode>>,
+  TError = ErrorType<void>,
+>(
+  params: LookupUserByCodeParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof lookupUserByCode>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getLookupUserByCodeQueryOptions(params, options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;

@@ -900,6 +900,34 @@ export const GetFriendRequestsResponse = zod.object({
 });
 
 /**
+ * @summary Look up a user by their friend code (username#discriminator)
+ */
+export const LookupUserByCodeQueryParams = zod.object({
+  code: zod.coerce.string(),
+});
+
+export const LookupUserByCodeResponse = zod.object({
+  id: zod.string(),
+  username: zod.string(),
+  displayName: zod.string(),
+  bio: zod.string().nullish(),
+  avatarUrl: zod.string().nullish(),
+  status: zod.string(),
+  featuredHashtag: zod.string().nullish(),
+  discriminator: zod.string().nullish(),
+  role: zod.string(),
+  mvpPlan: zod.boolean(),
+  lastSeenAt: zod.coerce.date(),
+  hashtags: zod.array(zod.string()),
+  sharedHashtags: zod.array(zod.string()),
+  matchScore: zod.number(),
+  friendStatus: zod
+    .string()
+    .nullish()
+    .describe("One of: friends, request_sent, request_received, none"),
+});
+
+/**
  * @summary Send a friend request to a user
  */
 export const SendFriendRequestParams = zod.object({
