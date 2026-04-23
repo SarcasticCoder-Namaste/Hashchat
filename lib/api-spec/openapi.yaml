@@ -1,36 +1,605 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: HashChat API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
-    description: Health operations
+  - name: users
+  - name: hashtags
+  - name: discovery
+  - name: conversations
+  - name: messages
+  - name: rooms
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
           content:
             application/json:
+              schema: { $ref: "#/components/schemas/HealthStatus" }
+
+  /me:
+    get:
+      operationId: getMe
+      tags: [users]
+      summary: Get current user profile
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/User" }
+    patch:
+      operationId: updateMe
+      tags: [users]
+      summary: Update current user profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/UpdateUserBody" }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/User" }
+
+  /me/hashtags:
+    get:
+      operationId: getMyHashtags
+      tags: [users]
+      summary: List my interest hashtags
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
               schema:
-                $ref: "#/components/schemas/HealthStatus"
+                type: array
+                items: { $ref: "#/components/schemas/Hashtag" }
+    put:
+      operationId: setMyHashtags
+      tags: [users]
+      summary: Replace my interest hashtags
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SetHashtagsBody" }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Hashtag" }
+
+  /me/followed-hashtags:
+    get:
+      operationId: getMyFollowedHashtags
+      tags: [users]
+      summary: List hashtags I follow
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Hashtag" }
+
+  /users/{id}:
+    get:
+      operationId: getUser
+      tags: [users]
+      summary: Get a public user profile
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/User" }
+
+  /hashtags/trending:
+    get:
+      operationId: getTrendingHashtags
+      tags: [hashtags]
+      summary: Top trending hashtags by recent activity
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          schema: { type: integer, default: 12 }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/TrendingHashtag" }
+
+  /hashtags/suggestions:
+    get:
+      operationId: getHashtagSuggestions
+      tags: [hashtags]
+      summary: Personalized hashtag suggestions for current user
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Hashtag" }
+
+  /hashtags/search:
+    get:
+      operationId: searchHashtags
+      tags: [hashtags]
+      summary: Search hashtags by prefix
+      parameters:
+        - name: q
+          in: query
+          required: false
+          schema: { type: string }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Hashtag" }
+
+  /hashtags/{tag}:
+    get:
+      operationId: getHashtag
+      tags: [hashtags]
+      summary: Get hashtag detail
+      parameters:
+        - name: tag
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/HashtagDetail" }
+
+  /hashtags/{tag}/follow:
+    post:
+      operationId: followHashtag
+      tags: [hashtags]
+      summary: Follow a hashtag
+      parameters:
+        - name: tag
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "204": { description: No content }
+    delete:
+      operationId: unfollowHashtag
+      tags: [hashtags]
+      summary: Unfollow a hashtag
+      parameters:
+        - name: tag
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "204": { description: No content }
+
+  /discover/people:
+    get:
+      operationId: discoverPeople
+      tags: [discovery]
+      summary: Smart-matched people based on hashtag overlap
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          schema: { type: integer, default: 24 }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/MatchUser" }
+
+  /conversations:
+    get:
+      operationId: getConversations
+      tags: [conversations]
+      summary: List my direct conversations
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Conversation" }
+    post:
+      operationId: openConversation
+      tags: [conversations]
+      summary: Open or create a direct conversation with another user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/OpenConversationBody" }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Conversation" }
+
+  /conversations/{id}/messages:
+    get:
+      operationId: getConversationMessages
+      tags: [messages]
+      summary: List messages in a conversation
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Message" }
+    post:
+      operationId: sendConversationMessage
+      tags: [messages]
+      summary: Send a message in a conversation
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SendMessageBody" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Message" }
+
+  /messages/{id}/reactions:
+    post:
+      operationId: addMessageReaction
+      tags: [messages]
+      summary: Add a reaction to a message
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ReactionBody" }
+      responses:
+        "204": { description: No content }
+    delete:
+      operationId: removeMessageReaction
+      tags: [messages]
+      summary: Remove my reaction from a message
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+        - name: emoji
+          in: query
+          required: true
+          schema: { type: string }
+      responses:
+        "204": { description: No content }
+
+  /rooms:
+    get:
+      operationId: getRooms
+      tags: [rooms]
+      summary: List hashtag rooms I follow (with unread/last message)
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Room" }
+
+  /rooms/trending:
+    get:
+      operationId: getTrendingRooms
+      tags: [rooms]
+      summary: Trending hashtag rooms
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          schema: { type: integer, default: 12 }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Room" }
+
+  /rooms/{tag}/messages:
+    get:
+      operationId: getRoomMessages
+      tags: [rooms]
+      summary: List recent messages in a hashtag room
+      parameters:
+        - name: tag
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Message" }
+    post:
+      operationId: sendRoomMessage
+      tags: [rooms]
+      summary: Post a message into a hashtag room
+      parameters:
+        - name: tag
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SendMessageBody" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Message" }
+
+  /stats/overview:
+    get:
+      operationId: getOverviewStats
+      tags: [hashtags]
+      summary: App-wide overview stats for the dashboard
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/OverviewStats" }
+
 components:
   schemas:
     HealthStatus:
       type: object
       properties:
-        status:
-          type: string
-      required:
-        - status
+        status: { type: string }
+      required: [status]
 
+    User:
+      type: object
+      properties:
+        id: { type: string }
+        username: { type: string }
+        displayName: { type: string }
+        bio:
+          type: ["string", "null"]
+        avatarUrl:
+          type: ["string", "null"]
+        status: { type: string }
+        hashtags:
+          type: array
+          items: { type: string }
+        followedHashtags:
+          type: array
+          items: { type: string }
+        createdAt: { type: string, format: date-time }
+      required: [id, username, displayName, status, hashtags, followedHashtags, createdAt]
+
+    UpdateUserBody:
+      type: object
+      properties:
+        displayName: { type: string }
+        bio:
+          type: ["string", "null"]
+        avatarUrl:
+          type: ["string", "null"]
+        status: { type: string }
+
+    SetHashtagsBody:
+      type: object
+      properties:
+        hashtags:
+          type: array
+          items: { type: string }
+      required: [hashtags]
+
+    Hashtag:
+      type: object
+      properties:
+        tag: { type: string }
+        memberCount: { type: integer }
+        messageCount: { type: integer }
+        followerCount: { type: integer }
+      required: [tag, memberCount, messageCount, followerCount]
+
+    TrendingHashtag:
+      type: object
+      properties:
+        tag: { type: string }
+        memberCount: { type: integer }
+        messageCount: { type: integer }
+        followerCount: { type: integer }
+        recentMessages: { type: integer }
+        score: { type: number }
+      required: [tag, memberCount, messageCount, followerCount, recentMessages, score]
+
+    HashtagDetail:
+      type: object
+      properties:
+        tag: { type: string }
+        memberCount: { type: integer }
+        messageCount: { type: integer }
+        followerCount: { type: integer }
+        recentMessages: { type: integer }
+        isFollowed: { type: boolean }
+        topMembers:
+          type: array
+          items: { $ref: "#/components/schemas/MatchUser" }
+        relatedHashtags:
+          type: array
+          items: { type: string }
+      required: [tag, memberCount, messageCount, followerCount, recentMessages, isFollowed, topMembers, relatedHashtags]
+
+    MatchUser:
+      type: object
+      properties:
+        id: { type: string }
+        username: { type: string }
+        displayName: { type: string }
+        bio:
+          type: ["string", "null"]
+        avatarUrl:
+          type: ["string", "null"]
+        status: { type: string }
+        hashtags:
+          type: array
+          items: { type: string }
+        sharedHashtags:
+          type: array
+          items: { type: string }
+        matchScore: { type: number }
+      required: [id, username, displayName, status, hashtags, sharedHashtags, matchScore]
+
+    Conversation:
+      type: object
+      properties:
+        id: { type: integer }
+        otherUser: { $ref: "#/components/schemas/MatchUser" }
+        lastMessage:
+          oneOf:
+            - $ref: "#/components/schemas/Message"
+            - type: "null"
+        unreadCount: { type: integer }
+        updatedAt: { type: string, format: date-time }
+      required: [id, otherUser, unreadCount, updatedAt]
+
+    OpenConversationBody:
+      type: object
+      properties:
+        userId: { type: string }
+      required: [userId]
+
+    Message:
+      type: object
+      properties:
+        id: { type: integer }
+        conversationId:
+          type: ["integer", "null"]
+        roomTag:
+          type: ["string", "null"]
+        senderId: { type: string }
+        senderName: { type: string }
+        senderAvatarUrl:
+          type: ["string", "null"]
+        content: { type: string }
+        replyToId:
+          type: ["integer", "null"]
+        replyToContent:
+          type: ["string", "null"]
+        reactions:
+          type: array
+          items: { $ref: "#/components/schemas/Reaction" }
+        createdAt: { type: string, format: date-time }
+      required: [id, senderId, senderName, content, reactions, createdAt]
+
+    SendMessageBody:
+      type: object
+      properties:
+        content: { type: string }
+        replyToId:
+          type: ["integer", "null"]
+      required: [content]
+
+    Reaction:
+      type: object
+      properties:
+        emoji: { type: string }
+        count: { type: integer }
+        reactedByMe: { type: boolean }
+      required: [emoji, count, reactedByMe]
+
+    ReactionBody:
+      type: object
+      properties:
+        emoji: { type: string }
+      required: [emoji]
+
+    Room:
+      type: object
+      properties:
+        tag: { type: string }
+        memberCount: { type: integer }
+        messageCount: { type: integer }
+        followerCount: { type: integer }
+        recentMessages: { type: integer }
+        lastMessage:
+          oneOf:
+            - $ref: "#/components/schemas/Message"
+            - type: "null"
+        isFollowed: { type: boolean }
+      required: [tag, memberCount, messageCount, followerCount, recentMessages, isFollowed]
+
+    OverviewStats:
+      type: object
+      properties:
+        userCount: { type: integer }
+        hashtagCount: { type: integer }
+        messageCount: { type: integer }
+        roomCount: { type: integer }
+      required: [userCount, hashtagCount, messageCount, roomCount]
