@@ -139,9 +139,32 @@ export default function ConversationChat({ id }: { id: number }) {
       .join("")
       .toUpperCase() ?? "?";
 
+  const hasBg = !!conv?.backgroundUrl;
+
   return (
-    <div className="flex h-full min-h-0 flex-col">
-      <header className="flex shrink-0 items-center gap-3 border-b border-border bg-card px-4 py-3">
+    <div
+      className="relative flex h-full min-h-0 flex-col"
+      style={
+        hasBg
+          ? {
+              backgroundImage: `url(${conv?.backgroundUrl})`,
+              backgroundSize: "cover",
+              backgroundPosition: "center",
+            }
+          : undefined
+      }
+    >
+      {hasBg && (
+        <div className="pointer-events-none absolute inset-0 bg-background/55 backdrop-blur-md" />
+      )}
+      <header
+        className={[
+          "relative z-10 flex shrink-0 items-center gap-2 px-3 py-2",
+          hasBg
+            ? "border-b border-border/40 bg-card/60 backdrop-blur-md"
+            : "border-b border-border bg-card",
+        ].join(" ")}
+      >
         <Link
           href="/app/messages"
           className="text-muted-foreground hover:text-foreground"
@@ -151,7 +174,7 @@ export default function ConversationChat({ id }: { id: number }) {
         </Link>
         {conv ? (
           <>
-            <Avatar className="h-10 w-10">
+            <Avatar className="h-9 w-9">
               {conv.otherUser.avatarUrl ? (
                 <AvatarImage
                   src={conv.otherUser.avatarUrl}
@@ -163,34 +186,21 @@ export default function ConversationChat({ id }: { id: number }) {
               </AvatarFallback>
             </Avatar>
             <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2">
-                <p className="truncate text-base font-semibold text-foreground">
+              <div className="flex items-center gap-1.5">
+                <p className="truncate text-sm font-semibold text-foreground">
                   {conv.otherUser.displayName}
                 </p>
                 {conv.otherUser.featuredHashtag && (
-                  <span className="inline-flex items-center gap-0.5 rounded-full bg-accent px-1.5 py-0.5 text-[10px] font-medium text-accent-foreground">
+                  <span className="hidden items-center gap-0.5 rounded-full bg-accent px-1.5 py-0.5 text-[10px] font-medium text-accent-foreground sm:inline-flex">
                     <Hash className="h-2.5 w-2.5" />
                     {conv.otherUser.featuredHashtag}
                   </span>
                 )}
               </div>
-              <p className="truncate text-xs text-muted-foreground">
+              <p className="truncate text-[11px] text-muted-foreground">
                 @{conv.otherUser.username}
               </p>
             </div>
-            {conv.otherUser.sharedHashtags.length > 0 && (
-              <div className="hidden items-center gap-1 sm:flex">
-                {conv.otherUser.sharedHashtags.slice(0, 3).map((t) => (
-                  <span
-                    key={t}
-                    className="inline-flex items-center gap-0.5 rounded-full bg-accent px-2 py-0.5 text-xs font-medium text-accent-foreground"
-                  >
-                    <Hash className="h-3 w-3" />
-                    {t}
-                  </span>
-                ))}
-              </div>
-            )}
             <CallButton conversationId={id} kind="voice" testId="button-conv-call-voice" />
             <CallButton conversationId={id} kind="video" testId="button-conv-call-video" />
             <DropdownMenu>
@@ -245,21 +255,12 @@ export default function ConversationChat({ id }: { id: number }) {
 
       <div
         ref={scrollerRef}
-        className="relative min-h-0 flex-1 overflow-y-auto bg-background px-4 py-6"
+        className={[
+          "relative z-10 min-h-0 flex-1 overflow-y-auto px-4 py-6",
+          hasBg ? "bg-transparent" : "bg-background",
+        ].join(" ")}
         data-testid="conv-message-list"
-        style={
-          conv?.backgroundUrl
-            ? {
-                backgroundImage: `url(${conv.backgroundUrl})`,
-                backgroundSize: "cover",
-                backgroundPosition: "center",
-              }
-            : undefined
-        }
       >
-        {conv?.backgroundUrl && (
-          <div className="pointer-events-none absolute inset-0 bg-background/70 backdrop-blur-sm" />
-        )}
         <div className="relative">
         {msgs.isLoading ? (
           <div className="flex h-full items-center justify-center">
@@ -291,7 +292,12 @@ export default function ConversationChat({ id }: { id: number }) {
 
       <form
         onSubmit={submit}
-        className="flex shrink-0 flex-col gap-2 border-t border-border bg-card p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]"
+        className={[
+          "relative z-10 flex shrink-0 flex-col gap-2 p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]",
+          hasBg
+            ? "border-t border-border/40 bg-card/60 backdrop-blur-md"
+            : "border-t border-border bg-card",
+        ].join(" ")}
       >
         {replyTo && (
           <div
