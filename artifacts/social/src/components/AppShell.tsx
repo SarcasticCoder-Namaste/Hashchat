@@ -170,7 +170,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
             data-testid="link-home"
           >
             <motion.img
-              src={`${basePath}/logo.svg`}
+              src={`${basePath}/logo.png`}
               alt="HashChat"
               className="h-9 w-9"
               whileHover={{ rotate: -8, scale: 1.05 }}
@@ -275,7 +275,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
               className="flex items-center gap-2"
             >
               <img
-                src={`${basePath}/logo.svg`}
+                src={`${basePath}/logo.png`}
                 alt="HashChat"
                 className="h-7 w-7"
               />

@@ -32,7 +32,7 @@ export default function Landing() {
           data-testid="link-landing-logo"
         >
           <img
-            src={`${basePath}/logo.svg`}
+            src={`${basePath}/logo.png`}
             alt="HashChat"
             className="h-9 w-9"
           />

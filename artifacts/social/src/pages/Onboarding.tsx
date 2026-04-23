@@ -75,7 +75,7 @@ export default function Onboarding() {
   return (
     <div className="mx-auto max-w-4xl px-6 py-12">
       <div className="flex items-center gap-2">
-        <img src={`${basePath}/logo.svg`} alt="HashChat" className="h-8 w-8" />
+        <img src={`${basePath}/logo.png`} alt="HashChat" className="h-8 w-8" />
         <span className="text-lg font-bold text-foreground">HashChat</span>
       </div>
       <div className="mt-8">

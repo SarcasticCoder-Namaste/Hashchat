@@ -65,7 +65,7 @@ const baseClerkAppearance = {
   options: {
     logoPlacement: "inside" as const,
     logoLinkUrl: basePath || "/",
-    logoImageUrl: `${typeof window !== "undefined" ? window.location.origin : ""}${basePath}/logo.svg`,
+    logoImageUrl: `${typeof window !== "undefined" ? window.location.origin : ""}${basePath}/logo.png`,
   },
 };
 

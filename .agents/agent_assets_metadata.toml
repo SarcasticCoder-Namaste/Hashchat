@@ -1,0 +1,8 @@
+uploads = []
+outputs = []
+
+[[generated]]
+id = "j5XcmfYkThOaG7dYN2Y7k"
+uri = "file://artifacts/social/public/logo.png"
+type = "image"
+title = "generated_image"
