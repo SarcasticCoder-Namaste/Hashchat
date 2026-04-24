@@ -6072,6 +6072,81 @@ export const useDeletePost = <
 };
 
 /**
+ * @summary List recent posts from hashtags I follow (most recent first)
+ */
+export const getGetMyFeedPostsUrl = () => {
+  return `/api/me/feed/posts`;
+};
+
+export const getMyFeedPosts = async (
+  options?: RequestInit,
+): Promise<Post[]> => {
+  return customFetch<Post[]>(getGetMyFeedPostsUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetMyFeedPostsQueryKey = () => {
+  return [`/api/me/feed/posts`] as const;
+};
+
+export const getGetMyFeedPostsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getMyFeedPosts>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getMyFeedPosts>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetMyFeedPostsQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getMyFeedPosts>>> = ({
+    signal,
+  }) => getMyFeedPosts({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getMyFeedPosts>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetMyFeedPostsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getMyFeedPosts>>
+>;
+export type GetMyFeedPostsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List recent posts from hashtags I follow (most recent first)
+ */
+
+export function useGetMyFeedPosts<
+  TData = Awaited<ReturnType<typeof getMyFeedPosts>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getMyFeedPosts>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetMyFeedPostsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
  * @summary List posts tagged with this hashtag (most recent first)
  */
 export const getGetHashtagPostsUrl = (tag: string) => {

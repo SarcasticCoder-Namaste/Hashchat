@@ -1502,6 +1502,27 @@ export const DeletePostParams = zod.object({
 });
 
 /**
+ * @summary List recent posts from hashtags I follow (most recent first)
+ */
+export const GetMyFeedPostsResponseItem = zod.object({
+  id: zod.number(),
+  author: zod.object({
+    id: zod.string(),
+    username: zod.string(),
+    displayName: zod.string(),
+    avatarUrl: zod.string().nullish(),
+    discriminator: zod.string().nullish(),
+    role: zod.string(),
+    mvpPlan: zod.boolean(),
+  }),
+  content: zod.string(),
+  hashtags: zod.array(zod.string()),
+  imageUrls: zod.array(zod.string()),
+  createdAt: zod.coerce.date(),
+});
+export const GetMyFeedPostsResponse = zod.array(GetMyFeedPostsResponseItem);
+
+/**
  * @summary List posts tagged with this hashtag (most recent first)
  */
 export const GetHashtagPostsParams = zod.object({

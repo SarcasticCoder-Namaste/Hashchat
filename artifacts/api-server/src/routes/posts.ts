@@ -6,6 +6,7 @@ import {
   postMediaTable,
   hashtagsTable,
   usersTable,
+  userFollowedHashtagsTable,
 } from "@workspace/db";
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { requireAuth, getUserId } from "../middlewares/requireAuth";
@@ -159,6 +160,33 @@ router.delete("/posts/:id", requireAuth, async (req, res): Promise<void> => {
   }
   await db.delete(postsTable).where(eq(postsTable.id, id));
   res.status(204).end();
+});
+
+router.get("/me/feed/posts", requireAuth, async (req, res): Promise<void> => {
+  const me = getUserId(req);
+  const rows = await db
+    .selectDistinct({
+      id: postsTable.id,
+      authorId: postsTable.authorId,
+      content: postsTable.content,
+      deletedAt: postsTable.deletedAt,
+      createdAt: postsTable.createdAt,
+    })
+    .from(postsTable)
+    .innerJoin(postHashtagsTable, eq(postHashtagsTable.postId, postsTable.id))
+    .innerJoin(
+      userFollowedHashtagsTable,
+      eq(userFollowedHashtagsTable.tag, postHashtagsTable.tag),
+    )
+    .where(
+      and(
+        eq(userFollowedHashtagsTable.userId, me),
+        sql`${postsTable.deletedAt} IS NULL`,
+      ),
+    )
+    .orderBy(desc(postsTable.createdAt))
+    .limit(100);
+  res.json(await buildPosts(rows));
 });
 
 router.get(

@@ -1041,6 +1041,20 @@ paths:
       responses:
         "204": { description: No content }
 
+  /me/feed/posts:
+    get:
+      operationId: getMyFeedPosts
+      tags: [posts]
+      summary: List recent posts from hashtags I follow (most recent first)
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Post" }
+
   /hashtags/{tag}/posts:
     get:
       operationId: getHashtagPosts

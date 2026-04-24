@@ -27,6 +27,7 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import Landing from "@/pages/Landing";
 import Onboarding from "@/pages/Onboarding";
 import Discover from "@/pages/Discover";
+import Home from "@/pages/Home";
 import Trending from "@/pages/Trending";
 import Rooms from "@/pages/Rooms";
 import RoomChat from "@/pages/RoomChat";
@@ -213,6 +214,11 @@ function ClerkProviderWithRoutes() {
             <Route path="/app/discover">
               <ProtectedShell>
                 <Discover />
+              </ProtectedShell>
+            </Route>
+            <Route path="/app/home">
+              <ProtectedShell>
+                <Home />
               </ProtectedShell>
             </Route>
             <Route path="/app/trending">

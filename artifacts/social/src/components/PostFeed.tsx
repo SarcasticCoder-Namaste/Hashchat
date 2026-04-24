@@ -2,14 +2,19 @@ import { useQueryClient } from "@tanstack/react-query";
 import {
   useGetHashtagPosts,
   useGetUserPosts,
+  useGetMyFeedPosts,
   getGetHashtagPostsQueryKey,
   getGetUserPostsQueryKey,
+  getGetMyFeedPostsQueryKey,
 } from "@workspace/api-client-react";
 import { PostCard } from "./PostCard";
 import { Loader2 } from "lucide-react";
 
 interface PostFeedProps {
-  scope: { kind: "hashtag"; tag: string } | { kind: "user"; userId: string };
+  scope:
+    | { kind: "hashtag"; tag: string }
+    | { kind: "user"; userId: string }
+    | { kind: "home" };
   meId: string | null;
   emptyMessage?: string;
 }
@@ -32,18 +37,32 @@ export function PostFeed({ scope, meId, emptyMessage }: PostFeedProps) {
       enabled: scope.kind === "user",
     },
   });
+  const homeQ = useGetMyFeedPosts({
+    query: {
+      queryKey: getGetMyFeedPostsQueryKey(),
+      enabled: scope.kind === "home",
+      refetchInterval: 15000,
+    },
+  });
 
-  const q = scope.kind === "hashtag" ? hashtagQ : userQ;
+  const q =
+    scope.kind === "hashtag"
+      ? hashtagQ
+      : scope.kind === "user"
+        ? userQ
+        : homeQ;
 
   function invalidate() {
     if (scope.kind === "hashtag") {
       qc.invalidateQueries({
         queryKey: getGetHashtagPostsQueryKey(scope.tag),
       });
-    } else {
+    } else if (scope.kind === "user") {
       qc.invalidateQueries({
         queryKey: getGetUserPostsQueryKey(scope.userId),
       });
+    } else {
+      qc.invalidateQueries({ queryKey: getGetMyFeedPostsQueryKey() });
     }
   }
 

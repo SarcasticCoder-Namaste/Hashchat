@@ -18,6 +18,7 @@ import {
   Loader2,
   Film,
   ShieldCheck,
+  Home as HomeIcon,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -39,6 +40,7 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
   {
     label: "Explore",
     items: [
+      { href: "/app/home", label: "Home", icon: HomeIcon },
       { href: "/app/discover", label: "Discover", icon: Compass },
       { href: "/app/trending", label: "Trending", icon: TrendingUp },
       { href: "/app/reels", label: "Reels", icon: Film },
@@ -61,6 +63,7 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
 ];
 
 const MOBILE_NAV: NavItem[] = [
+  { href: "/app/home", label: "Home", icon: HomeIcon },
   { href: "/app/discover", label: "Discover", icon: Compass },
   { href: "/app/rooms", label: "Rooms", icon: Hash },
   { href: "/app/reels", label: "Reels", icon: Film },
@@ -104,7 +107,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
     : NAV_GROUPS;
 
   const mobileNav = isStaff
-    ? [...MOBILE_NAV.slice(0, 5), { href: "/app/admin", label: "Admin", icon: ShieldCheck }, MOBILE_NAV[5]]
+    ? [...MOBILE_NAV.slice(0, 6), { href: "/app/admin", label: "Admin", icon: ShieldCheck }, MOBILE_NAV[6]]
     : MOBILE_NAV;
 
   useEffect(() => {
@@ -306,7 +309,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
           <nav
             className={[
               "sticky bottom-0 z-10 grid border-t border-border bg-card/90 backdrop-blur md:hidden",
-              isStaff ? "grid-cols-7" : "grid-cols-6",
+              isStaff ? "grid-cols-8" : "grid-cols-7",
             ].join(" ")}
           >
             {mobileNav.map(({ href, label, icon: Icon }) => {

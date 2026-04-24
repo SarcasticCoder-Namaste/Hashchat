@@ -37,6 +37,7 @@ Routes (relative to base path):
 - `/sign-in/*?`, `/sign-up/*?` — Clerk SignIn/SignUp (`routing="path"`)
 - `/onboarding` — first-time hashtag picker (>=3 required), with starter rooms grid
 - `/app/discover` — smart matches + trending tags
+- `/app/home` — chronological feed of posts from hashtag rooms the user follows (with composer)
 - `/app/trending` — searchable trending tags + follow/unfollow
 - `/app/rooms`, `/app/rooms/:tag` — hashtag rooms list & chat
 - `/app/messages`, `/app/messages/:id` — DM list & conversation
