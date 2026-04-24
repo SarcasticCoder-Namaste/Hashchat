@@ -23,6 +23,7 @@ timeoutMs = 20000
 
 [userenv.shared]
 VITE_CLERK_PUBLISHABLE_KEY = "pk_test_c3Ryb25nLWRlZXItMi5jbGVyay5hY2NvdW50cy5kZXYk"
+ADMIN_EMAILS = "sarcastic.saksham@gmail.com"
 
 [[ports]]
 localPort = 8080

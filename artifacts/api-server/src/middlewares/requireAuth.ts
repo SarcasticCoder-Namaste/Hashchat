@@ -111,6 +111,33 @@ function isBootstrapAdminId(userId: string): boolean {
     .includes(userId);
 }
 
+function bootstrapAdminEmails(): Set<string> {
+  const raw = process.env["ADMIN_EMAILS"];
+  if (!raw) return new Set();
+  return new Set(
+    raw
+      .split(",")
+      .map((s) => s.trim().toLowerCase())
+      .filter(Boolean),
+  );
+}
+
+function emailsForClerkUser(
+  user: Awaited<ReturnType<typeof clerkClient.users.getUser>>,
+): string[] {
+  const out: string[] = [];
+  for (const e of user.emailAddresses ?? []) {
+    if (e?.emailAddress) out.push(e.emailAddress.toLowerCase());
+  }
+  return out;
+}
+
+function isBootstrapAdminEmail(emails: string[]): boolean {
+  const set = bootstrapAdminEmails();
+  if (set.size === 0) return false;
+  return emails.some((e) => set.has(e));
+}
+
 const lastSeenCache = new Map<string, number>();
 const LAST_SEEN_THROTTLE_MS = 30_000;
 
@@ -176,7 +203,11 @@ export async function requireAuth(
 
       const discriminator = await generateDiscriminator();
       const friendCode = await generateFriendCode();
-      const role = isBootstrapAdminId(clerkUserId) ? "admin" : "user";
+      const emails = emailsForClerkUser(clerkUser);
+      const role =
+        isBootstrapAdminId(clerkUserId) || isBootstrapAdminEmail(emails)
+          ? "admin"
+          : "user";
 
       await db
         .insert(usersTable)
@@ -231,13 +262,25 @@ export async function requireAuth(
     existingRow.friendCode = friendCode;
   }
 
-  // Auto-promote bootstrap admin (immutable Clerk user IDs) if not already
-  if (isBootstrapAdminId(clerkUserId) && existingRow.role !== "admin") {
-    await db
-      .update(usersTable)
-      .set({ role: "admin" })
-      .where(eq(usersTable.id, clerkUserId));
-    existingRow.role = "admin";
+  // Auto-promote bootstrap admin if not already (by Clerk user id, or by
+  // email match against ADMIN_EMAILS — cheaper id check first).
+  if (existingRow.role !== "admin") {
+    let shouldPromote = isBootstrapAdminId(clerkUserId);
+    if (!shouldPromote && bootstrapAdminEmails().size > 0) {
+      try {
+        const clerkUser = await clerkClient.users.getUser(clerkUserId);
+        shouldPromote = isBootstrapAdminEmail(emailsForClerkUser(clerkUser));
+      } catch {
+        // ignore — Clerk fetch failures shouldn't block normal auth
+      }
+    }
+    if (shouldPromote) {
+      await db
+        .update(usersTable)
+        .set({ role: "admin" })
+        .where(eq(usersTable.id, clerkUserId));
+      existingRow.role = "admin";
+    }
   }
 
   if (existingRow.bannedAt) {
