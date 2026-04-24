@@ -331,6 +331,41 @@ export const GetConversationsResponseItem = zod.object({
             reactedByMe: zod.boolean(),
           }),
         ),
+        attachments: zod.array(
+          zod.object({
+            id: zod.number(),
+            kind: zod.enum(["image", "gif", "link_preview", "poll"]),
+            url: zod.string(),
+            title: zod.string().nullish(),
+            description: zod.string().nullish(),
+            thumbnailUrl: zod.string().nullish(),
+          }),
+        ),
+        poll: zod
+          .union([
+            zod.object({
+              id: zod.number(),
+              roomTag: zod.string(),
+              creatorId: zod.string(),
+              creatorName: zod.string(),
+              question: zod.string(),
+              options: zod.array(
+                zod.object({
+                  id: zod.number(),
+                  text: zod.string(),
+                  votes: zod.number(),
+                  votedByMe: zod.boolean(),
+                }),
+              ),
+              totalVotes: zod.number(),
+              myVoteOptionId: zod.number().nullish(),
+              expiresAt: zod.coerce.date().nullish(),
+              isExpired: zod.boolean(),
+              createdAt: zod.coerce.date(),
+            }),
+            zod.null(),
+          ])
+          .optional(),
         createdAt: zod.coerce.date(),
       }),
       zod.null(),
@@ -392,6 +427,41 @@ export const OpenConversationResponse = zod.object({
             reactedByMe: zod.boolean(),
           }),
         ),
+        attachments: zod.array(
+          zod.object({
+            id: zod.number(),
+            kind: zod.enum(["image", "gif", "link_preview", "poll"]),
+            url: zod.string(),
+            title: zod.string().nullish(),
+            description: zod.string().nullish(),
+            thumbnailUrl: zod.string().nullish(),
+          }),
+        ),
+        poll: zod
+          .union([
+            zod.object({
+              id: zod.number(),
+              roomTag: zod.string(),
+              creatorId: zod.string(),
+              creatorName: zod.string(),
+              question: zod.string(),
+              options: zod.array(
+                zod.object({
+                  id: zod.number(),
+                  text: zod.string(),
+                  votes: zod.number(),
+                  votedByMe: zod.boolean(),
+                }),
+              ),
+              totalVotes: zod.number(),
+              myVoteOptionId: zod.number().nullish(),
+              expiresAt: zod.coerce.date().nullish(),
+              isExpired: zod.boolean(),
+              createdAt: zod.coerce.date(),
+            }),
+            zod.null(),
+          ])
+          .optional(),
         createdAt: zod.coerce.date(),
       }),
       zod.null(),
@@ -428,6 +498,41 @@ export const GetConversationMessagesResponseItem = zod.object({
       reactedByMe: zod.boolean(),
     }),
   ),
+  attachments: zod.array(
+    zod.object({
+      id: zod.number(),
+      kind: zod.enum(["image", "gif", "link_preview", "poll"]),
+      url: zod.string(),
+      title: zod.string().nullish(),
+      description: zod.string().nullish(),
+      thumbnailUrl: zod.string().nullish(),
+    }),
+  ),
+  poll: zod
+    .union([
+      zod.object({
+        id: zod.number(),
+        roomTag: zod.string(),
+        creatorId: zod.string(),
+        creatorName: zod.string(),
+        question: zod.string(),
+        options: zod.array(
+          zod.object({
+            id: zod.number(),
+            text: zod.string(),
+            votes: zod.number(),
+            votedByMe: zod.boolean(),
+          }),
+        ),
+        totalVotes: zod.number(),
+        myVoteOptionId: zod.number().nullish(),
+        expiresAt: zod.coerce.date().nullish(),
+        isExpired: zod.boolean(),
+        createdAt: zod.coerce.date(),
+      }),
+      zod.null(),
+    ])
+    .optional(),
   createdAt: zod.coerce.date(),
 });
 export const GetConversationMessagesResponse = zod.array(
@@ -500,6 +605,41 @@ export const GetRoomsResponseItem = zod.object({
             reactedByMe: zod.boolean(),
           }),
         ),
+        attachments: zod.array(
+          zod.object({
+            id: zod.number(),
+            kind: zod.enum(["image", "gif", "link_preview", "poll"]),
+            url: zod.string(),
+            title: zod.string().nullish(),
+            description: zod.string().nullish(),
+            thumbnailUrl: zod.string().nullish(),
+          }),
+        ),
+        poll: zod
+          .union([
+            zod.object({
+              id: zod.number(),
+              roomTag: zod.string(),
+              creatorId: zod.string(),
+              creatorName: zod.string(),
+              question: zod.string(),
+              options: zod.array(
+                zod.object({
+                  id: zod.number(),
+                  text: zod.string(),
+                  votes: zod.number(),
+                  votedByMe: zod.boolean(),
+                }),
+              ),
+              totalVotes: zod.number(),
+              myVoteOptionId: zod.number().nullish(),
+              expiresAt: zod.coerce.date().nullish(),
+              isExpired: zod.boolean(),
+              createdAt: zod.coerce.date(),
+            }),
+            zod.null(),
+          ])
+          .optional(),
         createdAt: zod.coerce.date(),
       }),
       zod.null(),
@@ -545,6 +685,41 @@ export const GetTrendingRoomsResponseItem = zod.object({
             reactedByMe: zod.boolean(),
           }),
         ),
+        attachments: zod.array(
+          zod.object({
+            id: zod.number(),
+            kind: zod.enum(["image", "gif", "link_preview", "poll"]),
+            url: zod.string(),
+            title: zod.string().nullish(),
+            description: zod.string().nullish(),
+            thumbnailUrl: zod.string().nullish(),
+          }),
+        ),
+        poll: zod
+          .union([
+            zod.object({
+              id: zod.number(),
+              roomTag: zod.string(),
+              creatorId: zod.string(),
+              creatorName: zod.string(),
+              question: zod.string(),
+              options: zod.array(
+                zod.object({
+                  id: zod.number(),
+                  text: zod.string(),
+                  votes: zod.number(),
+                  votedByMe: zod.boolean(),
+                }),
+              ),
+              totalVotes: zod.number(),
+              myVoteOptionId: zod.number().nullish(),
+              expiresAt: zod.coerce.date().nullish(),
+              isExpired: zod.boolean(),
+              createdAt: zod.coerce.date(),
+            }),
+            zod.null(),
+          ])
+          .optional(),
         createdAt: zod.coerce.date(),
       }),
       zod.null(),
@@ -580,6 +755,41 @@ export const GetRoomMessagesResponseItem = zod.object({
       reactedByMe: zod.boolean(),
     }),
   ),
+  attachments: zod.array(
+    zod.object({
+      id: zod.number(),
+      kind: zod.enum(["image", "gif", "link_preview", "poll"]),
+      url: zod.string(),
+      title: zod.string().nullish(),
+      description: zod.string().nullish(),
+      thumbnailUrl: zod.string().nullish(),
+    }),
+  ),
+  poll: zod
+    .union([
+      zod.object({
+        id: zod.number(),
+        roomTag: zod.string(),
+        creatorId: zod.string(),
+        creatorName: zod.string(),
+        question: zod.string(),
+        options: zod.array(
+          zod.object({
+            id: zod.number(),
+            text: zod.string(),
+            votes: zod.number(),
+            votedByMe: zod.boolean(),
+          }),
+        ),
+        totalVotes: zod.number(),
+        myVoteOptionId: zod.number().nullish(),
+        expiresAt: zod.coerce.date().nullish(),
+        isExpired: zod.boolean(),
+        createdAt: zod.coerce.date(),
+      }),
+      zod.null(),
+    ])
+    .optional(),
   createdAt: zod.coerce.date(),
 });
 export const GetRoomMessagesResponse = zod.array(GetRoomMessagesResponseItem);
@@ -1089,6 +1299,172 @@ export const AdminStatsResponse = zod.object({
   messages: zod.number(),
   mvp: zod.number(),
   banned: zod.number(),
+});
+
+/**
+ * @summary Create a new post
+ */
+export const createPostBodyContentMax = 500;
+
+export const CreatePostBody = zod.object({
+  content: zod.string().max(createPostBodyContentMax),
+  hashtags: zod.array(zod.string()).optional(),
+  imageUrls: zod.array(zod.string()).optional(),
+});
+
+/**
+ * @summary Delete one of my posts
+ */
+export const DeletePostParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+/**
+ * @summary List posts tagged with this hashtag (most recent first)
+ */
+export const GetHashtagPostsParams = zod.object({
+  tag: zod.coerce.string(),
+});
+
+export const GetHashtagPostsResponseItem = zod.object({
+  id: zod.number(),
+  author: zod.object({
+    id: zod.string(),
+    username: zod.string(),
+    displayName: zod.string(),
+    avatarUrl: zod.string().nullish(),
+    discriminator: zod.string().nullish(),
+    role: zod.string(),
+    mvpPlan: zod.boolean(),
+  }),
+  content: zod.string(),
+  hashtags: zod.array(zod.string()),
+  imageUrls: zod.array(zod.string()),
+  createdAt: zod.coerce.date(),
+});
+export const GetHashtagPostsResponse = zod.array(GetHashtagPostsResponseItem);
+
+/**
+ * @summary List posts by a user
+ */
+export const GetUserPostsParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const GetUserPostsResponseItem = zod.object({
+  id: zod.number(),
+  author: zod.object({
+    id: zod.string(),
+    username: zod.string(),
+    displayName: zod.string(),
+    avatarUrl: zod.string().nullish(),
+    discriminator: zod.string().nullish(),
+    role: zod.string(),
+    mvpPlan: zod.boolean(),
+  }),
+  content: zod.string(),
+  hashtags: zod.array(zod.string()),
+  imageUrls: zod.array(zod.string()),
+  createdAt: zod.coerce.date(),
+});
+export const GetUserPostsResponse = zod.array(GetUserPostsResponseItem);
+
+/**
+ * @summary List active polls in a hashtag room (recent first)
+ */
+export const GetRoomPollsParams = zod.object({
+  tag: zod.coerce.string(),
+});
+
+export const GetRoomPollsResponseItem = zod.object({
+  id: zod.number(),
+  roomTag: zod.string(),
+  creatorId: zod.string(),
+  creatorName: zod.string(),
+  question: zod.string(),
+  options: zod.array(
+    zod.object({
+      id: zod.number(),
+      text: zod.string(),
+      votes: zod.number(),
+      votedByMe: zod.boolean(),
+    }),
+  ),
+  totalVotes: zod.number(),
+  myVoteOptionId: zod.number().nullish(),
+  expiresAt: zod.coerce.date().nullish(),
+  isExpired: zod.boolean(),
+  createdAt: zod.coerce.date(),
+});
+export const GetRoomPollsResponse = zod.array(GetRoomPollsResponseItem);
+
+/**
+ * @summary Create a new poll inside a hashtag room
+ */
+export const CreateRoomPollParams = zod.object({
+  tag: zod.coerce.string(),
+});
+
+export const createRoomPollBodyQuestionMax = 200;
+
+export const createRoomPollBodyOptionsItemMax = 80;
+
+export const createRoomPollBodyOptionsMin = 2;
+export const createRoomPollBodyOptionsMax = 6;
+
+export const CreateRoomPollBody = zod.object({
+  question: zod.string().min(1).max(createRoomPollBodyQuestionMax),
+  options: zod
+    .array(zod.string().min(1).max(createRoomPollBodyOptionsItemMax))
+    .min(createRoomPollBodyOptionsMin)
+    .max(createRoomPollBodyOptionsMax),
+  expiresAt: zod.coerce.date().nullish(),
+});
+
+/**
+ * @summary Cast a vote in a poll (one per user)
+ */
+export const VotePollParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const VotePollBody = zod.object({
+  optionId: zod.number(),
+});
+
+export const VotePollResponse = zod.object({
+  id: zod.number(),
+  roomTag: zod.string(),
+  creatorId: zod.string(),
+  creatorName: zod.string(),
+  question: zod.string(),
+  options: zod.array(
+    zod.object({
+      id: zod.number(),
+      text: zod.string(),
+      votes: zod.number(),
+      votedByMe: zod.boolean(),
+    }),
+  ),
+  totalVotes: zod.number(),
+  myVoteOptionId: zod.number().nullish(),
+  expiresAt: zod.coerce.date().nullish(),
+  isExpired: zod.boolean(),
+  createdAt: zod.coerce.date(),
+});
+
+/**
+ * @summary Fetch Open Graph metadata for a URL
+ */
+export const GetLinkPreviewQueryParams = zod.object({
+  url: zod.coerce.string(),
+});
+
+export const GetLinkPreviewResponse = zod.object({
+  url: zod.string(),
+  title: zod.string().nullish(),
+  description: zod.string().nullish(),
+  thumbnailUrl: zod.string().nullish(),
 });
 
 export const GetYoutubeReelsQueryParams = zod.object({

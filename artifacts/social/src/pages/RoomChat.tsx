@@ -6,19 +6,25 @@ import {
   useGetHashtag,
   useFollowHashtag,
   useUnfollowHashtag,
+  useGetMe,
   getGetRoomMessagesQueryKey,
   getGetHashtagQueryKey,
   getGetMyFollowedHashtagsQueryKey,
   getGetRoomsQueryKey,
+  getGetHashtagPostsQueryKey,
   type Message,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { MessageBubble } from "@/components/MessageBubble";
 import { ImageUploadButton } from "@/components/ImageUploadButton";
 import { VoiceMessageButton } from "@/components/VoiceMessageButton";
 import { CallButton } from "@/components/CallButton";
+import { PostComposer } from "@/components/PostComposer";
+import { PostFeed } from "@/components/PostFeed";
+import { PollsPanel } from "@/components/PollsPanel";
 import {
   ArrowLeft,
   Hash,
@@ -119,7 +125,10 @@ export default function RoomChat({ tag }: { tag: string }) {
     setTimeout(() => inputRef.current?.focus(), 0);
   }
 
+  const meQ = useGetMe();
+  const meId = meQ.data?.id ?? null;
   const detail = hashtagQ.data;
+  const [tab, setTab] = useState<"chat" | "posts" | "polls">("chat");
 
   return (
     <div className="relative flex h-full min-h-0 flex-col">
@@ -172,6 +181,21 @@ export default function RoomChat({ tag }: { tag: string }) {
         )}
       </header>
 
+      <Tabs
+        value={tab}
+        onValueChange={(v) => setTab(v as "chat" | "posts" | "polls")}
+        className="flex min-h-0 flex-1 flex-col"
+      >
+        <TabsList className="mx-3 mt-2 grid w-auto grid-cols-3">
+          <TabsTrigger value="chat" data-testid="tab-chat">Chat</TabsTrigger>
+          <TabsTrigger value="posts" data-testid="tab-posts">Posts</TabsTrigger>
+          <TabsTrigger value="polls" data-testid="tab-polls">Polls</TabsTrigger>
+        </TabsList>
+        <TabsContent
+          value="chat"
+          className="m-0 flex min-h-0 flex-1 flex-col data-[state=inactive]:hidden"
+          forceMount
+        >
       <div
         ref={scrollerRef}
         className="min-h-0 flex-1 overflow-y-auto bg-background px-4 py-6"
@@ -253,6 +277,36 @@ export default function RoomChat({ tag }: { tag: string }) {
           </Button>
         </div>
       </form>
+        </TabsContent>
+        <TabsContent
+          value="posts"
+          className="m-0 flex min-h-0 flex-1 flex-col"
+        >
+          <div className="min-h-0 flex-1 overflow-y-auto bg-background px-4 py-4">
+            <div className="mx-auto flex max-w-2xl flex-col gap-3">
+              <PostComposer
+                defaultHashtag={cleanTag}
+                onPosted={() =>
+                  qc.invalidateQueries({
+                    queryKey: getGetHashtagPostsQueryKey(cleanTag),
+                  })
+                }
+              />
+              <PostFeed
+                scope={{ kind: "hashtag", tag: cleanTag }}
+                meId={meId}
+                emptyMessage={`No posts in #${cleanTag} yet — be the first!`}
+              />
+            </div>
+          </div>
+        </TabsContent>
+        <TabsContent
+          value="polls"
+          className="m-0 flex min-h-0 flex-1 flex-col"
+        >
+          <PollsPanel tag={cleanTag} />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

@@ -25,11 +25,14 @@ import type {
   CallSignalList,
   Conversation,
   CreateMvpCodeBody,
+  CreatePollBody,
+  CreatePostBody,
   CreatedCode,
   DiscoverPeopleParams,
   FriendCodeResponse,
   FriendRequestList,
   GetCallSignalsParams,
+  GetLinkPreviewParams,
   GetTrendingHashtagsParams,
   GetTrendingRoomsParams,
   GetYoutubeReelsParams,
@@ -37,6 +40,7 @@ import type {
   HashtagDetail,
   HealthStatus,
   InitiateCallBody,
+  LinkPreview,
   LookupUserByCodeParams,
   MatchUser,
   Message,
@@ -44,6 +48,8 @@ import type {
   OkResponse,
   OpenConversationBody,
   OverviewStats,
+  Poll,
+  Post,
   ReactionBody,
   RedeemCodeBody,
   ReelsConfigError,
@@ -61,6 +67,7 @@ import type {
   UploadUrlResponse,
   User,
   UserPhoto,
+  VotePollBody,
 } from "./api.schemas";
 
 import { customFetch } from "../custom-fetch";
@@ -4949,6 +4956,705 @@ export function useAdminStats<
   request?: SecondParameter<typeof customFetch>;
 }): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getAdminStatsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Create a new post
+ */
+export const getCreatePostUrl = () => {
+  return `/api/posts`;
+};
+
+export const createPost = async (
+  createPostBody: CreatePostBody,
+  options?: RequestInit,
+): Promise<Post> => {
+  return customFetch<Post>(getCreatePostUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createPostBody),
+  });
+};
+
+export const getCreatePostMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createPost>>,
+    TError,
+    { data: BodyType<CreatePostBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createPost>>,
+  TError,
+  { data: BodyType<CreatePostBody> },
+  TContext
+> => {
+  const mutationKey = ["createPost"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createPost>>,
+    { data: BodyType<CreatePostBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return createPost(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreatePostMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createPost>>
+>;
+export type CreatePostMutationBody = BodyType<CreatePostBody>;
+export type CreatePostMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Create a new post
+ */
+export const useCreatePost = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createPost>>,
+    TError,
+    { data: BodyType<CreatePostBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createPost>>,
+  TError,
+  { data: BodyType<CreatePostBody> },
+  TContext
+> => {
+  return useMutation(getCreatePostMutationOptions(options));
+};
+
+/**
+ * @summary Delete one of my posts
+ */
+export const getDeletePostUrl = (id: number) => {
+  return `/api/posts/${id}`;
+};
+
+export const deletePost = async (
+  id: number,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getDeletePostUrl(id), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getDeletePostMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deletePost>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deletePost>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["deletePost"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deletePost>>,
+    { id: number }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return deletePost(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeletePostMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deletePost>>
+>;
+
+export type DeletePostMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Delete one of my posts
+ */
+export const useDeletePost = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deletePost>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deletePost>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  return useMutation(getDeletePostMutationOptions(options));
+};
+
+/**
+ * @summary List posts tagged with this hashtag (most recent first)
+ */
+export const getGetHashtagPostsUrl = (tag: string) => {
+  return `/api/hashtags/${tag}/posts`;
+};
+
+export const getHashtagPosts = async (
+  tag: string,
+  options?: RequestInit,
+): Promise<Post[]> => {
+  return customFetch<Post[]>(getGetHashtagPostsUrl(tag), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetHashtagPostsQueryKey = (tag: string) => {
+  return [`/api/hashtags/${tag}/posts`] as const;
+};
+
+export const getGetHashtagPostsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getHashtagPosts>>,
+  TError = ErrorType<unknown>,
+>(
+  tag: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getHashtagPosts>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetHashtagPostsQueryKey(tag);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getHashtagPosts>>> = ({
+    signal,
+  }) => getHashtagPosts(tag, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!tag,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getHashtagPosts>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetHashtagPostsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getHashtagPosts>>
+>;
+export type GetHashtagPostsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List posts tagged with this hashtag (most recent first)
+ */
+
+export function useGetHashtagPosts<
+  TData = Awaited<ReturnType<typeof getHashtagPosts>>,
+  TError = ErrorType<unknown>,
+>(
+  tag: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getHashtagPosts>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetHashtagPostsQueryOptions(tag, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary List posts by a user
+ */
+export const getGetUserPostsUrl = (id: string) => {
+  return `/api/users/${id}/posts`;
+};
+
+export const getUserPosts = async (
+  id: string,
+  options?: RequestInit,
+): Promise<Post[]> => {
+  return customFetch<Post[]>(getGetUserPostsUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetUserPostsQueryKey = (id: string) => {
+  return [`/api/users/${id}/posts`] as const;
+};
+
+export const getGetUserPostsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getUserPosts>>,
+  TError = ErrorType<unknown>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getUserPosts>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetUserPostsQueryKey(id);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getUserPosts>>> = ({
+    signal,
+  }) => getUserPosts(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getUserPosts>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetUserPostsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getUserPosts>>
+>;
+export type GetUserPostsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List posts by a user
+ */
+
+export function useGetUserPosts<
+  TData = Awaited<ReturnType<typeof getUserPosts>>,
+  TError = ErrorType<unknown>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getUserPosts>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetUserPostsQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary List active polls in a hashtag room (recent first)
+ */
+export const getGetRoomPollsUrl = (tag: string) => {
+  return `/api/rooms/${tag}/polls`;
+};
+
+export const getRoomPolls = async (
+  tag: string,
+  options?: RequestInit,
+): Promise<Poll[]> => {
+  return customFetch<Poll[]>(getGetRoomPollsUrl(tag), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetRoomPollsQueryKey = (tag: string) => {
+  return [`/api/rooms/${tag}/polls`] as const;
+};
+
+export const getGetRoomPollsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getRoomPolls>>,
+  TError = ErrorType<unknown>,
+>(
+  tag: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getRoomPolls>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetRoomPollsQueryKey(tag);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getRoomPolls>>> = ({
+    signal,
+  }) => getRoomPolls(tag, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!tag,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getRoomPolls>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetRoomPollsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getRoomPolls>>
+>;
+export type GetRoomPollsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List active polls in a hashtag room (recent first)
+ */
+
+export function useGetRoomPolls<
+  TData = Awaited<ReturnType<typeof getRoomPolls>>,
+  TError = ErrorType<unknown>,
+>(
+  tag: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getRoomPolls>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetRoomPollsQueryOptions(tag, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Create a new poll inside a hashtag room
+ */
+export const getCreateRoomPollUrl = (tag: string) => {
+  return `/api/rooms/${tag}/polls`;
+};
+
+export const createRoomPoll = async (
+  tag: string,
+  createPollBody: CreatePollBody,
+  options?: RequestInit,
+): Promise<Poll> => {
+  return customFetch<Poll>(getCreateRoomPollUrl(tag), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createPollBody),
+  });
+};
+
+export const getCreateRoomPollMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createRoomPoll>>,
+    TError,
+    { tag: string; data: BodyType<CreatePollBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createRoomPoll>>,
+  TError,
+  { tag: string; data: BodyType<CreatePollBody> },
+  TContext
+> => {
+  const mutationKey = ["createRoomPoll"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createRoomPoll>>,
+    { tag: string; data: BodyType<CreatePollBody> }
+  > = (props) => {
+    const { tag, data } = props ?? {};
+
+    return createRoomPoll(tag, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateRoomPollMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createRoomPoll>>
+>;
+export type CreateRoomPollMutationBody = BodyType<CreatePollBody>;
+export type CreateRoomPollMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Create a new poll inside a hashtag room
+ */
+export const useCreateRoomPoll = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createRoomPoll>>,
+    TError,
+    { tag: string; data: BodyType<CreatePollBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createRoomPoll>>,
+  TError,
+  { tag: string; data: BodyType<CreatePollBody> },
+  TContext
+> => {
+  return useMutation(getCreateRoomPollMutationOptions(options));
+};
+
+/**
+ * @summary Cast a vote in a poll (one per user)
+ */
+export const getVotePollUrl = (id: number) => {
+  return `/api/polls/${id}/vote`;
+};
+
+export const votePoll = async (
+  id: number,
+  votePollBody: VotePollBody,
+  options?: RequestInit,
+): Promise<Poll> => {
+  return customFetch<Poll>(getVotePollUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(votePollBody),
+  });
+};
+
+export const getVotePollMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof votePoll>>,
+    TError,
+    { id: number; data: BodyType<VotePollBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof votePoll>>,
+  TError,
+  { id: number; data: BodyType<VotePollBody> },
+  TContext
+> => {
+  const mutationKey = ["votePoll"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof votePoll>>,
+    { id: number; data: BodyType<VotePollBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return votePoll(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type VotePollMutationResult = NonNullable<
+  Awaited<ReturnType<typeof votePoll>>
+>;
+export type VotePollMutationBody = BodyType<VotePollBody>;
+export type VotePollMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Cast a vote in a poll (one per user)
+ */
+export const useVotePoll = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof votePoll>>,
+    TError,
+    { id: number; data: BodyType<VotePollBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof votePoll>>,
+  TError,
+  { id: number; data: BodyType<VotePollBody> },
+  TContext
+> => {
+  return useMutation(getVotePollMutationOptions(options));
+};
+
+/**
+ * @summary Fetch Open Graph metadata for a URL
+ */
+export const getGetLinkPreviewUrl = (params: GetLinkPreviewParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/link-preview?${stringifiedParams}`
+    : `/api/link-preview`;
+};
+
+export const getLinkPreview = async (
+  params: GetLinkPreviewParams,
+  options?: RequestInit,
+): Promise<LinkPreview> => {
+  return customFetch<LinkPreview>(getGetLinkPreviewUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetLinkPreviewQueryKey = (params?: GetLinkPreviewParams) => {
+  return [`/api/link-preview`, ...(params ? [params] : [])] as const;
+};
+
+export const getGetLinkPreviewQueryOptions = <
+  TData = Awaited<ReturnType<typeof getLinkPreview>>,
+  TError = ErrorType<unknown>,
+>(
+  params: GetLinkPreviewParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getLinkPreview>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetLinkPreviewQueryKey(params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getLinkPreview>>> = ({
+    signal,
+  }) => getLinkPreview(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getLinkPreview>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetLinkPreviewQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getLinkPreview>>
+>;
+export type GetLinkPreviewQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Fetch Open Graph metadata for a URL
+ */
+
+export function useGetLinkPreview<
+  TData = Awaited<ReturnType<typeof getLinkPreview>>,
+  TError = ErrorType<unknown>,
+>(
+  params: GetLinkPreviewParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getLinkPreview>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetLinkPreviewQueryOptions(params, options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;

@@ -13,6 +13,8 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Reply, Smile, CornerDownRight } from "lucide-react";
+import { LinkPreviewCard } from "./LinkPreviewCard";
+import { PollCard } from "./PollCard";
 
 const QUICK_REACTIONS = ["👍", "❤️", "😂", "😮", "😢", "🔥", "🎉", "🙌"];
 
@@ -52,6 +54,53 @@ export function MessageBubble({
     hour: "2-digit",
     minute: "2-digit",
   });
+
+  if (message.poll) {
+    return (
+      <motion.div
+        layout
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ type: "spring", stiffness: 360, damping: 28 }}
+        className={[
+          "group flex",
+          variant === "dm"
+            ? isMine
+              ? "justify-end"
+              : "justify-start"
+            : "gap-3",
+        ].join(" ")}
+        data-testid={`msg-${message.id}`}
+      >
+        {variant === "room" && (
+          <Avatar className="h-9 w-9">
+            {message.senderAvatarUrl ? (
+              <AvatarImage src={message.senderAvatarUrl} alt={message.senderName} />
+            ) : null}
+            <AvatarFallback className="bg-primary/15 text-primary">
+              {message.senderName
+                .split(" ")
+                .map((s) => s[0])
+                .slice(0, 2)
+                .join("")
+                .toUpperCase()}
+            </AvatarFallback>
+          </Avatar>
+        )}
+        <div className="min-w-0 max-w-[78%] flex-1">
+          {variant === "room" && (
+            <div className="mb-1 flex items-baseline gap-2">
+              <p className="text-sm font-semibold text-foreground">
+                {message.senderName}
+              </p>
+              <span className="text-xs text-muted-foreground/70">{time}</span>
+            </div>
+          )}
+          <PollCard poll={message.poll} onVoted={onInvalidate} />
+        </div>
+      </motion.div>
+    );
+  }
 
   if (variant === "dm") {
     return (
@@ -125,6 +174,17 @@ export function MessageBubble({
             </p>
             </div>
           </div>
+          {message.attachments?.map((a) =>
+            a.kind === "link_preview" ? (
+              <LinkPreviewCard
+                key={a.id}
+                url={a.url}
+                title={a.title}
+                description={a.description}
+                thumbnailUrl={a.thumbnailUrl}
+              />
+            ) : null,
+          )}
           {message.reactions.length > 0 && (
             <ReactionRow
               reactions={message.reactions}
@@ -204,6 +264,17 @@ export function MessageBubble({
           <p className="mt-0.5 whitespace-pre-wrap break-words text-sm text-foreground">
             {message.content}
           </p>
+        )}
+        {message.attachments?.map((a) =>
+          a.kind === "link_preview" ? (
+            <LinkPreviewCard
+              key={a.id}
+              url={a.url}
+              title={a.title}
+              description={a.description}
+              thumbnailUrl={a.thumbnailUrl}
+            />
+          ) : null,
         )}
         {message.reactions.length > 0 && (
           <ReactionRow

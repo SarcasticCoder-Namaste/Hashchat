@@ -14,6 +14,9 @@ import reelsRouter from "./reels";
 import storageRouter from "./storage";
 import photosRouter from "./photos";
 import callsRouter from "./calls";
+import postsRouter from "./posts";
+import pollsRouter from "./polls";
+import linkPreviewRouter from "./linkPreview";
 
 const router: IRouter = Router();
 
@@ -32,5 +35,8 @@ router.use(reelsRouter);
 router.use(storageRouter);
 router.use(photosRouter);
 router.use(callsRouter);
+router.use(postsRouter);
+router.use(pollsRouter);
+router.use(linkPreviewRouter);
 
 export default router;

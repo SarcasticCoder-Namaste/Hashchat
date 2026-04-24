@@ -5,13 +5,17 @@ import {
   conversationReadsTable,
   conversationBackgroundsTable,
   messagesTable,
-  reactionsTable,
   usersTable,
   userHashtagsTable,
 } from "@workspace/db";
 import { and, desc, eq, inArray, or, sql, gt } from "drizzle-orm";
 import { requireAuth, getUserId } from "../middlewares/requireAuth";
 import { isValidStorageUrl } from "../lib/storageUrls";
+import {
+  buildMessages as sharedBuildMessages,
+  maybeAttachLinkPreview,
+  attachImage,
+} from "../lib/buildMessages";
 import {
   OpenConversationBody,
   SendConversationMessageBody,
@@ -25,74 +29,9 @@ function pair(a: string, b: string): [string, string] {
 }
 
 async function buildMessages(rows: { id: number; conversationId: number | null; roomTag: string | null; senderId: string; content: string; imageUrl: string | null; audioUrl: string | null; replyToId: number | null; createdAt: Date }[], myUserId: string) {
-  if (rows.length === 0) return [];
-  const senderIds = Array.from(new Set(rows.map((r) => r.senderId)));
-  const senders = await db
-    .select({ id: usersTable.id, displayName: usersTable.displayName, username: usersTable.username, avatarUrl: usersTable.avatarUrl })
-    .from(usersTable)
-    .where(inArray(usersTable.id, senderIds));
-  const senderMap = new Map(senders.map((s) => [s.id, s]));
-
-  const replyIds = rows.map((r) => r.replyToId).filter((v): v is number => v !== null);
-  const replyMap = new Map<number, string>();
-  if (replyIds.length > 0) {
-    const conversationIds = Array.from(new Set(rows.map((r) => r.conversationId).filter((v): v is number => v !== null)));
-    const roomTags = Array.from(new Set(rows.map((r) => r.roomTag).filter((v): v is string => v !== null)));
-    const scopeFilters = [];
-    if (conversationIds.length > 0) scopeFilters.push(inArray(messagesTable.conversationId, conversationIds));
-    if (roomTags.length > 0) scopeFilters.push(inArray(messagesTable.roomTag, roomTags));
-    if (scopeFilters.length > 0) {
-      const replies = await db
-        .select({ id: messagesTable.id, content: messagesTable.content })
-        .from(messagesTable)
-        .where(
-          and(
-            inArray(messagesTable.id, replyIds),
-            or(...scopeFilters),
-            sql`${messagesTable.deletedAt} IS NULL`,
-          ),
-        );
-      for (const r of replies) replyMap.set(r.id, r.content);
-    }
-  }
-
-  const messageIds = rows.map((r) => r.id);
-  const allReactions = await db
-    .select()
-    .from(reactionsTable)
-    .where(inArray(reactionsTable.messageId, messageIds));
-  const reactionMap = new Map<number, { emoji: string; count: number; reactedByMe: boolean }[]>();
-  for (const r of allReactions) {
-    const list = reactionMap.get(r.messageId) ?? [];
-    const existing = list.find((x) => x.emoji === r.emoji);
-    if (existing) {
-      existing.count += 1;
-      if (r.userId === myUserId) existing.reactedByMe = true;
-    } else {
-      list.push({ emoji: r.emoji, count: 1, reactedByMe: r.userId === myUserId });
-    }
-    reactionMap.set(r.messageId, list);
-  }
-
-  return rows.map((r) => {
-    const sender = senderMap.get(r.senderId);
-    return {
-      id: r.id,
-      conversationId: r.conversationId,
-      roomTag: r.roomTag,
-      senderId: r.senderId,
-      senderName: sender?.displayName ?? sender?.username ?? "Unknown",
-      senderAvatarUrl: sender?.avatarUrl ?? null,
-      content: r.content,
-      imageUrl: r.imageUrl,
-      audioUrl: r.audioUrl,
-      replyToId: r.replyToId,
-      replyToContent: r.replyToId ? (replyMap.get(r.replyToId) ?? null) : null,
-      reactions: reactionMap.get(r.id) ?? [],
-      createdAt: r.createdAt.toISOString(),
-    };
-  });
+  return sharedBuildMessages(rows, myUserId);
 }
+
 
 router.get("/conversations", requireAuth, async (req, res): Promise<void> => {
   const me = getUserId(req);
@@ -333,6 +272,13 @@ router.post("/conversations/:id/messages", requireAuth, async (req, res): Promis
       replyToId,
     })
     .returning();
+  if (parsed.data.imageUrl) {
+    await attachImage(created.id, parsed.data.imageUrl, "image");
+  }
+  if (parsed.data.content) {
+    // Detach: link preview fetch can take seconds; do not block send.
+    void maybeAttachLinkPreview(created.id, parsed.data.content);
+  }
   await db
     .update(conversationsTable)
     .set({ updatedAt: new Date() })

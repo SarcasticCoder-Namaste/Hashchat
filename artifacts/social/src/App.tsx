@@ -33,6 +33,7 @@ import RoomChat from "@/pages/RoomChat";
 import Conversations from "@/pages/Conversations";
 import ConversationChat from "@/pages/ConversationChat";
 import Profile from "@/pages/Profile";
+import UserProfile from "@/pages/UserProfile";
 import Friends from "@/pages/Friends";
 import Reels from "@/pages/Reels";
 import AdminPanel from "@/pages/AdminPanel";
@@ -265,6 +266,13 @@ function ClerkProviderWithRoutes() {
             </Route>
             <Route path="/app/profile">
               <Redirect to="/app/settings" />
+            </Route>
+            <Route path="/app/u/:id">
+              {(params) => (
+                <ProtectedShell>
+                  <UserProfile id={params.id} />
+                </ProtectedShell>
+              )}
             </Route>
             <Route component={NotFound} />
           </Switch>

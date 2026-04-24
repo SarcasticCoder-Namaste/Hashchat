@@ -292,6 +292,127 @@ export const callSignalsTable = pgTable(
   (t) => [index("call_signals_target_idx").on(t.toUserId, t.callId, t.id)],
 );
 
+export const postsTable = pgTable(
+  "posts",
+  {
+    id: serial("id").primaryKey(),
+    authorId: text("author_id")
+      .notNull()
+      .references(() => usersTable.id, { onDelete: "cascade" }),
+    content: text("content").notNull(),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [index("posts_author_idx").on(t.authorId, t.createdAt)],
+);
+
+export const postHashtagsTable = pgTable(
+  "post_hashtags",
+  {
+    postId: integer("post_id")
+      .notNull()
+      .references(() => postsTable.id, { onDelete: "cascade" }),
+    tag: text("tag")
+      .notNull()
+      .references(() => hashtagsTable.tag, { onDelete: "cascade" }),
+  },
+  (t) => [
+    primaryKey({ columns: [t.postId, t.tag] }),
+    index("post_hashtags_tag_idx").on(t.tag),
+  ],
+);
+
+export const postMediaTable = pgTable(
+  "post_media",
+  {
+    id: serial("id").primaryKey(),
+    postId: integer("post_id")
+      .notNull()
+      .references(() => postsTable.id, { onDelete: "cascade" }),
+    imageUrl: text("image_url").notNull(),
+    position: integer("position").notNull().default(0),
+  },
+  (t) => [index("post_media_post_idx").on(t.postId, t.position)],
+);
+
+export const pollsTable = pgTable(
+  "polls",
+  {
+    id: serial("id").primaryKey(),
+    roomTag: text("room_tag")
+      .notNull()
+      .references(() => hashtagsTable.tag, { onDelete: "cascade" }),
+    creatorId: text("creator_id")
+      .notNull()
+      .references(() => usersTable.id, { onDelete: "cascade" }),
+    question: text("question").notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [index("polls_room_idx").on(t.roomTag, t.createdAt)],
+);
+
+export const pollOptionsTable = pgTable(
+  "poll_options",
+  {
+    id: serial("id").primaryKey(),
+    pollId: integer("poll_id")
+      .notNull()
+      .references(() => pollsTable.id, { onDelete: "cascade" }),
+    text: text("text").notNull(),
+    position: integer("position").notNull().default(0),
+  },
+  (t) => [index("poll_options_poll_idx").on(t.pollId, t.position)],
+);
+
+export const pollVotesTable = pgTable(
+  "poll_votes",
+  {
+    pollId: integer("poll_id")
+      .notNull()
+      .references(() => pollsTable.id, { onDelete: "cascade" }),
+    optionId: integer("option_id")
+      .notNull()
+      .references(() => pollOptionsTable.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => usersTable.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.pollId, t.userId] })],
+);
+
+export const messageAttachmentsTable = pgTable(
+  "message_attachments",
+  {
+    id: serial("id").primaryKey(),
+    messageId: integer("message_id")
+      .notNull()
+      .references(() => messagesTable.id, { onDelete: "cascade" }),
+    kind: text("kind").notNull(),
+    url: text("url").notNull(),
+    title: text("title"),
+    description: text("description"),
+    thumbnailUrl: text("thumbnail_url"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [index("message_attachments_message_idx").on(t.messageId)],
+);
+
+export type Post = typeof postsTable.$inferSelect;
+export type PostMedia = typeof postMediaTable.$inferSelect;
+export type Poll = typeof pollsTable.$inferSelect;
+export type PollOption = typeof pollOptionsTable.$inferSelect;
+export type PollVote = typeof pollVotesTable.$inferSelect;
+export type MessageAttachment = typeof messageAttachmentsTable.$inferSelect;
 export type MvpCode = typeof mvpCodesTable.$inferSelect;
 export type UserPhoto = typeof userPhotosTable.$inferSelect;
 export type Call = typeof callsTable.$inferSelect;

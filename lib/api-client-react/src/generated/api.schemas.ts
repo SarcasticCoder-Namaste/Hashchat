@@ -140,6 +140,51 @@ export interface Reaction {
   reactedByMe: boolean;
 }
 
+export type MessageAttachmentKind =
+  (typeof MessageAttachmentKind)[keyof typeof MessageAttachmentKind];
+
+export const MessageAttachmentKind = {
+  image: "image",
+  gif: "gif",
+  link_preview: "link_preview",
+  poll: "poll",
+} as const;
+
+export interface MessageAttachment {
+  id: number;
+  kind: MessageAttachmentKind;
+  url: string;
+  /** @nullable */
+  title?: string | null;
+  /** @nullable */
+  description?: string | null;
+  /** @nullable */
+  thumbnailUrl?: string | null;
+}
+
+export interface PollOption {
+  id: number;
+  text: string;
+  votes: number;
+  votedByMe: boolean;
+}
+
+export interface Poll {
+  id: number;
+  roomTag: string;
+  creatorId: string;
+  creatorName: string;
+  question: string;
+  options: PollOption[];
+  totalVotes: number;
+  /** @nullable */
+  myVoteOptionId?: number | null;
+  /** @nullable */
+  expiresAt?: string | null;
+  isExpired: boolean;
+  createdAt: string;
+}
+
 export interface Message {
   id: number;
   /** @nullable */
@@ -160,6 +205,8 @@ export interface Message {
   /** @nullable */
   audioUrl?: string | null;
   reactions: Reaction[];
+  attachments: MessageAttachment[];
+  poll?: Poll | null;
   createdAt: string;
 }
 
@@ -401,6 +448,63 @@ export interface ReelsConfigError {
   message: string;
 }
 
+export interface PostAuthor {
+  id: string;
+  username: string;
+  displayName: string;
+  /** @nullable */
+  avatarUrl?: string | null;
+  /** @nullable */
+  discriminator?: string | null;
+  role: string;
+  mvpPlan: boolean;
+}
+
+export interface Post {
+  id: number;
+  author: PostAuthor;
+  content: string;
+  hashtags: string[];
+  imageUrls: string[];
+  createdAt: string;
+}
+
+export interface CreatePostBody {
+  /** @maxLength 500 */
+  content: string;
+  hashtags?: string[];
+  imageUrls?: string[];
+}
+
+export interface CreatePollBody {
+  /**
+   * @minLength 1
+   * @maxLength 200
+   */
+  question: string;
+  /**
+   * @minItems 2
+   * @maxItems 6
+   */
+  options: string[];
+  /** @nullable */
+  expiresAt?: string | null;
+}
+
+export interface VotePollBody {
+  optionId: number;
+}
+
+export interface LinkPreview {
+  url: string;
+  /** @nullable */
+  title?: string | null;
+  /** @nullable */
+  description?: string | null;
+  /** @nullable */
+  thumbnailUrl?: string | null;
+}
+
 export type GetTrendingHashtagsParams = {
   limit?: number;
 };
@@ -427,6 +531,10 @@ export type GetCallSignalsParams = {
 
 export type LookupUserByCodeParams = {
   code: string;
+};
+
+export type GetLinkPreviewParams = {
+  url: string;
 };
 
 export type GetYoutubeReelsParams = {

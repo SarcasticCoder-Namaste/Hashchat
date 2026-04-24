@@ -18,6 +18,8 @@ tags:
   - name: storage
   - name: photos
   - name: calls
+  - name: posts
+  - name: polls
 paths:
   /healthz:
     get:
@@ -891,6 +893,131 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/AdminStats" }
 
+  /posts:
+    post:
+      operationId: createPost
+      tags: [posts]
+      summary: Create a new post
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreatePostBody" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Post" }
+
+  /posts/{id}:
+    delete:
+      operationId: deletePost
+      tags: [posts]
+      summary: Delete one of my posts
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      responses:
+        "204": { description: No content }
+
+  /hashtags/{tag}/posts:
+    get:
+      operationId: getHashtagPosts
+      tags: [posts]
+      summary: List posts tagged with this hashtag (most recent first)
+      parameters:
+        - { name: tag, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Post" }
+
+  /users/{id}/posts:
+    get:
+      operationId: getUserPosts
+      tags: [posts]
+      summary: List posts by a user
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Post" }
+
+  /rooms/{tag}/polls:
+    get:
+      operationId: getRoomPolls
+      tags: [polls]
+      summary: List active polls in a hashtag room (recent first)
+      parameters:
+        - { name: tag, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Poll" }
+    post:
+      operationId: createRoomPoll
+      tags: [polls]
+      summary: Create a new poll inside a hashtag room
+      parameters:
+        - { name: tag, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreatePollBody" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Poll" }
+
+  /polls/{id}/vote:
+    post:
+      operationId: votePoll
+      tags: [polls]
+      summary: Cast a vote in a poll (one per user)
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/VotePollBody" }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Poll" }
+
+  /link-preview:
+    get:
+      operationId: getLinkPreview
+      tags: [posts]
+      summary: Fetch Open Graph metadata for a URL
+      parameters:
+        - { name: url, in: query, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/LinkPreview" }
+
   /reels/youtube:
     get:
       operationId: getYoutubeReels
@@ -1241,8 +1368,15 @@ components:
         reactions:
           type: array
           items: { $ref: "#/components/schemas/Reaction" }
+        attachments:
+          type: array
+          items: { $ref: "#/components/schemas/MessageAttachment" }
+        poll:
+          oneOf:
+            - { $ref: "#/components/schemas/Poll" }
+            - { type: "null" }
         createdAt: { type: string, format: date-time }
-      required: [id, senderId, senderName, content, reactions, createdAt]
+      required: [id, senderId, senderName, content, reactions, attachments, createdAt]
 
     SendMessageBody:
       type: object
@@ -1396,3 +1530,120 @@ components:
         error: { type: string }
         message: { type: string }
       required: [error, message]
+
+    PostAuthor:
+      type: object
+      properties:
+        id: { type: string }
+        username: { type: string }
+        displayName: { type: string }
+        avatarUrl:
+          type: ["string", "null"]
+        discriminator:
+          type: ["string", "null"]
+        role: { type: string }
+        mvpPlan: { type: boolean }
+      required: [id, username, displayName, role, mvpPlan]
+
+    Post:
+      type: object
+      properties:
+        id: { type: integer }
+        author: { $ref: "#/components/schemas/PostAuthor" }
+        content: { type: string }
+        hashtags:
+          type: array
+          items: { type: string }
+        imageUrls:
+          type: array
+          items: { type: string }
+        createdAt: { type: string, format: date-time }
+      required: [id, author, content, hashtags, imageUrls, createdAt]
+
+    CreatePostBody:
+      type: object
+      properties:
+        content: { type: string, maxLength: 500 }
+        hashtags:
+          type: array
+          items: { type: string }
+        imageUrls:
+          type: array
+          items: { type: string }
+      required: [content]
+
+    PollOption:
+      type: object
+      properties:
+        id: { type: integer }
+        text: { type: string }
+        votes: { type: integer }
+        votedByMe: { type: boolean }
+      required: [id, text, votes, votedByMe]
+
+    Poll:
+      type: object
+      properties:
+        id: { type: integer }
+        roomTag: { type: string }
+        creatorId: { type: string }
+        creatorName: { type: string }
+        question: { type: string }
+        options:
+          type: array
+          items: { $ref: "#/components/schemas/PollOption" }
+        totalVotes: { type: integer }
+        myVoteOptionId:
+          type: ["integer", "null"]
+        expiresAt:
+          type: ["string", "null"]
+          format: date-time
+        isExpired: { type: boolean }
+        createdAt: { type: string, format: date-time }
+      required: [id, roomTag, creatorId, creatorName, question, options, totalVotes, isExpired, createdAt]
+
+    CreatePollBody:
+      type: object
+      properties:
+        question: { type: string, minLength: 1, maxLength: 200 }
+        options:
+          type: array
+          minItems: 2
+          maxItems: 6
+          items: { type: string, minLength: 1, maxLength: 80 }
+        expiresAt:
+          type: ["string", "null"]
+          format: date-time
+      required: [question, options]
+
+    VotePollBody:
+      type: object
+      properties:
+        optionId: { type: integer }
+      required: [optionId]
+
+    LinkPreview:
+      type: object
+      properties:
+        url: { type: string }
+        title:
+          type: ["string", "null"]
+        description:
+          type: ["string", "null"]
+        thumbnailUrl:
+          type: ["string", "null"]
+      required: [url]
+
+    MessageAttachment:
+      type: object
+      properties:
+        id: { type: integer }
+        kind: { type: string, enum: [image, gif, link_preview, poll] }
+        url: { type: string }
+        title:
+          type: ["string", "null"]
+        description:
+          type: ["string", "null"]
+        thumbnailUrl:
+          type: ["string", "null"]
+      required: [id, kind, url]
