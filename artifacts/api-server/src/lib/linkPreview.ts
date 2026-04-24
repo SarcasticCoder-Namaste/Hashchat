@@ -186,7 +186,71 @@ async function safeFetch(initialUrl: string): Promise<Response | null> {
   return null;
 }
 
-export async function fetchLinkPreview(
+/**
+ * In-memory LRU + TTL cache for link previews.
+ *
+ * Both DM and room message paths (and the /link-preview route) all go
+ * through `fetchLinkPreview`, so caching here transparently dedupes
+ * repeated sends of the same URL. Successful previews live for 24h;
+ * failed lookups are cached briefly so we don't hammer broken pages
+ * but recover within a few minutes.
+ *
+ * Concurrent calls for the same URL share a single in-flight fetch so a
+ * burst of identical messages only triggers one network request.
+ */
+const CACHE_TTL_MS_OK = 24 * 60 * 60 * 1000;
+const CACHE_TTL_MS_NULL = 5 * 60 * 1000;
+const CACHE_MAX_ENTRIES = 500;
+
+type CacheEntry = {
+  data: LinkPreviewData | null;
+  expiresAt: number;
+};
+
+const previewCache = new Map<string, CacheEntry>();
+const inflight = new Map<string, Promise<LinkPreviewData | null>>();
+
+function normalizeCacheKey(url: string): string {
+  try {
+    const u = new URL(url);
+    u.hash = "";
+    return u.toString();
+  } catch {
+    return url;
+  }
+}
+
+function cacheGet(key: string): CacheEntry | null {
+  const entry = previewCache.get(key);
+  if (!entry) return null;
+  if (entry.expiresAt <= Date.now()) {
+    previewCache.delete(key);
+    return null;
+  }
+  // Touch for LRU recency.
+  previewCache.delete(key);
+  previewCache.set(key, entry);
+  return entry;
+}
+
+function cacheSet(key: string, data: LinkPreviewData | null): void {
+  const ttl = data ? CACHE_TTL_MS_OK : CACHE_TTL_MS_NULL;
+  if (previewCache.has(key)) previewCache.delete(key);
+  previewCache.set(key, { data, expiresAt: Date.now() + ttl });
+  while (previewCache.size > CACHE_MAX_ENTRIES) {
+    const oldest = previewCache.keys().next().value;
+    if (oldest === undefined) break;
+    previewCache.delete(oldest);
+  }
+}
+
+/** Test helper: clear the in-memory cache. */
+export function clearLinkPreviewCache(): void {
+  previewCache.clear();
+  inflight.clear();
+}
+
+async function fetchLinkPreviewUncached(
   url: string,
 ): Promise<LinkPreviewData | null> {
   const resp = await safeFetch(url);
@@ -245,4 +309,27 @@ export async function fetchLinkPreview(
   } catch {
     return null;
   }
+}
+
+export async function fetchLinkPreview(
+  url: string,
+): Promise<LinkPreviewData | null> {
+  const key = normalizeCacheKey(url);
+  const cached = cacheGet(key);
+  if (cached) return cached.data;
+
+  const existing = inflight.get(key);
+  if (existing) return existing;
+
+  const promise = fetchLinkPreviewUncached(url)
+    .then((data) => {
+      cacheSet(key, data);
+      return data;
+    })
+    .finally(() => {
+      inflight.delete(key);
+    });
+
+  inflight.set(key, promise);
+  return promise;
 }
