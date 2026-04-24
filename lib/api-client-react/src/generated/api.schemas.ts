@@ -111,6 +111,10 @@ export interface MatchUser {
    * @nullable
    */
   friendStatus?: string | null;
+  isFollowing?: boolean;
+  followsMe?: boolean;
+  isMuted?: boolean;
+  isBlocked?: boolean;
 }
 
 export interface HashtagDetail {
@@ -127,6 +131,75 @@ export interface HashtagDetail {
 export interface FriendCodeResponse {
   /** @nullable */
   friendCode: string | null;
+}
+
+export interface PublicProfile {
+  id: string;
+  username: string;
+  displayName: string;
+  /** @nullable */
+  bio?: string | null;
+  /** @nullable */
+  avatarUrl?: string | null;
+  /** @nullable */
+  bannerUrl?: string | null;
+  /** @nullable */
+  pronouns?: string | null;
+  /** @nullable */
+  location?: string | null;
+  /** @nullable */
+  website?: string | null;
+  /** @nullable */
+  statusEmoji?: string | null;
+  /** @nullable */
+  statusText?: string | null;
+  status: string;
+  /** @nullable */
+  featuredHashtag?: string | null;
+  /** @nullable */
+  discriminator?: string | null;
+  role: string;
+  mvpPlan: boolean;
+  lastSeenAt: string;
+  createdAt: string;
+  hashtags: string[];
+  mutualHashtags: string[];
+  followerCount: number;
+  followingCount: number;
+  isFollowing: boolean;
+  followsMe: boolean;
+  isMuted: boolean;
+  isBlocked: boolean;
+  /** @nullable */
+  friendStatus?: string | null;
+}
+
+export interface MyRelationships {
+  following: string[];
+  blocked: string[];
+  muted: string[];
+  mutedHashtags: string[];
+}
+
+export type FollowingFeedItemKind =
+  (typeof FollowingFeedItemKind)[keyof typeof FollowingFeedItemKind];
+
+export const FollowingFeedItemKind = {
+  post: "post",
+  room_join: "room_join",
+} as const;
+
+export interface FollowingFeedItem {
+  kind: FollowingFeedItemKind;
+  id: string;
+  user: MatchUser;
+  /** @nullable */
+  roomTag?: string | null;
+  /** @nullable */
+  content?: string | null;
+  /** @nullable */
+  imageUrl?: string | null;
+  createdAt: string;
 }
 
 export interface FriendRequestList {
@@ -531,6 +604,10 @@ export type GetCallSignalsParams = {
 
 export type LookupUserByCodeParams = {
   code: string;
+};
+
+export type GetFollowingFeedParams = {
+  limit?: number;
 };
 
 export type GetLinkPreviewParams = {

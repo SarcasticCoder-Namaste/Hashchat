@@ -4,6 +4,7 @@ import { eq, sql, inArray, and } from "drizzle-orm";
 import { requireAuth, getUserId } from "../middlewares/requireAuth";
 import { UpdateMeBody } from "@workspace/api-zod";
 import { normalizeTag } from "../lib/hashtags";
+import { isBlockedEitherWay } from "../lib/relationships";
 
 const router: IRouter = Router();
 
@@ -196,12 +197,17 @@ router.get("/me/followed-hashtags", requireAuth, async (req, res): Promise<void>
 
 router.get("/users/:id", requireAuth, async (req, res): Promise<void> => {
   const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
-  const me = await loadUser(raw);
-  if (!me) {
+  const myId = getUserId(req);
+  if (raw !== myId && (await isBlockedEitherWay(myId, raw))) {
     res.status(404).json({ error: "Not found" });
     return;
   }
-  res.json(me);
+  const user = await loadUser(raw);
+  if (!user) {
+    res.status(404).json({ error: "Not found" });
+    return;
+  }
+  res.json(user);
 });
 
 export default router;

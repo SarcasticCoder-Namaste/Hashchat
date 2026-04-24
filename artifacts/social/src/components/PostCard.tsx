@@ -72,7 +72,7 @@ export function PostCard({ post, meId, onDeleted }: PostCardProps) {
       <div className="min-w-0 flex-1">
         <div className="flex items-baseline gap-2">
           <Link
-            href={`/app/u/${post.author.id}`}
+            href={`/app/u/${post.author.username}`}
             className="truncate text-sm font-semibold text-foreground hover:underline"
             data-testid={`link-author-${post.id}`}
           >

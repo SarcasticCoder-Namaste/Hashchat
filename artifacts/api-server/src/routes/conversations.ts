@@ -11,6 +11,7 @@ import {
 import { and, desc, eq, inArray, or, sql, gt } from "drizzle-orm";
 import { requireAuth, getUserId } from "../middlewares/requireAuth";
 import { isValidStorageUrl } from "../lib/storageUrls";
+import { loadBlockWall, isBlockedEitherWay } from "../lib/relationships";
 import {
   buildMessages as sharedBuildMessages,
   maybeAttachLinkPreview,
@@ -46,7 +47,16 @@ router.get("/conversations", requireAuth, async (req, res): Promise<void> => {
     return;
   }
 
-  const otherIds = convos.map((c) => (c.userAId === me ? c.userBId : c.userAId));
+  const blockWall = await loadBlockWall(me);
+  const visibleConvos = convos.filter((c) => {
+    const otherId = c.userAId === me ? c.userBId : c.userAId;
+    return !blockWall.has(otherId);
+  });
+  if (visibleConvos.length === 0) {
+    res.json([]);
+    return;
+  }
+  const otherIds = visibleConvos.map((c) => (c.userAId === me ? c.userBId : c.userAId));
   const others = await db.select().from(usersTable).where(inArray(usersTable.id, otherIds));
   const otherMap = new Map(others.map((o) => [o.id, o]));
   const otherTagsRows = await db
@@ -74,7 +84,7 @@ router.get("/conversations", requireAuth, async (req, res): Promise<void> => {
   const bgMap = new Map(bgRows.map((r) => [r.conversationId, r.backgroundUrl]));
 
   const result: unknown[] = [];
-  for (const c of convos) {
+  for (const c of visibleConvos) {
     const otherId = c.userAId === me ? c.userBId : c.userAId;
     const other = otherMap.get(otherId);
     if (!other) continue;
@@ -135,6 +145,10 @@ router.post("/conversations", requireAuth, async (req, res): Promise<void> => {
   const otherId = parsed.data.userId;
   if (otherId === me) {
     res.status(400).json({ error: "Cannot open conversation with yourself" });
+    return;
+  }
+  if (await isBlockedEitherWay(me, otherId)) {
+    res.status(403).json({ error: "Blocked" });
     return;
   }
   const [a, b] = pair(me, otherId);
@@ -238,6 +252,11 @@ router.post("/conversations/:id/messages", requireAuth, async (req, res): Promis
   const [convo] = await db.select().from(conversationsTable).where(eq(conversationsTable.id, id)).limit(1);
   if (!convo || (convo.userAId !== me && convo.userBId !== me)) {
     res.status(404).json({ error: "Not found" });
+    return;
+  }
+  const otherId = convo.userAId === me ? convo.userBId : convo.userAId;
+  if (await isBlockedEitherWay(me, otherId)) {
+    res.status(403).json({ error: "Blocked" });
     return;
   }
   if (parsed.data.imageUrl != null && !isValidStorageUrl(parsed.data.imageUrl)) {

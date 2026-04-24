@@ -407,12 +407,86 @@ export const messageAttachmentsTable = pgTable(
   (t) => [index("message_attachments_message_idx").on(t.messageId)],
 );
 
+export const userFollowsTable = pgTable(
+  "user_follows",
+  {
+    followerId: text("follower_id")
+      .notNull()
+      .references(() => usersTable.id, { onDelete: "cascade" }),
+    followeeId: text("followee_id")
+      .notNull()
+      .references(() => usersTable.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.followerId, t.followeeId] }),
+    index("user_follows_followee_idx").on(t.followeeId),
+  ],
+);
+
+export const userBlocksTable = pgTable(
+  "user_blocks",
+  {
+    blockerId: text("blocker_id")
+      .notNull()
+      .references(() => usersTable.id, { onDelete: "cascade" }),
+    blockedId: text("blocked_id")
+      .notNull()
+      .references(() => usersTable.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.blockerId, t.blockedId] }),
+    index("user_blocks_blocked_idx").on(t.blockedId),
+  ],
+);
+
+export const userMutesTable = pgTable(
+  "user_mutes",
+  {
+    muterId: text("muter_id")
+      .notNull()
+      .references(() => usersTable.id, { onDelete: "cascade" }),
+    mutedId: text("muted_id")
+      .notNull()
+      .references(() => usersTable.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.muterId, t.mutedId] })],
+);
+
+export const hashtagMutesTable = pgTable(
+  "hashtag_mutes",
+  {
+    userId: text("user_id")
+      .notNull()
+      .references(() => usersTable.id, { onDelete: "cascade" }),
+    tag: text("tag")
+      .notNull()
+      .references(() => hashtagsTable.tag, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.tag] })],
+);
+
 export type Post = typeof postsTable.$inferSelect;
 export type PostMedia = typeof postMediaTable.$inferSelect;
 export type Poll = typeof pollsTable.$inferSelect;
 export type PollOption = typeof pollOptionsTable.$inferSelect;
 export type PollVote = typeof pollVotesTable.$inferSelect;
 export type MessageAttachment = typeof messageAttachmentsTable.$inferSelect;
+export type UserFollow = typeof userFollowsTable.$inferSelect;
+export type UserBlock = typeof userBlocksTable.$inferSelect;
+export type UserMute = typeof userMutesTable.$inferSelect;
+export type HashtagMute = typeof hashtagMutesTable.$inferSelect;
 export type MvpCode = typeof mvpCodesTable.$inferSelect;
 export type UserPhoto = typeof userPhotosTable.$inferSelect;
 export type Call = typeof callsTable.$inferSelect;

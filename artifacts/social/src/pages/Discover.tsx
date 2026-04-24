@@ -4,22 +4,39 @@ import {
   useGetTrendingHashtags,
   useGetMe,
   useGetMyFriends,
+  useGetFollowingFeed,
   useOpenConversation,
   useSendFriendRequest,
   useCancelFriendRequest,
   useAcceptFriendRequest,
+  useFollowUser,
+  useUnfollowUser,
+  useBlockUser,
+  useMuteUser,
   getDiscoverPeopleQueryKey,
   getGetMyFriendsQueryKey,
   getGetFriendRequestsQueryKey,
+  getGetFollowingFeedQueryKey,
+  getGetMyRelationshipsQueryKey,
   type MatchUser,
+  type FollowingFeedItem,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { motion } from "framer-motion";
 import { PresenceAvatar } from "@/components/UserBadge";
 import { CardSkeleton } from "@/components/Skeleton";
 import { EmptyState } from "@/components/EmptyState";
 import { FriendCodeSearch } from "@/components/FriendCodeSearch";
+import { useToast } from "@/hooks/use-toast";
 import {
   Hash,
   Sparkles,
@@ -33,6 +50,10 @@ import {
   Crown,
   Users,
   Flame,
+  MoreHorizontal,
+  Ban,
+  EyeOff,
+  Rss,
 } from "lucide-react";
 
 function greeting(name?: string) {
@@ -106,44 +127,53 @@ export default function Discover() {
 
       <FriendCodeSearch variant="block" />
 
-      {/* Smart matches */}
-      <section>
-        <div className="mb-3 flex items-center gap-2">
-          <Sparkles className="h-5 w-5 text-violet-600" />
-          <h2 className="text-lg font-semibold text-foreground">Smart matches</h2>
-        </div>
-        {isLoading ? (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <CardSkeleton key={i} />
-            ))}
-          </div>
-        ) : matches && matches.length > 0 ? (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {matches.map((m, idx) => (
-              <motion.div
-                key={m.id}
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: idx * 0.04, duration: 0.25 }}
-              >
-                <MatchCard m={m} />
-              </motion.div>
-            ))}
-          </div>
-        ) : (
-          <EmptyState
-            icon={Sparkles}
-            title="No matches yet"
-            description="Add a few more hashtags from your profile and we'll surface people who share them."
-            action={
-              <Button asChild>
-                <Link href="/app/settings">Add hashtags →</Link>
-              </Button>
-            }
-          />
-        )}
-      </section>
+      {/* Tabs: For you / Following */}
+      <Tabs defaultValue="foryou" className="w-full">
+        <TabsList data-testid="discover-tabs">
+          <TabsTrigger value="foryou" data-testid="tab-foryou">
+            <Sparkles className="mr-1 h-4 w-4" /> For you
+          </TabsTrigger>
+          <TabsTrigger value="following" data-testid="tab-following">
+            <Rss className="mr-1 h-4 w-4" /> Following
+          </TabsTrigger>
+        </TabsList>
+        <TabsContent value="foryou" className="mt-4">
+          {isLoading ? (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <CardSkeleton key={i} />
+              ))}
+            </div>
+          ) : matches && matches.length > 0 ? (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {matches.map((m, idx) => (
+                <motion.div
+                  key={m.id}
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: idx * 0.04, duration: 0.25 }}
+                >
+                  <MatchCard m={m} />
+                </motion.div>
+              ))}
+            </div>
+          ) : (
+            <EmptyState
+              icon={Sparkles}
+              title="No matches yet"
+              description="Add a few more hashtags from your profile and we'll surface people who share them."
+              action={
+                <Button asChild>
+                  <Link href="/app/settings">Add hashtags →</Link>
+                </Button>
+              }
+            />
+          )}
+        </TabsContent>
+        <TabsContent value="following" className="mt-4">
+          <FollowingFeed />
+        </TabsContent>
+      </Tabs>
 
       {/* Trending */}
       <section>
@@ -190,10 +220,13 @@ export default function Discover() {
 function MatchCard({ m }: { m: MatchUser }) {
   const [, setLocation] = useLocation();
   const qc = useQueryClient();
+  const { toast } = useToast();
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: getDiscoverPeopleQueryKey() });
     qc.invalidateQueries({ queryKey: getGetMyFriendsQueryKey() });
     qc.invalidateQueries({ queryKey: getGetFriendRequestsQueryKey() });
+    qc.invalidateQueries({ queryKey: getGetMyRelationshipsQueryKey() });
+    qc.invalidateQueries({ queryKey: getGetFollowingFeedQueryKey() });
   };
   const open = useOpenConversation({
     mutation: {
@@ -206,6 +239,24 @@ function MatchCard({ m }: { m: MatchUser }) {
   });
   const acceptReq = useAcceptFriendRequest({
     mutation: { onSuccess: invalidate },
+  });
+  const follow = useFollowUser({ mutation: { onSuccess: invalidate } });
+  const unfollow = useUnfollowUser({ mutation: { onSuccess: invalidate } });
+  const mute = useMuteUser({
+    mutation: {
+      onSuccess: () => {
+        invalidate();
+        toast({ title: "Muted", description: `Hidden ${m.displayName} from feeds.` });
+      },
+    },
+  });
+  const block = useBlockUser({
+    mutation: {
+      onSuccess: () => {
+        invalidate();
+        toast({ title: "Blocked", description: `You won't see ${m.displayName} anymore.` });
+      },
+    },
   });
 
   const status = m.friendStatus ?? "none";
@@ -269,17 +320,23 @@ function MatchCard({ m }: { m: MatchUser }) {
       data-testid={`match-${m.username}`}
     >
       <div className="flex items-center gap-3">
-        <PresenceAvatar
-          displayName={m.displayName}
-          avatarUrl={m.avatarUrl}
-          lastSeenAt={m.lastSeenAt}
-          size="lg"
-        />
+        <Link href={`/app/u/${m.username}`}>
+          <PresenceAvatar
+            displayName={m.displayName}
+            avatarUrl={m.avatarUrl}
+            lastSeenAt={m.lastSeenAt}
+            size="lg"
+          />
+        </Link>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-1.5">
-            <p className="truncate font-semibold text-foreground">
+            <Link
+              href={`/app/u/${m.username}`}
+              className="truncate font-semibold text-foreground hover:underline"
+              data-testid={`link-profile-${m.username}`}
+            >
               {m.displayName}
-            </p>
+            </Link>
             {m.role === "admin" && (
               <span className="inline-flex items-center gap-0.5 rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700 dark:text-amber-300">
                 <Crown className="h-2.5 w-2.5" /> Admin
@@ -347,8 +404,163 @@ function MatchCard({ m }: { m: MatchUser }) {
           )}
           Say hi
         </Button>
+        {m.isFollowing ? (
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={() => unfollow.mutate({ id: m.id })}
+            disabled={unfollow.isPending}
+            data-testid={`button-unfollow-${m.username}`}
+          >
+            <UserCheck className="mr-1 h-3.5 w-3.5" /> Following
+          </Button>
+        ) : (
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => follow.mutate({ id: m.id })}
+            disabled={follow.isPending}
+            data-testid={`button-follow-${m.username}`}
+          >
+            <UserPlus className="mr-1 h-3.5 w-3.5" /> Follow
+          </Button>
+        )}
         <FriendButton />
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              size="icon"
+              variant="ghost"
+              aria-label="More actions"
+              data-testid={`button-more-${m.username}`}
+            >
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem
+              onSelect={() => mute.mutate({ id: m.id })}
+              data-testid={`menu-mute-${m.username}`}
+            >
+              <EyeOff className="mr-2 h-4 w-4" /> Mute
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              className="text-destructive focus:text-destructive"
+              onSelect={() => block.mutate({ id: m.id })}
+              data-testid={`menu-block-${m.username}`}
+            >
+              <Ban className="mr-2 h-4 w-4" /> Block
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </div>
+  );
+}
+
+function FollowingFeed() {
+  const { data, isLoading } = useGetFollowingFeed(
+    { limit: 30 },
+    {
+      query: {
+        queryKey: getGetFollowingFeedQueryKey({ limit: 30 }),
+        refetchOnWindowFocus: false,
+      },
+    },
+  );
+
+  if (isLoading) {
+    return (
+      <div className="space-y-3">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <CardSkeleton key={i} />
+        ))}
+      </div>
+    );
+  }
+
+  if (!data || data.length === 0) {
+    return (
+      <EmptyState
+        icon={Rss}
+        title="Quiet here so far"
+        description="Follow people from Smart matches to see their latest posts and rooms here."
+      />
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      {data.map((item) => (
+        <FollowingFeedRow key={item.id} item={item} />
+      ))}
+    </div>
+  );
+}
+
+function FollowingFeedRow({ item }: { item: FollowingFeedItem }) {
+  const u = item.user;
+  return (
+    <article
+      className="flex gap-3 rounded-xl border border-border bg-card p-4 shadow-sm"
+      data-testid={`feed-item-${item.id}`}
+    >
+      <Link href={`/app/u/${u.username}`}>
+        <PresenceAvatar
+          displayName={u.displayName}
+          avatarUrl={u.avatarUrl}
+          lastSeenAt={u.lastSeenAt}
+          size="md"
+        />
+      </Link>
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-baseline gap-1.5">
+          <Link href={`/app/u/${u.username}`} className="font-semibold text-foreground hover:underline">
+            {u.displayName}
+          </Link>
+          <span className="text-xs text-muted-foreground">@{u.username}</span>
+          <span className="ml-auto text-[11px] text-muted-foreground">
+            {new Date(item.createdAt).toLocaleString()}
+          </span>
+        </div>
+        {item.kind === "room_join" ? (
+          <p className="mt-1 text-sm text-muted-foreground">
+            Joined{" "}
+            <Link
+              href={`/app/rooms/${encodeURIComponent(item.roomTag ?? "")}`}
+              className="font-medium text-primary hover:underline"
+            >
+              <Hash className="inline h-3.5 w-3.5" />
+              {item.roomTag}
+            </Link>
+          </p>
+        ) : (
+          <>
+            {item.roomTag && (
+              <Link
+                href={`/app/rooms/${encodeURIComponent(item.roomTag)}`}
+                className="mt-0.5 inline-flex items-center gap-0.5 text-xs font-medium text-primary hover:underline"
+              >
+                <Hash className="h-3 w-3" />
+                {item.roomTag}
+              </Link>
+            )}
+            {item.content && (
+              <p className="mt-1 whitespace-pre-wrap text-sm text-foreground">
+                {item.content}
+              </p>
+            )}
+            {item.imageUrl && (
+              <img
+                src={item.imageUrl}
+                alt=""
+                className="mt-2 max-h-72 rounded-lg border border-border"
+              />
+            )}
+          </>
+        )}
+      </div>
+    </article>
   );
 }

@@ -7,8 +7,12 @@ import {
   useGetConversations,
   useSetConversationBackground,
   useClearConversationBackground,
+  useBlockUser,
+  useMuteUser,
+  useUnfollowUser,
   getGetConversationMessagesQueryKey,
   getGetConversationsQueryKey,
+  getGetMyRelationshipsQueryKey,
   type Message,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -36,7 +40,11 @@ import {
   MoreVertical,
   Image as ImageLucide,
   Trash2,
+  Ban,
+  EyeOff,
+  UserMinus,
 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
 
@@ -71,6 +79,33 @@ export default function ConversationChat({ id }: { id: number }) {
         qc.invalidateQueries({ queryKey: getGetConversationsQueryKey() });
       },
     },
+  });
+
+  const { toast } = useToast();
+  const otherUserId = conv?.otherUser.id;
+  const otherDisplayName = conv?.otherUser.displayName ?? "this user";
+  const onRelationshipChange = () => {
+    qc.invalidateQueries({ queryKey: getGetMyRelationshipsQueryKey() });
+    qc.invalidateQueries({ queryKey: getGetConversationsQueryKey() });
+  };
+  const block = useBlockUser({
+    mutation: {
+      onSuccess: () => {
+        onRelationshipChange();
+        toast({ title: "Blocked", description: `You won't see ${otherDisplayName} anymore.` });
+      },
+    },
+  });
+  const mute = useMuteUser({
+    mutation: {
+      onSuccess: () => {
+        onRelationshipChange();
+        toast({ title: "Muted", description: `Hidden ${otherDisplayName} from feeds.` });
+      },
+    },
+  });
+  const unfollow = useUnfollowUser({
+    mutation: { onSuccess: onRelationshipChange },
   });
 
   const setBg = useSetConversationBackground({
@@ -187,9 +222,13 @@ export default function ConversationChat({ id }: { id: number }) {
             </Avatar>
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-1.5">
-                <p className="truncate text-sm font-semibold text-foreground">
+                <Link
+                  href={`/app/u/${conv.otherUser.username}`}
+                  className="truncate text-sm font-semibold text-foreground hover:underline"
+                  data-testid="link-conv-profile"
+                >
                   {conv.otherUser.displayName}
-                </p>
+                </Link>
                 {conv.otherUser.featuredHashtag && (
                   <span className="hidden items-center gap-0.5 rounded-full bg-accent px-1.5 py-0.5 text-[10px] font-medium text-accent-foreground sm:inline-flex">
                     <Hash className="h-2.5 w-2.5" />
@@ -232,6 +271,29 @@ export default function ConversationChat({ id }: { id: number }) {
                   >
                     <Trash2 className="mr-2 h-4 w-4" /> Clear background
                   </DropdownMenuItem>
+                )}
+                {otherUserId && (
+                  <>
+                    <DropdownMenuItem
+                      onSelect={() => unfollow.mutate({ id: otherUserId })}
+                      data-testid="menu-unfollow"
+                    >
+                      <UserMinus className="mr-2 h-4 w-4" /> Unfollow
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onSelect={() => mute.mutate({ id: otherUserId })}
+                      data-testid="menu-mute-user"
+                    >
+                      <EyeOff className="mr-2 h-4 w-4" /> Mute
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      className="text-destructive focus:text-destructive"
+                      onSelect={() => block.mutate({ id: otherUserId })}
+                      data-testid="menu-block-user"
+                    >
+                      <Ban className="mr-2 h-4 w-4" /> Block
+                    </DropdownMenuItem>
+                  </>
                 )}
               </DropdownMenuContent>
             </DropdownMenu>

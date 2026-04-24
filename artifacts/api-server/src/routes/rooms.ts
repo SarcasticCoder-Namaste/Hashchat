@@ -16,10 +16,15 @@ import {
   maybeAttachLinkPreview,
   attachImage,
 } from "../lib/buildMessages";
+import {
+  loadBlockWall,
+  loadMyMutes,
+  loadMutedHashtags,
+} from "../lib/relationships";
 
 const router: IRouter = Router();
 
-async function roomDataFor(tags: string[], myUserId: string, followedSet: Set<string>) {
+async function roomDataFor(tags: string[], myUserId: string, followedSet: Set<string>, hidden: Set<string>) {
   if (tags.length === 0) return [];
   const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
@@ -56,8 +61,9 @@ async function roomDataFor(tags: string[], myUserId: string, followedSet: Set<st
       .from(messagesTable)
       .where(and(eq(messagesTable.roomTag, tag), sql`${messagesTable.deletedAt} IS NULL`))
       .orderBy(desc(messagesTable.createdAt))
-      .limit(1);
-    const built = await buildMessages(lastRows, myUserId);
+      .limit(10);
+    const filteredRows = hidden.size > 0 ? lastRows.filter((r) => !hidden.has(r.senderId)) : lastRows;
+    const built = await buildMessages(filteredRows, myUserId);
     result.push({
       tag,
       memberCount: memberMap.get(tag) ?? 0,
@@ -73,17 +79,25 @@ async function roomDataFor(tags: string[], myUserId: string, followedSet: Set<st
 
 router.get("/rooms", requireAuth, async (req, res): Promise<void> => {
   const me = getUserId(req);
-  const followed = await db
-    .select({ tag: userFollowedHashtagsTable.tag })
-    .from(userFollowedHashtagsTable)
-    .where(eq(userFollowedHashtagsTable.userId, me));
-  const interested = await db
-    .select({ tag: userHashtagsTable.tag })
-    .from(userHashtagsTable)
-    .where(eq(userHashtagsTable.userId, me));
-  const tags = Array.from(new Set([...followed.map((r) => r.tag), ...interested.map((r) => r.tag)]));
+  const [followed, interested, blockWall, mutes, mutedTags] = await Promise.all([
+    db
+      .select({ tag: userFollowedHashtagsTable.tag })
+      .from(userFollowedHashtagsTable)
+      .where(eq(userFollowedHashtagsTable.userId, me)),
+    db
+      .select({ tag: userHashtagsTable.tag })
+      .from(userHashtagsTable)
+      .where(eq(userHashtagsTable.userId, me)),
+    loadBlockWall(me),
+    loadMyMutes(me),
+    loadMutedHashtags(me),
+  ]);
+  const tags = Array.from(
+    new Set([...followed.map((r) => r.tag), ...interested.map((r) => r.tag)]),
+  ).filter((t) => !mutedTags.has(t));
   const followedSet = new Set(followed.map((r) => r.tag));
-  const rooms = await roomDataFor(tags, me, followedSet);
+  const hidden = new Set<string>([...blockWall, ...mutes]);
+  const rooms = await roomDataFor(tags, me, followedSet, hidden);
   rooms.sort((a, b) => (b.lastMessage?.createdAt ?? "").localeCompare(a.lastMessage?.createdAt ?? ""));
   res.json(rooms);
 });
@@ -92,22 +106,28 @@ router.get("/rooms/trending", requireAuth, async (req, res): Promise<void> => {
   const limit = Math.min(Math.max(parseInt(String(req.query.limit ?? "12"), 10) || 12, 1), 50);
   const me = getUserId(req);
   const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  const [blockWall, mutes, mutedTags] = await Promise.all([
+    loadBlockWall(me),
+    loadMyMutes(me),
+    loadMutedHashtags(me),
+  ]);
   const recent = await db
     .select({ tag: messagesTable.roomTag, count: sql<number>`count(*)::int` })
     .from(messagesTable)
     .where(and(sql`${messagesTable.roomTag} IS NOT NULL`, sql`${messagesTable.createdAt} >= ${since}`))
     .groupBy(messagesTable.roomTag)
     .orderBy(desc(sql`count(*)`))
-    .limit(limit * 2);
-  let tags = recent.map((r) => r.tag).filter((t): t is string => !!t);
+    .limit(limit * 4);
+  let tags = recent.map((r) => r.tag).filter((t): t is string => !!t && !mutedTags.has(t));
   if (tags.length < limit) {
     const fallback = await db
       .select({ tag: userHashtagsTable.tag, count: sql<number>`count(*)::int` })
       .from(userHashtagsTable)
       .groupBy(userHashtagsTable.tag)
       .orderBy(desc(sql`count(*)`))
-      .limit(limit);
+      .limit(limit * 2);
     for (const f of fallback) {
+      if (mutedTags.has(f.tag)) continue;
       if (!tags.includes(f.tag)) tags.push(f.tag);
     }
   }
@@ -117,7 +137,8 @@ router.get("/rooms/trending", requireAuth, async (req, res): Promise<void> => {
     .from(userFollowedHashtagsTable)
     .where(eq(userFollowedHashtagsTable.userId, me));
   const followedSet = new Set(followed.map((r) => r.tag));
-  res.json(await roomDataFor(tags, me, followedSet));
+  const hidden = new Set<string>([...blockWall, ...mutes]);
+  res.json(await roomDataFor(tags, me, followedSet, hidden));
 });
 
 router.get("/rooms/:tag/messages", requireAuth, async (req, res): Promise<void> => {
@@ -128,13 +149,20 @@ router.get("/rooms/:tag/messages", requireAuth, async (req, res): Promise<void> 
     return;
   }
   await db.insert(hashtagsTable).values({ tag }).onConflictDoNothing();
+  const me = getUserId(req);
+  const [blockWall, mutes] = await Promise.all([
+    loadBlockWall(me),
+    loadMyMutes(me),
+  ]);
+  const hidden = new Set<string>([...blockWall, ...mutes]);
   const rows = await db
     .select()
     .from(messagesTable)
     .where(and(eq(messagesTable.roomTag, tag), sql`${messagesTable.deletedAt} IS NULL`))
     .orderBy(messagesTable.createdAt)
     .limit(200);
-  res.json(await buildMessages(rows, getUserId(req)));
+  const filtered = hidden.size > 0 ? rows.filter((r) => !hidden.has(r.senderId)) : rows;
+  res.json(await buildMessages(filtered, me));
 });
 
 router.post("/rooms/:tag/messages", requireAuth, async (req, res): Promise<void> => {

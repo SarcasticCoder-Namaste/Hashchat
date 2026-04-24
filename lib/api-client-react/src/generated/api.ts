@@ -29,9 +29,11 @@ import type {
   CreatePostBody,
   CreatedCode,
   DiscoverPeopleParams,
+  FollowingFeedItem,
   FriendCodeResponse,
   FriendRequestList,
   GetCallSignalsParams,
+  GetFollowingFeedParams,
   GetLinkPreviewParams,
   GetTrendingHashtagsParams,
   GetTrendingRoomsParams,
@@ -45,11 +47,13 @@ import type {
   MatchUser,
   Message,
   MvpCode,
+  MyRelationships,
   OkResponse,
   OpenConversationBody,
   OverviewStats,
   Poll,
   Post,
+  PublicProfile,
   ReactionBody,
   RedeemCodeBody,
   ReelsConfigError,
@@ -4264,6 +4268,939 @@ export function useGetOverviewStats<
   request?: SecondParameter<typeof customFetch>;
 }): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getGetOverviewStatsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Get a public user profile by username
+ */
+export const getGetUserByUsernameUrl = (username: string) => {
+  return `/api/users/by-username/${username}`;
+};
+
+export const getUserByUsername = async (
+  username: string,
+  options?: RequestInit,
+): Promise<PublicProfile> => {
+  return customFetch<PublicProfile>(getGetUserByUsernameUrl(username), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetUserByUsernameQueryKey = (username: string) => {
+  return [`/api/users/by-username/${username}`] as const;
+};
+
+export const getGetUserByUsernameQueryOptions = <
+  TData = Awaited<ReturnType<typeof getUserByUsername>>,
+  TError = ErrorType<void>,
+>(
+  username: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getUserByUsername>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetUserByUsernameQueryKey(username);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getUserByUsername>>
+  > = ({ signal }) =>
+    getUserByUsername(username, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!username,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getUserByUsername>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetUserByUsernameQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getUserByUsername>>
+>;
+export type GetUserByUsernameQueryError = ErrorType<void>;
+
+/**
+ * @summary Get a public user profile by username
+ */
+
+export function useGetUserByUsername<
+  TData = Awaited<ReturnType<typeof getUserByUsername>>,
+  TError = ErrorType<void>,
+>(
+  username: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getUserByUsername>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetUserByUsernameQueryOptions(username, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Follow a user
+ */
+export const getFollowUserUrl = (id: string) => {
+  return `/api/users/${id}/follow`;
+};
+
+export const followUser = async (
+  id: string,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getFollowUserUrl(id), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getFollowUserMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof followUser>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof followUser>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  const mutationKey = ["followUser"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof followUser>>,
+    { id: string }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return followUser(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type FollowUserMutationResult = NonNullable<
+  Awaited<ReturnType<typeof followUser>>
+>;
+
+export type FollowUserMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Follow a user
+ */
+export const useFollowUser = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof followUser>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof followUser>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  return useMutation(getFollowUserMutationOptions(options));
+};
+
+/**
+ * @summary Unfollow a user
+ */
+export const getUnfollowUserUrl = (id: string) => {
+  return `/api/users/${id}/follow`;
+};
+
+export const unfollowUser = async (
+  id: string,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getUnfollowUserUrl(id), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getUnfollowUserMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof unfollowUser>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof unfollowUser>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  const mutationKey = ["unfollowUser"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof unfollowUser>>,
+    { id: string }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return unfollowUser(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UnfollowUserMutationResult = NonNullable<
+  Awaited<ReturnType<typeof unfollowUser>>
+>;
+
+export type UnfollowUserMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Unfollow a user
+ */
+export const useUnfollowUser = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof unfollowUser>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof unfollowUser>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  return useMutation(getUnfollowUserMutationOptions(options));
+};
+
+/**
+ * @summary Block a user
+ */
+export const getBlockUserUrl = (id: string) => {
+  return `/api/users/${id}/block`;
+};
+
+export const blockUser = async (
+  id: string,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getBlockUserUrl(id), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getBlockUserMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof blockUser>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof blockUser>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  const mutationKey = ["blockUser"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof blockUser>>,
+    { id: string }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return blockUser(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type BlockUserMutationResult = NonNullable<
+  Awaited<ReturnType<typeof blockUser>>
+>;
+
+export type BlockUserMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Block a user
+ */
+export const useBlockUser = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof blockUser>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof blockUser>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  return useMutation(getBlockUserMutationOptions(options));
+};
+
+/**
+ * @summary Unblock a user
+ */
+export const getUnblockUserUrl = (id: string) => {
+  return `/api/users/${id}/block`;
+};
+
+export const unblockUser = async (
+  id: string,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getUnblockUserUrl(id), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getUnblockUserMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof unblockUser>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof unblockUser>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  const mutationKey = ["unblockUser"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof unblockUser>>,
+    { id: string }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return unblockUser(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UnblockUserMutationResult = NonNullable<
+  Awaited<ReturnType<typeof unblockUser>>
+>;
+
+export type UnblockUserMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Unblock a user
+ */
+export const useUnblockUser = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof unblockUser>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof unblockUser>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  return useMutation(getUnblockUserMutationOptions(options));
+};
+
+/**
+ * @summary Mute a user (hide from feeds)
+ */
+export const getMuteUserUrl = (id: string) => {
+  return `/api/users/${id}/mute`;
+};
+
+export const muteUser = async (
+  id: string,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getMuteUserUrl(id), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getMuteUserMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof muteUser>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof muteUser>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  const mutationKey = ["muteUser"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof muteUser>>,
+    { id: string }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return muteUser(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type MuteUserMutationResult = NonNullable<
+  Awaited<ReturnType<typeof muteUser>>
+>;
+
+export type MuteUserMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Mute a user (hide from feeds)
+ */
+export const useMuteUser = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof muteUser>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof muteUser>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  return useMutation(getMuteUserMutationOptions(options));
+};
+
+/**
+ * @summary Unmute a user
+ */
+export const getUnmuteUserUrl = (id: string) => {
+  return `/api/users/${id}/mute`;
+};
+
+export const unmuteUser = async (
+  id: string,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getUnmuteUserUrl(id), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getUnmuteUserMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof unmuteUser>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof unmuteUser>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  const mutationKey = ["unmuteUser"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof unmuteUser>>,
+    { id: string }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return unmuteUser(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UnmuteUserMutationResult = NonNullable<
+  Awaited<ReturnType<typeof unmuteUser>>
+>;
+
+export type UnmuteUserMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Unmute a user
+ */
+export const useUnmuteUser = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof unmuteUser>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof unmuteUser>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  return useMutation(getUnmuteUserMutationOptions(options));
+};
+
+/**
+ * @summary Mute a hashtag (hide from feeds & trending)
+ */
+export const getMuteHashtagUrl = (tag: string) => {
+  return `/api/hashtags/${tag}/mute`;
+};
+
+export const muteHashtag = async (
+  tag: string,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getMuteHashtagUrl(tag), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getMuteHashtagMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof muteHashtag>>,
+    TError,
+    { tag: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof muteHashtag>>,
+  TError,
+  { tag: string },
+  TContext
+> => {
+  const mutationKey = ["muteHashtag"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof muteHashtag>>,
+    { tag: string }
+  > = (props) => {
+    const { tag } = props ?? {};
+
+    return muteHashtag(tag, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type MuteHashtagMutationResult = NonNullable<
+  Awaited<ReturnType<typeof muteHashtag>>
+>;
+
+export type MuteHashtagMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Mute a hashtag (hide from feeds & trending)
+ */
+export const useMuteHashtag = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof muteHashtag>>,
+    TError,
+    { tag: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof muteHashtag>>,
+  TError,
+  { tag: string },
+  TContext
+> => {
+  return useMutation(getMuteHashtagMutationOptions(options));
+};
+
+/**
+ * @summary Unmute a hashtag
+ */
+export const getUnmuteHashtagUrl = (tag: string) => {
+  return `/api/hashtags/${tag}/mute`;
+};
+
+export const unmuteHashtag = async (
+  tag: string,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getUnmuteHashtagUrl(tag), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getUnmuteHashtagMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof unmuteHashtag>>,
+    TError,
+    { tag: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof unmuteHashtag>>,
+  TError,
+  { tag: string },
+  TContext
+> => {
+  const mutationKey = ["unmuteHashtag"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof unmuteHashtag>>,
+    { tag: string }
+  > = (props) => {
+    const { tag } = props ?? {};
+
+    return unmuteHashtag(tag, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UnmuteHashtagMutationResult = NonNullable<
+  Awaited<ReturnType<typeof unmuteHashtag>>
+>;
+
+export type UnmuteHashtagMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Unmute a hashtag
+ */
+export const useUnmuteHashtag = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof unmuteHashtag>>,
+    TError,
+    { tag: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof unmuteHashtag>>,
+  TError,
+  { tag: string },
+  TContext
+> => {
+  return useMutation(getUnmuteHashtagMutationOptions(options));
+};
+
+/**
+ * @summary My follows / blocks / mutes / muted hashtags (ids)
+ */
+export const getGetMyRelationshipsUrl = () => {
+  return `/api/me/relationships`;
+};
+
+export const getMyRelationships = async (
+  options?: RequestInit,
+): Promise<MyRelationships> => {
+  return customFetch<MyRelationships>(getGetMyRelationshipsUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetMyRelationshipsQueryKey = () => {
+  return [`/api/me/relationships`] as const;
+};
+
+export const getGetMyRelationshipsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getMyRelationships>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getMyRelationships>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetMyRelationshipsQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getMyRelationships>>
+  > = ({ signal }) => getMyRelationships({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getMyRelationships>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetMyRelationshipsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getMyRelationships>>
+>;
+export type GetMyRelationshipsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary My follows / blocks / mutes / muted hashtags (ids)
+ */
+
+export function useGetMyRelationships<
+  TData = Awaited<ReturnType<typeof getMyRelationships>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getMyRelationships>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetMyRelationshipsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Recent activity (posts and joined rooms) from people I follow
+ */
+export const getGetFollowingFeedUrl = (params?: GetFollowingFeedParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/discover/following?${stringifiedParams}`
+    : `/api/discover/following`;
+};
+
+export const getFollowingFeed = async (
+  params?: GetFollowingFeedParams,
+  options?: RequestInit,
+): Promise<FollowingFeedItem[]> => {
+  return customFetch<FollowingFeedItem[]>(getGetFollowingFeedUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetFollowingFeedQueryKey = (
+  params?: GetFollowingFeedParams,
+) => {
+  return [`/api/discover/following`, ...(params ? [params] : [])] as const;
+};
+
+export const getGetFollowingFeedQueryOptions = <
+  TData = Awaited<ReturnType<typeof getFollowingFeed>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: GetFollowingFeedParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getFollowingFeed>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetFollowingFeedQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getFollowingFeed>>
+  > = ({ signal }) => getFollowingFeed(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getFollowingFeed>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetFollowingFeedQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getFollowingFeed>>
+>;
+export type GetFollowingFeedQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Recent activity (posts and joined rooms) from people I follow
+ */
+
+export function useGetFollowingFeed<
+  TData = Awaited<ReturnType<typeof getFollowingFeed>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: GetFollowingFeedParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getFollowingFeed>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetFollowingFeedQueryOptions(params, options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;

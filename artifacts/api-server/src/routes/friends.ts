@@ -12,6 +12,7 @@ import {
   normalizeFriendCode,
   withFriendCodeRetry,
 } from "../middlewares/requireAuth";
+import { isBlockedEitherWay } from "../lib/relationships";
 
 const router: IRouter = Router();
 
@@ -240,6 +241,10 @@ router.post(
       .limit(1);
     if (!other) {
       res.status(404).json({ error: "User not found" });
+      return;
+    }
+    if (await isBlockedEitherWay(me, otherId)) {
+      res.status(403).json({ error: "Blocked" });
       return;
     }
     const [a, b] = pair(me, otherId);

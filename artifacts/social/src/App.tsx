@@ -32,8 +32,8 @@ import Rooms from "@/pages/Rooms";
 import RoomChat from "@/pages/RoomChat";
 import Conversations from "@/pages/Conversations";
 import ConversationChat from "@/pages/ConversationChat";
+import PublicProfile from "@/pages/PublicProfile";
 import Profile from "@/pages/Profile";
-import UserProfile from "@/pages/UserProfile";
 import Friends from "@/pages/Friends";
 import Reels from "@/pages/Reels";
 import AdminPanel from "@/pages/AdminPanel";
@@ -267,10 +267,10 @@ function ClerkProviderWithRoutes() {
             <Route path="/app/profile">
               <Redirect to="/app/settings" />
             </Route>
-            <Route path="/app/u/:id">
+            <Route path="/app/u/:username">
               {(params) => (
                 <ProtectedShell>
-                  <UserProfile id={params.id} />
+                  <PublicProfile username={params.username} />
                 </ProtectedShell>
               )}
             </Route>

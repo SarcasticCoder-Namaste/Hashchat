@@ -771,6 +771,127 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/OverviewStats" }
 
+  /users/by-username/{username}:
+    get:
+      operationId: getUserByUsername
+      tags: [users]
+      summary: Get a public user profile by username
+      parameters:
+        - name: username
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PublicProfile" }
+        "404": { description: Not found }
+
+  /users/{id}/follow:
+    post:
+      operationId: followUser
+      tags: [users]
+      summary: Follow a user
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "204": { description: No content }
+    delete:
+      operationId: unfollowUser
+      tags: [users]
+      summary: Unfollow a user
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "204": { description: No content }
+
+  /users/{id}/block:
+    post:
+      operationId: blockUser
+      tags: [users]
+      summary: Block a user
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "204": { description: No content }
+    delete:
+      operationId: unblockUser
+      tags: [users]
+      summary: Unblock a user
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "204": { description: No content }
+
+  /users/{id}/mute:
+    post:
+      operationId: muteUser
+      tags: [users]
+      summary: Mute a user (hide from feeds)
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "204": { description: No content }
+    delete:
+      operationId: unmuteUser
+      tags: [users]
+      summary: Unmute a user
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "204": { description: No content }
+
+  /hashtags/{tag}/mute:
+    post:
+      operationId: muteHashtag
+      tags: [hashtags]
+      summary: Mute a hashtag (hide from feeds & trending)
+      parameters:
+        - { name: tag, in: path, required: true, schema: { type: string } }
+      responses:
+        "204": { description: No content }
+    delete:
+      operationId: unmuteHashtag
+      tags: [hashtags]
+      summary: Unmute a hashtag
+      parameters:
+        - { name: tag, in: path, required: true, schema: { type: string } }
+      responses:
+        "204": { description: No content }
+
+  /me/relationships:
+    get:
+      operationId: getMyRelationships
+      tags: [users]
+      summary: My follows / blocks / mutes / muted hashtags (ids)
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MyRelationships" }
+
+  /discover/following:
+    get:
+      operationId: getFollowingFeed
+      tags: [discovery]
+      summary: Recent activity (posts and joined rooms) from people I follow
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          schema: { type: integer, default: 30 }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/FollowingFeedItem" }
+
   /me/redeem-mvp-code:
     post:
       operationId: redeemMvpCode
@@ -1189,6 +1310,10 @@ components:
         friendStatus:
           type: ["string", "null"]
           description: "One of: friends, request_sent, request_received, none"
+        isFollowing: { type: boolean }
+        followsMe: { type: boolean }
+        isMuted: { type: boolean }
+        isBlocked: { type: boolean }
       required: [id, username, displayName, status, role, mvpPlan, lastSeenAt, hashtags, sharedHashtags, matchScore]
 
     FriendCodeResponse:
@@ -1197,6 +1322,88 @@ components:
         friendCode:
           type: ["string", "null"]
       required: [friendCode]
+
+    PublicProfile:
+      type: object
+      properties:
+        id: { type: string }
+        username: { type: string }
+        displayName: { type: string }
+        bio:
+          type: ["string", "null"]
+        avatarUrl:
+          type: ["string", "null"]
+        bannerUrl:
+          type: ["string", "null"]
+        pronouns:
+          type: ["string", "null"]
+        location:
+          type: ["string", "null"]
+        website:
+          type: ["string", "null"]
+        statusEmoji:
+          type: ["string", "null"]
+        statusText:
+          type: ["string", "null"]
+        status: { type: string }
+        featuredHashtag:
+          type: ["string", "null"]
+        discriminator:
+          type: ["string", "null"]
+        role: { type: string }
+        mvpPlan: { type: boolean }
+        lastSeenAt: { type: string, format: date-time }
+        createdAt: { type: string, format: date-time }
+        hashtags:
+          type: array
+          items: { type: string }
+        mutualHashtags:
+          type: array
+          items: { type: string }
+        followerCount: { type: integer }
+        followingCount: { type: integer }
+        isFollowing: { type: boolean }
+        followsMe: { type: boolean }
+        isMuted: { type: boolean }
+        isBlocked: { type: boolean }
+        friendStatus:
+          type: ["string", "null"]
+      required:
+        [id, username, displayName, status, role, mvpPlan, lastSeenAt, createdAt,
+         hashtags, mutualHashtags, followerCount, followingCount,
+         isFollowing, followsMe, isMuted, isBlocked]
+
+    MyRelationships:
+      type: object
+      properties:
+        following:
+          type: array
+          items: { type: string }
+        blocked:
+          type: array
+          items: { type: string }
+        muted:
+          type: array
+          items: { type: string }
+        mutedHashtags:
+          type: array
+          items: { type: string }
+      required: [following, blocked, muted, mutedHashtags]
+
+    FollowingFeedItem:
+      type: object
+      properties:
+        kind: { type: string, enum: [post, room_join] }
+        id: { type: string }
+        user: { $ref: "#/components/schemas/MatchUser" }
+        roomTag:
+          type: ["string", "null"]
+        content:
+          type: ["string", "null"]
+        imageUrl:
+          type: ["string", "null"]
+        createdAt: { type: string, format: date-time }
+      required: [kind, id, user, createdAt]
 
     FriendRequestList:
       type: object

@@ -235,6 +235,10 @@ export const GetHashtagResponse = zod.object({
         .string()
         .nullish()
         .describe("One of: friends, request_sent, request_received, none"),
+      isFollowing: zod.boolean().optional(),
+      followsMe: zod.boolean().optional(),
+      isMuted: zod.boolean().optional(),
+      isBlocked: zod.boolean().optional(),
     }),
   ),
   relatedHashtags: zod.array(zod.string()),
@@ -282,6 +286,10 @@ export const DiscoverPeopleResponseItem = zod.object({
     .string()
     .nullish()
     .describe("One of: friends, request_sent, request_received, none"),
+  isFollowing: zod.boolean().optional(),
+  followsMe: zod.boolean().optional(),
+  isMuted: zod.boolean().optional(),
+  isBlocked: zod.boolean().optional(),
 });
 export const DiscoverPeopleResponse = zod.array(DiscoverPeopleResponseItem);
 
@@ -309,6 +317,10 @@ export const GetConversationsResponseItem = zod.object({
       .string()
       .nullish()
       .describe("One of: friends, request_sent, request_received, none"),
+    isFollowing: zod.boolean().optional(),
+    followsMe: zod.boolean().optional(),
+    isMuted: zod.boolean().optional(),
+    isBlocked: zod.boolean().optional(),
   }),
   lastMessage: zod
     .union([
@@ -405,6 +417,10 @@ export const OpenConversationResponse = zod.object({
       .string()
       .nullish()
       .describe("One of: friends, request_sent, request_received, none"),
+    isFollowing: zod.boolean().optional(),
+    followsMe: zod.boolean().optional(),
+    isMuted: zod.boolean().optional(),
+    isBlocked: zod.boolean().optional(),
   }),
   lastMessage: zod
     .union([
@@ -1077,6 +1093,10 @@ export const LookupUserByFriendCodeResponse = zod.object({
     .string()
     .nullish()
     .describe("One of: friends, request_sent, request_received, none"),
+  isFollowing: zod.boolean().optional(),
+  followsMe: zod.boolean().optional(),
+  isMuted: zod.boolean().optional(),
+  isBlocked: zod.boolean().optional(),
 });
 
 /**
@@ -1101,6 +1121,10 @@ export const GetMyFriendsResponseItem = zod.object({
     .string()
     .nullish()
     .describe("One of: friends, request_sent, request_received, none"),
+  isFollowing: zod.boolean().optional(),
+  followsMe: zod.boolean().optional(),
+  isMuted: zod.boolean().optional(),
+  isBlocked: zod.boolean().optional(),
 });
 export const GetMyFriendsResponse = zod.array(GetMyFriendsResponseItem);
 
@@ -1128,6 +1152,10 @@ export const GetFriendRequestsResponse = zod.object({
         .string()
         .nullish()
         .describe("One of: friends, request_sent, request_received, none"),
+      isFollowing: zod.boolean().optional(),
+      followsMe: zod.boolean().optional(),
+      isMuted: zod.boolean().optional(),
+      isBlocked: zod.boolean().optional(),
     }),
   ),
   outgoing: zod.array(
@@ -1150,6 +1178,10 @@ export const GetFriendRequestsResponse = zod.object({
         .string()
         .nullish()
         .describe("One of: friends, request_sent, request_received, none"),
+      isFollowing: zod.boolean().optional(),
+      followsMe: zod.boolean().optional(),
+      isMuted: zod.boolean().optional(),
+      isBlocked: zod.boolean().optional(),
     }),
   ),
 });
@@ -1180,6 +1212,10 @@ export const LookupUserByCodeResponse = zod.object({
     .string()
     .nullish()
     .describe("One of: friends, request_sent, request_received, none"),
+  isFollowing: zod.boolean().optional(),
+  followsMe: zod.boolean().optional(),
+  isMuted: zod.boolean().optional(),
+  isBlocked: zod.boolean().optional(),
 });
 
 /**
@@ -1226,6 +1262,152 @@ export const GetOverviewStatsResponse = zod.object({
   messageCount: zod.number(),
   roomCount: zod.number(),
 });
+
+/**
+ * @summary Get a public user profile by username
+ */
+export const GetUserByUsernameParams = zod.object({
+  username: zod.coerce.string(),
+});
+
+export const GetUserByUsernameResponse = zod.object({
+  id: zod.string(),
+  username: zod.string(),
+  displayName: zod.string(),
+  bio: zod.string().nullish(),
+  avatarUrl: zod.string().nullish(),
+  bannerUrl: zod.string().nullish(),
+  pronouns: zod.string().nullish(),
+  location: zod.string().nullish(),
+  website: zod.string().nullish(),
+  statusEmoji: zod.string().nullish(),
+  statusText: zod.string().nullish(),
+  status: zod.string(),
+  featuredHashtag: zod.string().nullish(),
+  discriminator: zod.string().nullish(),
+  role: zod.string(),
+  mvpPlan: zod.boolean(),
+  lastSeenAt: zod.coerce.date(),
+  createdAt: zod.coerce.date(),
+  hashtags: zod.array(zod.string()),
+  mutualHashtags: zod.array(zod.string()),
+  followerCount: zod.number(),
+  followingCount: zod.number(),
+  isFollowing: zod.boolean(),
+  followsMe: zod.boolean(),
+  isMuted: zod.boolean(),
+  isBlocked: zod.boolean(),
+  friendStatus: zod.string().nullish(),
+});
+
+/**
+ * @summary Follow a user
+ */
+export const FollowUserParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+/**
+ * @summary Unfollow a user
+ */
+export const UnfollowUserParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+/**
+ * @summary Block a user
+ */
+export const BlockUserParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+/**
+ * @summary Unblock a user
+ */
+export const UnblockUserParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+/**
+ * @summary Mute a user (hide from feeds)
+ */
+export const MuteUserParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+/**
+ * @summary Unmute a user
+ */
+export const UnmuteUserParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+/**
+ * @summary Mute a hashtag (hide from feeds & trending)
+ */
+export const MuteHashtagParams = zod.object({
+  tag: zod.coerce.string(),
+});
+
+/**
+ * @summary Unmute a hashtag
+ */
+export const UnmuteHashtagParams = zod.object({
+  tag: zod.coerce.string(),
+});
+
+/**
+ * @summary My follows / blocks / mutes / muted hashtags (ids)
+ */
+export const GetMyRelationshipsResponse = zod.object({
+  following: zod.array(zod.string()),
+  blocked: zod.array(zod.string()),
+  muted: zod.array(zod.string()),
+  mutedHashtags: zod.array(zod.string()),
+});
+
+/**
+ * @summary Recent activity (posts and joined rooms) from people I follow
+ */
+export const getFollowingFeedQueryLimitDefault = 30;
+
+export const GetFollowingFeedQueryParams = zod.object({
+  limit: zod.coerce.number().default(getFollowingFeedQueryLimitDefault),
+});
+
+export const GetFollowingFeedResponseItem = zod.object({
+  kind: zod.enum(["post", "room_join"]),
+  id: zod.string(),
+  user: zod.object({
+    id: zod.string(),
+    username: zod.string(),
+    displayName: zod.string(),
+    bio: zod.string().nullish(),
+    avatarUrl: zod.string().nullish(),
+    status: zod.string(),
+    featuredHashtag: zod.string().nullish(),
+    discriminator: zod.string().nullish(),
+    role: zod.string(),
+    mvpPlan: zod.boolean(),
+    lastSeenAt: zod.coerce.date(),
+    hashtags: zod.array(zod.string()),
+    sharedHashtags: zod.array(zod.string()),
+    matchScore: zod.number(),
+    friendStatus: zod
+      .string()
+      .nullish()
+      .describe("One of: friends, request_sent, request_received, none"),
+    isFollowing: zod.boolean().optional(),
+    followsMe: zod.boolean().optional(),
+    isMuted: zod.boolean().optional(),
+    isBlocked: zod.boolean().optional(),
+  }),
+  roomTag: zod.string().nullish(),
+  content: zod.string().nullish(),
+  imageUrl: zod.string().nullish(),
+  createdAt: zod.coerce.date(),
+});
+export const GetFollowingFeedResponse = zod.array(GetFollowingFeedResponseItem);
 
 /**
  * @summary Redeem an MVP plan code

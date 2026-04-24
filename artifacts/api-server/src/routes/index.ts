@@ -17,6 +17,7 @@ import callsRouter from "./calls";
 import postsRouter from "./posts";
 import pollsRouter from "./polls";
 import linkPreviewRouter from "./linkPreview";
+import socialRouter from "./social";
 
 const router: IRouter = Router();
 
@@ -38,5 +39,6 @@ router.use(callsRouter);
 router.use(postsRouter);
 router.use(pollsRouter);
 router.use(linkPreviewRouter);
+router.use(socialRouter);
 
 export default router;
