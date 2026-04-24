@@ -32,6 +32,7 @@ export const GetMeResponse = zod.object({
   status: zod.string(),
   featuredHashtag: zod.string().nullish(),
   discriminator: zod.string().nullish(),
+  friendCode: zod.string().nullish(),
   role: zod.string(),
   mvpPlan: zod.boolean(),
   lastSeenAt: zod.coerce.date(),
@@ -72,6 +73,7 @@ export const UpdateMeResponse = zod.object({
   status: zod.string(),
   featuredHashtag: zod.string().nullish(),
   discriminator: zod.string().nullish(),
+  friendCode: zod.string().nullish(),
   role: zod.string(),
   mvpPlan: zod.boolean(),
   lastSeenAt: zod.coerce.date(),
@@ -141,6 +143,7 @@ export const GetUserResponse = zod.object({
   status: zod.string(),
   featuredHashtag: zod.string().nullish(),
   discriminator: zod.string().nullish(),
+  friendCode: zod.string().nullish(),
   role: zod.string(),
   mvpPlan: zod.boolean(),
   lastSeenAt: zod.coerce.date(),
@@ -822,6 +825,48 @@ export const GetCallSignalsResponse = zod.object({
     }),
   ),
   cursor: zod.number(),
+});
+
+/**
+ * @summary Get my friend code
+ */
+export const GetMyFriendCodeResponse = zod.object({
+  friendCode: zod.string().nullable(),
+});
+
+/**
+ * @summary Regenerate my friend code
+ */
+export const RegenerateMyFriendCodeResponse = zod.object({
+  friendCode: zod.string().nullable(),
+});
+
+/**
+ * @summary Look up a user by their friend code
+ */
+export const LookupUserByFriendCodeParams = zod.object({
+  code: zod.coerce.string(),
+});
+
+export const LookupUserByFriendCodeResponse = zod.object({
+  id: zod.string(),
+  username: zod.string(),
+  displayName: zod.string(),
+  bio: zod.string().nullish(),
+  avatarUrl: zod.string().nullish(),
+  status: zod.string(),
+  featuredHashtag: zod.string().nullish(),
+  discriminator: zod.string().nullish(),
+  role: zod.string(),
+  mvpPlan: zod.boolean(),
+  lastSeenAt: zod.coerce.date(),
+  hashtags: zod.array(zod.string()),
+  sharedHashtags: zod.array(zod.string()),
+  matchScore: zod.number(),
+  friendStatus: zod
+    .string()
+    .nullish()
+    .describe("One of: friends, request_sent, request_received, none"),
 });
 
 /**

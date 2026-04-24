@@ -34,6 +34,8 @@ export interface User {
   featuredHashtag?: string | null;
   /** @nullable */
   discriminator?: string | null;
+  /** @nullable */
+  friendCode?: string | null;
   role: string;
   mvpPlan: boolean;
   lastSeenAt: string;
@@ -120,6 +122,11 @@ export interface HashtagDetail {
   isFollowed: boolean;
   topMembers: MatchUser[];
   relatedHashtags: string[];
+}
+
+export interface FriendCodeResponse {
+  /** @nullable */
+  friendCode: string | null;
 }
 
 export interface FriendRequestList {

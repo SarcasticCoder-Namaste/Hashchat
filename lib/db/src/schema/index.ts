@@ -25,6 +25,7 @@ export const usersTable = pgTable("users", {
   status: text("status").notNull().default("online"),
   featuredHashtag: text("featured_hashtag"),
   discriminator: text("discriminator"),
+  friendCode: text("friend_code"),
   role: text("role").notNull().default("user"),
   mvpPlan: boolean("mvp_plan").notNull().default(false),
   bannedAt: timestamp("banned_at", { withTimezone: true }),
@@ -34,7 +35,10 @@ export const usersTable = pgTable("users", {
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
-}, (t) => [uniqueIndex("users_discriminator_unique").on(t.discriminator)]);
+}, (t) => [
+  uniqueIndex("users_discriminator_unique").on(t.discriminator),
+  uniqueIndex("users_friend_code_unique").on(t.friendCode),
+]);
 
 export const hashtagsTable = pgTable("hashtags", {
   tag: text("tag").primaryKey(),

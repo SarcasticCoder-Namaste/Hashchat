@@ -10,7 +10,10 @@ import {
   useGetMyFriends,
   useGetMyFollowedHashtags,
   useGetMyPhotos,
+  useGetMyFriendCode,
+  useRegenerateMyFriendCode,
   getGetMeQueryKey,
+  getGetMyFriendCodeQueryKey,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useTheme } from "@/components/ThemeProvider";
@@ -286,6 +289,8 @@ export default function Settings() {
           )}
         </div>
       </div>
+
+      <FriendCodeCard />
 
       <Tabs defaultValue="profile">
         <TabsList className="grid h-auto w-full grid-cols-4 gap-1 p-1 sm:grid-cols-8">
@@ -1505,6 +1510,94 @@ function AccountTab({
             Delete my account
           </Button>
         )}
+      </div>
+    </div>
+  );
+}
+
+function FriendCodeCard() {
+  const qc = useQueryClient();
+  const { toast } = useToast();
+  const { data, isLoading } = useGetMyFriendCode();
+  const [regenerating, setRegenerating] = useState(false);
+  const regen = useRegenerateMyFriendCode({
+    mutation: {
+      onMutate: () => setRegenerating(true),
+      onSettled: () => setRegenerating(false),
+      onSuccess: (resp) => {
+        qc.setQueryData(getGetMyFriendCodeQueryKey(), resp);
+        qc.invalidateQueries({ queryKey: getGetMeQueryKey() });
+        toast({
+          title: "New friend code generated",
+          description: resp.friendCode ?? "",
+        });
+      },
+    },
+  });
+  const code = data?.friendCode ?? null;
+
+  async function copyCode() {
+    if (!code) return;
+    try {
+      await navigator.clipboard.writeText(`#${code}`);
+      toast({ title: "Friend code copied", description: `#${code}` });
+    } catch {
+      toast({ title: "Couldn't copy code", variant: "destructive" });
+    }
+  }
+
+  return (
+    <div
+      className="overflow-hidden rounded-2xl border border-border bg-gradient-to-br from-violet-500/10 via-card to-pink-500/10 p-5 shadow-sm"
+      data-testid="profile-friend-code-card"
+    >
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            Your friend code
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Share this with friends so they can find you instantly.
+          </p>
+        </div>
+        {isLoading ? (
+          <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+        ) : code ? (
+          <div
+            className="flex items-center gap-1 rounded-xl bg-background/70 px-3 py-2 font-mono text-lg font-bold tracking-wider text-foreground shadow-inner ring-1 ring-border"
+            data-testid="profile-friend-code-value"
+          >
+            <Hash className="h-4 w-4 text-primary" />
+            <span>{code}</span>
+          </div>
+        ) : (
+          <span className="text-sm text-muted-foreground">Unavailable</span>
+        )}
+      </div>
+      <div className="mt-3 flex flex-wrap gap-2">
+        <Button
+          size="sm"
+          variant="default"
+          onClick={copyCode}
+          disabled={!code}
+          data-testid="button-copy-friend-code"
+        >
+          <Link2 className="mr-1.5 h-3.5 w-3.5" /> Copy code
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => regen.mutate()}
+          disabled={regenerating || !code}
+          data-testid="button-regenerate-friend-code"
+        >
+          {regenerating ? (
+            <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+          ) : (
+            <Sparkles className="mr-1.5 h-3.5 w-3.5" />
+          )}
+          Regenerate
+        </Button>
       </div>
     </div>
   );

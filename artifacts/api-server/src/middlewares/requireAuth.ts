@@ -36,6 +36,71 @@ async function generateDiscriminator(): Promise<string> {
   return String(Date.now()).slice(-5);
 }
 
+// Friendly alphabet excludes ambiguous chars (0/O, 1/I, etc.)
+const FRIEND_CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+
+function randomFriendCode(): string {
+  const pick = (n: number) =>
+    Array.from(
+      { length: n },
+      () =>
+        FRIEND_CODE_ALPHABET[
+          Math.floor(Math.random() * FRIEND_CODE_ALPHABET.length)
+        ],
+    ).join("");
+  return `${pick(3)}-${pick(4)}`;
+}
+
+export async function generateFriendCode(): Promise<string> {
+  for (let i = 0; i < 16; i++) {
+    const code = randomFriendCode();
+    const existing = await db
+      .select({ id: usersTable.id })
+      .from(usersTable)
+      .where(eq(usersTable.friendCode, code))
+      .limit(1);
+    if (existing.length === 0) return code;
+  }
+  return `${randomFriendCode()}-${Date.now().toString(36).slice(-3).toUpperCase()}`;
+}
+
+function isUniqueViolation(err: unknown): boolean {
+  return (
+    typeof err === "object" &&
+    err !== null &&
+    "code" in err &&
+    (err as { code?: string }).code === "23505"
+  );
+}
+
+export async function withFriendCodeRetry<T>(
+  write: (code: string) => Promise<T>,
+): Promise<{ code: string; result: T }> {
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const code = await generateFriendCode();
+    try {
+      const result = await write(code);
+      return { code, result };
+    } catch (err) {
+      if (isUniqueViolation(err)) continue;
+      throw err;
+    }
+  }
+  throw new Error("Failed to allocate unique friend code");
+}
+
+export function normalizeFriendCode(input: string): string {
+  return input
+    .toUpperCase()
+    .replace(/^#/, "")
+    .replace(/[^A-Z0-9]/g, "");
+}
+
+export function formatFriendCode(normalized: string): string {
+  if (normalized.length !== 7) return normalized;
+  return `${normalized.slice(0, 3)}-${normalized.slice(3)}`;
+}
+
 function isBootstrapAdminId(userId: string): boolean {
   const raw = process.env["ADMIN_USER_IDS"];
   if (!raw) return false;
@@ -110,6 +175,7 @@ export async function requireAuth(
         username;
 
       const discriminator = await generateDiscriminator();
+      const friendCode = await generateFriendCode();
       const role = isBootstrapAdminId(clerkUserId) ? "admin" : "user";
 
       await db
@@ -121,6 +187,7 @@ export async function requireAuth(
           avatarUrl: clerkUser.imageUrl ?? null,
           status: "online",
           discriminator,
+          friendCode,
           role,
         })
         .onConflictDoNothing();
@@ -152,6 +219,16 @@ export async function requireAuth(
       .set({ discriminator })
       .where(eq(usersTable.id, clerkUserId));
     existingRow.discriminator = discriminator;
+  }
+
+  // Backfill friend code if missing
+  if (!existingRow.friendCode) {
+    const friendCode = await generateFriendCode();
+    await db
+      .update(usersTable)
+      .set({ friendCode })
+      .where(eq(usersTable.id, clerkUserId));
+    existingRow.friendCode = friendCode;
   }
 
   // Auto-promote bootstrap admin (immutable Clerk user IDs) if not already

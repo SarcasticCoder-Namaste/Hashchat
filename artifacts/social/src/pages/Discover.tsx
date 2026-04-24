@@ -19,6 +19,7 @@ import { motion } from "framer-motion";
 import { PresenceAvatar } from "@/components/UserBadge";
 import { CardSkeleton } from "@/components/Skeleton";
 import { EmptyState } from "@/components/EmptyState";
+import { FriendCodeSearch } from "@/components/FriendCodeSearch";
 import {
   Hash,
   Sparkles,
@@ -102,6 +103,8 @@ export default function Discover() {
           ))}
         </div>
       </div>
+
+      <FriendCodeSearch variant="block" />
 
       {/* Smart matches */}
       <section>

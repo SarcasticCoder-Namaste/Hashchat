@@ -37,6 +37,7 @@ async function loadUser(userId: string) {
     status: user.status,
     featuredHashtag: user.featuredHashtag,
     discriminator: user.discriminator,
+    friendCode: user.friendCode,
     role: user.role,
     mvpPlan: user.mvpPlan,
     lastSeenAt: user.lastSeenAt.toISOString(),

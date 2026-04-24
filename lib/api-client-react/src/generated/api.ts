@@ -27,6 +27,7 @@ import type {
   CreateMvpCodeBody,
   CreatedCode,
   DiscoverPeopleParams,
+  FriendCodeResponse,
   FriendRequestList,
   GetCallSignalsParams,
   GetTrendingHashtagsParams,
@@ -3269,6 +3270,251 @@ export function useGetCallSignals<
   },
 ): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getGetCallSignalsQueryOptions(id, params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Get my friend code
+ */
+export const getGetMyFriendCodeUrl = () => {
+  return `/api/me/friend-code`;
+};
+
+export const getMyFriendCode = async (
+  options?: RequestInit,
+): Promise<FriendCodeResponse> => {
+  return customFetch<FriendCodeResponse>(getGetMyFriendCodeUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetMyFriendCodeQueryKey = () => {
+  return [`/api/me/friend-code`] as const;
+};
+
+export const getGetMyFriendCodeQueryOptions = <
+  TData = Awaited<ReturnType<typeof getMyFriendCode>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getMyFriendCode>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetMyFriendCodeQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getMyFriendCode>>> = ({
+    signal,
+  }) => getMyFriendCode({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getMyFriendCode>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetMyFriendCodeQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getMyFriendCode>>
+>;
+export type GetMyFriendCodeQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get my friend code
+ */
+
+export function useGetMyFriendCode<
+  TData = Awaited<ReturnType<typeof getMyFriendCode>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getMyFriendCode>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetMyFriendCodeQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Regenerate my friend code
+ */
+export const getRegenerateMyFriendCodeUrl = () => {
+  return `/api/me/friend-code/regenerate`;
+};
+
+export const regenerateMyFriendCode = async (
+  options?: RequestInit,
+): Promise<FriendCodeResponse> => {
+  return customFetch<FriendCodeResponse>(getRegenerateMyFriendCodeUrl(), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getRegenerateMyFriendCodeMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof regenerateMyFriendCode>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof regenerateMyFriendCode>>,
+  TError,
+  void,
+  TContext
+> => {
+  const mutationKey = ["regenerateMyFriendCode"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof regenerateMyFriendCode>>,
+    void
+  > = () => {
+    return regenerateMyFriendCode(requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RegenerateMyFriendCodeMutationResult = NonNullable<
+  Awaited<ReturnType<typeof regenerateMyFriendCode>>
+>;
+
+export type RegenerateMyFriendCodeMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Regenerate my friend code
+ */
+export const useRegenerateMyFriendCode = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof regenerateMyFriendCode>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof regenerateMyFriendCode>>,
+  TError,
+  void,
+  TContext
+> => {
+  return useMutation(getRegenerateMyFriendCodeMutationOptions(options));
+};
+
+/**
+ * @summary Look up a user by their friend code
+ */
+export const getLookupUserByFriendCodeUrl = (code: string) => {
+  return `/api/users/by-code/${code}`;
+};
+
+export const lookupUserByFriendCode = async (
+  code: string,
+  options?: RequestInit,
+): Promise<MatchUser> => {
+  return customFetch<MatchUser>(getLookupUserByFriendCodeUrl(code), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getLookupUserByFriendCodeQueryKey = (code: string) => {
+  return [`/api/users/by-code/${code}`] as const;
+};
+
+export const getLookupUserByFriendCodeQueryOptions = <
+  TData = Awaited<ReturnType<typeof lookupUserByFriendCode>>,
+  TError = ErrorType<void>,
+>(
+  code: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof lookupUserByFriendCode>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getLookupUserByFriendCodeQueryKey(code);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof lookupUserByFriendCode>>
+  > = ({ signal }) =>
+    lookupUserByFriendCode(code, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!code,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof lookupUserByFriendCode>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type LookupUserByFriendCodeQueryResult = NonNullable<
+  Awaited<ReturnType<typeof lookupUserByFriendCode>>
+>;
+export type LookupUserByFriendCodeQueryError = ErrorType<void>;
+
+/**
+ * @summary Look up a user by their friend code
+ */
+
+export function useLookupUserByFriendCode<
+  TData = Awaited<ReturnType<typeof lookupUserByFriendCode>>,
+  TError = ErrorType<void>,
+>(
+  code: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof lookupUserByFriendCode>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getLookupUserByFriendCodeQueryOptions(code, options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;

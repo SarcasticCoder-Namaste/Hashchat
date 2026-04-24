@@ -6,7 +6,12 @@ import {
   userHashtagsTable,
 } from "@workspace/db";
 import { and, eq, inArray, or, sql } from "drizzle-orm";
-import { requireAuth, getUserId } from "../middlewares/requireAuth";
+import {
+  requireAuth,
+  getUserId,
+  normalizeFriendCode,
+  withFriendCodeRetry,
+} from "../middlewares/requireAuth";
 
 const router: IRouter = Router();
 
@@ -92,6 +97,75 @@ router.get("/users/lookup", requireAuth, async (req, res): Promise<void> => {
   const statusMap = await loadFriendStatuses(me, [match.id]);
   res.json({ ...user, friendStatus: statusMap.get(match.id) ?? null });
 });
+
+router.get("/me/friend-code", requireAuth, async (req, res): Promise<void> => {
+  const me = getUserId(req);
+  const [row] = await db
+    .select({ friendCode: usersTable.friendCode })
+    .from(usersTable)
+    .where(eq(usersTable.id, me))
+    .limit(1);
+  res.json({ friendCode: row?.friendCode ?? null });
+});
+
+router.post(
+  "/me/friend-code/regenerate",
+  requireAuth,
+  async (req, res): Promise<void> => {
+    const me = getUserId(req);
+    const { code: friendCode } = await withFriendCodeRetry(async (code) => {
+      await db
+        .update(usersTable)
+        .set({ friendCode: code })
+        .where(eq(usersTable.id, me));
+    });
+    res.json({ friendCode });
+  },
+);
+
+router.get(
+  "/users/by-code/:code",
+  requireAuth,
+  async (req, res): Promise<void> => {
+    const me = getUserId(req);
+    const raw = Array.isArray(req.params.code)
+      ? req.params.code[0]
+      : req.params.code;
+    const code = normalizeFriendCode(String(raw));
+    if (!code || code.length < 3) {
+      res.status(400).json({ error: "Invalid code" });
+      return;
+    }
+    // Match either the normalized code or formatted variant
+    const formatted =
+      code.length === 7 ? `${code.slice(0, 3)}-${code.slice(3)}` : code;
+    const [user] = await db
+      .select()
+      .from(usersTable)
+      .where(
+        or(
+          eq(usersTable.friendCode, formatted),
+          eq(usersTable.friendCode, code),
+        ),
+      )
+      .limit(1);
+    if (!user || user.id === me) {
+      res.status(404).json({ error: "No user found for that code" });
+      return;
+    }
+    const [match] = await loadMatchUsers(me, [user.id]);
+    if (!match) {
+      res.status(404).json({ error: "No user found for that code" });
+      return;
+    }
+    const friendMap = await loadFriendStatuses(me, [user.id]);
+    res.json({
+      ...match,
+      friendStatus: friendMap.get(user.id) ?? "none",
+    });
+  },
+);
+
 
 router.get("/me/friends", requireAuth, async (req, res): Promise<void> => {
   const me = getUserId(req);

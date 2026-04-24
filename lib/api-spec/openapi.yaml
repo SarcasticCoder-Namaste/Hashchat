@@ -605,6 +605,48 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/CallSignalList" }
 
+  /me/friend-code:
+    get:
+      operationId: getMyFriendCode
+      tags: [friends]
+      summary: Get my friend code
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FriendCodeResponse" }
+
+  /me/friend-code/regenerate:
+    post:
+      operationId: regenerateMyFriendCode
+      tags: [friends]
+      summary: Regenerate my friend code
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FriendCodeResponse" }
+
+  /users/by-code/{code}:
+    get:
+      operationId: lookupUserByFriendCode
+      tags: [friends]
+      summary: Look up a user by their friend code
+      parameters:
+        - name: code
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MatchUser" }
+        "404": { description: No user found for that code }
+
   /me/friends:
     get:
       operationId: getMyFriends
@@ -909,6 +951,8 @@ components:
           type: ["string", "null"]
         discriminator:
           type: ["string", "null"]
+        friendCode:
+          type: ["string", "null"]
         role: { type: string }
         mvpPlan: { type: boolean }
         lastSeenAt: { type: string, format: date-time }
@@ -1019,6 +1063,13 @@ components:
           type: ["string", "null"]
           description: "One of: friends, request_sent, request_received, none"
       required: [id, username, displayName, status, role, mvpPlan, lastSeenAt, hashtags, sharedHashtags, matchScore]
+
+    FriendCodeResponse:
+      type: object
+      properties:
+        friendCode:
+          type: ["string", "null"]
+      required: [friendCode]
 
     FriendRequestList:
       type: object
