@@ -4,21 +4,25 @@ import {
   postsTable,
   postHashtagsTable,
   postMediaTable,
+  postReactionsTable,
   hashtagsTable,
   usersTable,
   userFollowedHashtagsTable,
+  mentionsTable,
 } from "@workspace/db";
 import { and, desc, eq, inArray, lt, sql } from "drizzle-orm";
 import { requireAuth, getUserId } from "../middlewares/requireAuth";
 import { isValidStorageUrl } from "../lib/storageUrls";
 import { normalizeTag } from "../lib/hashtags";
-import { CreatePostBody } from "@workspace/api-zod";
+import { CreatePostBody, AddMessageReactionBody } from "@workspace/api-zod";
+import { resolveMentions, recordMentions } from "../lib/mentions";
+import { createNotification } from "../lib/notifications";
 
 const router: IRouter = Router();
 
 type PostRow = typeof postsTable.$inferSelect;
 
-async function buildPosts(rows: PostRow[]) {
+async function buildPosts(rows: PostRow[], myUserId: string) {
   if (rows.length === 0) return [];
   const ids = rows.map((r) => r.id);
   const authorIds = Array.from(new Set(rows.map((r) => r.authorId)));
@@ -59,6 +63,55 @@ async function buildPosts(rows: PostRow[]) {
     mediaByPost.get(m.postId)!.push(m.imageUrl);
   }
 
+  const reactionRows = await db
+    .select()
+    .from(postReactionsTable)
+    .where(inArray(postReactionsTable.postId, ids));
+  const reactionsByPost = new Map<
+    number,
+    { emoji: string; count: number; reactedByMe: boolean }[]
+  >();
+  for (const r of reactionRows) {
+    const list = reactionsByPost.get(r.postId) ?? [];
+    const existing = list.find((x) => x.emoji === r.emoji);
+    if (existing) {
+      existing.count += 1;
+      if (r.userId === myUserId) existing.reactedByMe = true;
+    } else {
+      list.push({
+        emoji: r.emoji,
+        count: 1,
+        reactedByMe: r.userId === myUserId,
+      });
+    }
+    reactionsByPost.set(r.postId, list);
+  }
+
+  const mentionRows = await db
+    .select({
+      targetId: mentionsTable.targetId,
+      userId: usersTable.id,
+      username: usersTable.username,
+      displayName: usersTable.displayName,
+    })
+    .from(mentionsTable)
+    .innerJoin(usersTable, eq(usersTable.id, mentionsTable.mentionedUserId))
+    .where(
+      and(
+        eq(mentionsTable.targetType, "post"),
+        inArray(mentionsTable.targetId, ids),
+      ),
+    );
+  const mentionsByPost = new Map<
+    number,
+    { id: string; username: string; displayName: string }[]
+  >();
+  for (const m of mentionRows) {
+    const list = mentionsByPost.get(m.targetId) ?? [];
+    list.push({ id: m.userId, username: m.username, displayName: m.displayName });
+    mentionsByPost.set(m.targetId, list);
+  }
+
   return rows.map((r) => {
     const a = authorMap.get(r.authorId);
     return {
@@ -76,6 +129,8 @@ async function buildPosts(rows: PostRow[]) {
       content: r.content,
       hashtags: tagsByPost.get(r.id) ?? [],
       imageUrls: mediaByPost.get(r.id) ?? [],
+      reactions: reactionsByPost.get(r.id) ?? [],
+      mentions: mentionsByPost.get(r.id) ?? [],
       createdAt: r.createdAt.toISOString(),
     };
   });
@@ -135,7 +190,25 @@ router.post("/posts", requireAuth, async (req, res): Promise<void> => {
     );
   }
 
-  const [built] = await buildPosts([created]);
+  const resolved = await resolveMentions(content);
+  const recorded = await recordMentions({
+    mentionerId: me,
+    targetType: "post",
+    targetId: created.id,
+    resolved,
+  });
+  for (const u of recorded) {
+    await createNotification({
+      recipientId: u.id,
+      actorId: me,
+      kind: "mention",
+      targetType: "post",
+      targetId: created.id,
+      snippet: content.slice(0, 200),
+    });
+  }
+
+  const [built] = await buildPosts([created], me);
   res.status(201).json(built);
 });
 
@@ -218,13 +291,14 @@ router.get("/me/feed/posts", requireAuth, async (req, res): Promise<void> => {
     .where(and(...conditions))
     .orderBy(desc(postsTable.createdAt))
     .limit(limit);
-  res.json(await buildPosts(rows));
+  res.json(await buildPosts(rows, me));
 });
 
 router.get(
   "/hashtags/:tag/posts",
   requireAuth,
   async (req, res): Promise<void> => {
+    const me = getUserId(req);
     const raw = Array.isArray(req.params.tag)
       ? req.params.tag[0]
       : req.params.tag;
@@ -251,11 +325,12 @@ router.get(
       )
       .orderBy(desc(postsTable.createdAt))
       .limit(100);
-    res.json(await buildPosts(rows));
+    res.json(await buildPosts(rows, me));
   },
 );
 
 router.get("/users/:id/posts", requireAuth, async (req, res): Promise<void> => {
+  const me = getUserId(req);
   const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
   const rows = await db
     .select()
@@ -265,7 +340,74 @@ router.get("/users/:id/posts", requireAuth, async (req, res): Promise<void> => {
     )
     .orderBy(desc(postsTable.createdAt))
     .limit(100);
-  res.json(await buildPosts(rows));
+  res.json(await buildPosts(rows, me));
 });
+
+router.post(
+  "/posts/:id/reactions",
+  requireAuth,
+  async (req, res): Promise<void> => {
+    const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    const id = parseInt(raw, 10);
+    if (Number.isNaN(id)) {
+      res.status(400).json({ error: "Invalid id" });
+      return;
+    }
+    const parsed = AddMessageReactionBody.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: parsed.error.message });
+      return;
+    }
+    const me = getUserId(req);
+    const [post] = await db
+      .select()
+      .from(postsTable)
+      .where(eq(postsTable.id, id))
+      .limit(1);
+    if (!post || post.deletedAt) {
+      res.status(404).json({ error: "Not found" });
+      return;
+    }
+    await db
+      .insert(postReactionsTable)
+      .values({ postId: id, userId: me, emoji: parsed.data.emoji })
+      .onConflictDoNothing();
+    if (post.authorId !== me) {
+      await createNotification({
+        recipientId: post.authorId,
+        actorId: me,
+        kind: "reaction",
+        targetType: "post",
+        targetId: id,
+        snippet: `${parsed.data.emoji} ${post.content.slice(0, 80)}`,
+      });
+    }
+    res.status(204).end();
+  },
+);
+
+router.delete(
+  "/posts/:id/reactions",
+  requireAuth,
+  async (req, res): Promise<void> => {
+    const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    const id = parseInt(raw, 10);
+    const emoji = String(req.query.emoji ?? "");
+    if (Number.isNaN(id) || !emoji) {
+      res.status(400).json({ error: "Invalid request" });
+      return;
+    }
+    await db
+      .delete(postReactionsTable)
+      .where(
+        and(
+          eq(postReactionsTable.postId, id),
+          eq(postReactionsTable.userId, getUserId(req)),
+          eq(postReactionsTable.emoji, emoji),
+        ),
+      );
+    res.status(204).end();
+  },
+);
 
 export default router;

@@ -197,6 +197,59 @@ router.get("/me/followed-hashtags", requireAuth, async (req, res): Promise<void>
   res.json(await hashtagStats(tags.map((t) => t.tag)));
 });
 
+router.get(
+  "/users/mention-suggestions",
+  requireAuth,
+  async (req, res): Promise<void> => {
+    const me = getUserId(req);
+    const q = String(req.query.q ?? "").trim().toLowerCase();
+    const limit = 10;
+
+    let rows: {
+      id: string;
+      username: string;
+      displayName: string;
+      avatarUrl: string | null;
+      discriminator: string | null;
+    }[];
+
+    if (q.length === 0) {
+      rows = await db
+        .select({
+          id: usersTable.id,
+          username: usersTable.username,
+          displayName: usersTable.displayName,
+          avatarUrl: usersTable.avatarUrl,
+          discriminator: usersTable.discriminator,
+        })
+        .from(usersTable)
+        .where(sql`${usersTable.id} <> ${me}`)
+        .orderBy(usersTable.username)
+        .limit(limit);
+    } else {
+      const like = `${q}%`;
+      rows = await db
+        .select({
+          id: usersTable.id,
+          username: usersTable.username,
+          displayName: usersTable.displayName,
+          avatarUrl: usersTable.avatarUrl,
+          discriminator: usersTable.discriminator,
+        })
+        .from(usersTable)
+        .where(
+          and(
+            sql`${usersTable.id} <> ${me}`,
+            sql`(lower(${usersTable.username}) like ${like} or lower(${usersTable.displayName}) like ${like})`,
+          ),
+        )
+        .orderBy(usersTable.username)
+        .limit(limit);
+    }
+    res.json(rows);
+  },
+);
+
 router.get("/users/:id", requireAuth, async (req, res): Promise<void> => {
   const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
   const myId = getUserId(req);

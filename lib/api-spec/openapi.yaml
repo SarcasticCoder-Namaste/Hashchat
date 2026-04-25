@@ -461,6 +461,143 @@ paths:
       responses:
         "204": { description: No content }
 
+  /messages/{id}/replies:
+    get:
+      operationId: getMessageReplies
+      tags: [messages]
+      summary: Get the parent message and all its replies as a thread
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MessageThread" }
+
+  /posts/{id}/reactions:
+    post:
+      operationId: addPostReaction
+      tags: [posts]
+      summary: Add a reaction to a post
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ReactionBody" }
+      responses:
+        "204": { description: No content }
+    delete:
+      operationId: removePostReaction
+      tags: [posts]
+      summary: Remove my reaction from a post
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+        - { name: emoji, in: query, required: true, schema: { type: string } }
+      responses:
+        "204": { description: No content }
+
+  /users/mention-suggestions:
+    get:
+      operationId: getMentionSuggestions
+      tags: [users]
+      summary: Autocomplete suggestions for @mentions
+      parameters:
+        - { name: q, in: query, required: false, schema: { type: string } }
+        - { name: scopeType, in: query, required: false, schema: { type: string } }
+        - { name: scopeId, in: query, required: false, schema: { type: string } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/MentionSuggestion" }
+
+  /notifications:
+    get:
+      operationId: getNotifications
+      tags: [notifications]
+      summary: List my notifications (newest first)
+      parameters:
+        - { name: limit, in: query, required: false, schema: { type: integer } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/NotificationsResponse" }
+
+  /notifications/unread-count:
+    get:
+      operationId: getUnreadNotificationCount
+      tags: [notifications]
+      summary: Total unread notifications + DMs badge counts
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/UnreadCountResponse" }
+
+  /notifications/read-all:
+    post:
+      operationId: markAllNotificationsRead
+      tags: [notifications]
+      summary: Mark all my notifications read
+      responses:
+        "204": { description: No content }
+
+  /notifications/{id}/read:
+    post:
+      operationId: markNotificationRead
+      tags: [notifications]
+      summary: Mark a single notification as read
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      responses:
+        "204": { description: No content }
+
+  /conversations/{id}/typing:
+    post:
+      operationId: pingConversationTyping
+      tags: [conversations]
+      summary: Heartbeat that current user is typing in this conversation
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      responses:
+        "204": { description: No content }
+    get:
+      operationId: getConversationTyping
+      tags: [conversations]
+      summary: Who is typing in this conversation right now (excluding me)
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TypingResponse" }
+
+  /conversations/{id}/read:
+    post:
+      operationId: markConversationRead
+      tags: [conversations]
+      summary: Record per-message read receipt up to a given message id
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/MarkConversationReadBody" }
+      responses:
+        "204": { description: No content }
+
   /rooms:
     get:
       operationId: getRooms
@@ -1058,45 +1195,6 @@ paths:
               schema:
                 type: array
                 items: { $ref: "#/components/schemas/MatchUser" }
-
-  /me/notifications:
-    get:
-      operationId: getMyNotifications
-      tags: [notifications]
-      summary: List my recent notifications
-      parameters:
-        - name: limit
-          in: query
-          required: false
-          schema: { type: integer, default: 30 }
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: array
-                items: { $ref: "#/components/schemas/Notification" }
-
-  /me/notifications/unread-count:
-    get:
-      operationId: getMyUnreadNotificationCount
-      tags: [notifications]
-      summary: Count my unread notifications
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema: { $ref: "#/components/schemas/UnreadCount" }
-
-  /me/notifications/read:
-    post:
-      operationId: markMyNotificationsRead
-      tags: [notifications]
-      summary: Mark all of my unread notifications as read
-      responses:
-        "204": { description: No content }
 
   /me/redeem-mvp-code:
     post:
@@ -1945,24 +2043,6 @@ components:
         createdAt: { type: string, format: date-time }
       required: [kind, id, user, createdAt]
 
-    Notification:
-      type: object
-      properties:
-        id: { type: integer }
-        kind: { type: string, description: "e.g. follow" }
-        actor: { $ref: "#/components/schemas/MatchUser" }
-        createdAt: { type: string, format: date-time }
-        readAt:
-          type: ["string", "null"]
-          format: date-time
-      required: [id, kind, actor, createdAt]
-
-    UnreadCount:
-      type: object
-      properties:
-        count: { type: integer }
-      required: [count]
-
     FriendRequestList:
       type: object
       properties:
@@ -2126,6 +2206,9 @@ components:
           type: ["integer", "null"]
         replyToContent:
           type: ["string", "null"]
+        replyToSenderName:
+          type: ["string", "null"]
+        replyCount: { type: integer }
         imageUrl:
           type: ["string", "null"]
         audioUrl:
@@ -2136,12 +2219,17 @@ components:
         attachments:
           type: array
           items: { $ref: "#/components/schemas/MessageAttachment" }
+        mentions:
+          type: array
+          items: { $ref: "#/components/schemas/MentionedUser" }
+        readByOther:
+          type: ["boolean", "null"]
         poll:
           oneOf:
             - { $ref: "#/components/schemas/Poll" }
             - { type: "null" }
         createdAt: { type: string, format: date-time }
-      required: [id, senderId, senderName, content, reactions, attachments, createdAt]
+      required: [id, senderId, senderName, content, reactions, attachments, mentions, replyCount, createdAt]
 
     SendMessageBody:
       type: object
@@ -2364,8 +2452,14 @@ components:
         imageUrls:
           type: array
           items: { type: string }
+        reactions:
+          type: array
+          items: { $ref: "#/components/schemas/Reaction" }
+        mentions:
+          type: array
+          items: { $ref: "#/components/schemas/MentionedUser" }
         createdAt: { type: string, format: date-time }
-      required: [id, author, content, hashtags, imageUrls, createdAt]
+      required: [id, author, content, hashtags, imageUrls, reactions, mentions, createdAt]
 
     CreatePostBody:
       type: object
@@ -2711,3 +2805,106 @@ components:
         url: { type: string }
         provider: { type: string, enum: [stripe, dev] }
       required: [url, provider]
+
+    MentionedUser:
+      type: object
+      properties:
+        id: { type: string }
+        username: { type: string }
+        displayName: { type: string }
+      required: [id, username, displayName]
+
+    MentionSuggestion:
+      type: object
+      properties:
+        id: { type: string }
+        username: { type: string }
+        displayName: { type: string }
+        avatarUrl:
+          type: ["string", "null"]
+        discriminator:
+          type: ["string", "null"]
+      required: [id, username, displayName]
+
+    MessageThread:
+      type: object
+      properties:
+        parent: { $ref: "#/components/schemas/Message" }
+        replies:
+          type: array
+          items: { $ref: "#/components/schemas/Message" }
+      required: [parent, replies]
+
+    NotificationActor:
+      type: object
+      properties:
+        id: { type: string }
+        username: { type: string }
+        displayName: { type: string }
+        avatarUrl:
+          type: ["string", "null"]
+      required: [id, username, displayName]
+
+    Notification:
+      type: object
+      properties:
+        id: { type: integer }
+        kind: { type: string, enum: [mention, reply, reaction, follow, dm] }
+        actor:
+          oneOf:
+            - { $ref: "#/components/schemas/NotificationActor" }
+            - { type: "null" }
+        targetType:
+          type: ["string", "null"]
+          enum: [message, post, conversation, user, "null"]
+        targetId:
+          type: ["integer", "null"]
+        targetTextId:
+          type: ["string", "null"]
+        snippet:
+          type: ["string", "null"]
+        href:
+          type: ["string", "null"]
+        readAt:
+          type: ["string", "null"]
+          format: date-time
+        createdAt: { type: string, format: date-time }
+      required: [id, kind, createdAt]
+
+    NotificationsResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/Notification" }
+        unreadCount: { type: integer }
+      required: [items, unreadCount]
+
+    UnreadCountResponse:
+      type: object
+      properties:
+        notifications: { type: integer }
+        dms: { type: integer }
+        total: { type: integer }
+      required: [notifications, dms, total]
+
+    TypingUser:
+      type: object
+      properties:
+        id: { type: string }
+        displayName: { type: string }
+      required: [id, displayName]
+
+    TypingResponse:
+      type: object
+      properties:
+        users:
+          type: array
+          items: { $ref: "#/components/schemas/TypingUser" }
+      required: [users]
+
+    MarkConversationReadBody:
+      type: object
+      properties:
+        messageId:
+          type: ["integer", "null"]

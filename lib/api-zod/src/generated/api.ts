@@ -335,6 +335,20 @@ export const GetForYouFeedResponseItem = zod.object({
         content: zod.string(),
         hashtags: zod.array(zod.string()),
         imageUrls: zod.array(zod.string()),
+        reactions: zod.array(
+          zod.object({
+            emoji: zod.string(),
+            count: zod.number(),
+            reactedByMe: zod.boolean(),
+          }),
+        ),
+        mentions: zod.array(
+          zod.object({
+            id: zod.string(),
+            username: zod.string(),
+            displayName: zod.string(),
+          }),
+        ),
         createdAt: zod.coerce.date(),
       }),
       zod.null(),
@@ -360,6 +374,8 @@ export const GetForYouFeedResponseItem = zod.object({
               content: zod.string(),
               replyToId: zod.number().nullish(),
               replyToContent: zod.string().nullish(),
+              replyToSenderName: zod.string().nullish(),
+              replyCount: zod.number(),
               imageUrl: zod.string().nullish(),
               audioUrl: zod.string().nullish(),
               reactions: zod.array(
@@ -379,6 +395,14 @@ export const GetForYouFeedResponseItem = zod.object({
                   thumbnailUrl: zod.string().nullish(),
                 }),
               ),
+              mentions: zod.array(
+                zod.object({
+                  id: zod.string(),
+                  username: zod.string(),
+                  displayName: zod.string(),
+                }),
+              ),
+              readByOther: zod.boolean().nullish(),
               poll: zod
                 .union([
                   zod.object({
@@ -690,6 +714,8 @@ export const GetConversationsResponseItem = zod.object({
         content: zod.string(),
         replyToId: zod.number().nullish(),
         replyToContent: zod.string().nullish(),
+        replyToSenderName: zod.string().nullish(),
+        replyCount: zod.number(),
         imageUrl: zod.string().nullish(),
         audioUrl: zod.string().nullish(),
         reactions: zod.array(
@@ -709,6 +735,14 @@ export const GetConversationsResponseItem = zod.object({
             thumbnailUrl: zod.string().nullish(),
           }),
         ),
+        mentions: zod.array(
+          zod.object({
+            id: zod.string(),
+            username: zod.string(),
+            displayName: zod.string(),
+          }),
+        ),
+        readByOther: zod.boolean().nullish(),
         poll: zod
           .union([
             zod.object({
@@ -791,6 +825,8 @@ export const OpenConversationResponse = zod.object({
         content: zod.string(),
         replyToId: zod.number().nullish(),
         replyToContent: zod.string().nullish(),
+        replyToSenderName: zod.string().nullish(),
+        replyCount: zod.number(),
         imageUrl: zod.string().nullish(),
         audioUrl: zod.string().nullish(),
         reactions: zod.array(
@@ -810,6 +846,14 @@ export const OpenConversationResponse = zod.object({
             thumbnailUrl: zod.string().nullish(),
           }),
         ),
+        mentions: zod.array(
+          zod.object({
+            id: zod.string(),
+            username: zod.string(),
+            displayName: zod.string(),
+          }),
+        ),
+        readByOther: zod.boolean().nullish(),
         poll: zod
           .union([
             zod.object({
@@ -862,6 +906,8 @@ export const GetConversationMessagesResponseItem = zod.object({
   content: zod.string(),
   replyToId: zod.number().nullish(),
   replyToContent: zod.string().nullish(),
+  replyToSenderName: zod.string().nullish(),
+  replyCount: zod.number(),
   imageUrl: zod.string().nullish(),
   audioUrl: zod.string().nullish(),
   reactions: zod.array(
@@ -881,6 +927,14 @@ export const GetConversationMessagesResponseItem = zod.object({
       thumbnailUrl: zod.string().nullish(),
     }),
   ),
+  mentions: zod.array(
+    zod.object({
+      id: zod.string(),
+      username: zod.string(),
+      displayName: zod.string(),
+    }),
+  ),
+  readByOther: zod.boolean().nullish(),
   poll: zod
     .union([
       zod.object({
@@ -950,6 +1004,279 @@ export const RemoveMessageReactionQueryParams = zod.object({
 });
 
 /**
+ * @summary Get the parent message and all its replies as a thread
+ */
+export const GetMessageRepliesParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const GetMessageRepliesResponse = zod.object({
+  parent: zod.object({
+    id: zod.number(),
+    conversationId: zod.number().nullish(),
+    roomTag: zod.string().nullish(),
+    senderId: zod.string(),
+    senderName: zod.string(),
+    senderAvatarUrl: zod.string().nullish(),
+    content: zod.string(),
+    replyToId: zod.number().nullish(),
+    replyToContent: zod.string().nullish(),
+    replyToSenderName: zod.string().nullish(),
+    replyCount: zod.number(),
+    imageUrl: zod.string().nullish(),
+    audioUrl: zod.string().nullish(),
+    reactions: zod.array(
+      zod.object({
+        emoji: zod.string(),
+        count: zod.number(),
+        reactedByMe: zod.boolean(),
+      }),
+    ),
+    attachments: zod.array(
+      zod.object({
+        id: zod.number(),
+        kind: zod.enum(["image", "gif", "link_preview", "poll"]),
+        url: zod.string(),
+        title: zod.string().nullish(),
+        description: zod.string().nullish(),
+        thumbnailUrl: zod.string().nullish(),
+      }),
+    ),
+    mentions: zod.array(
+      zod.object({
+        id: zod.string(),
+        username: zod.string(),
+        displayName: zod.string(),
+      }),
+    ),
+    readByOther: zod.boolean().nullish(),
+    poll: zod
+      .union([
+        zod.object({
+          id: zod.number(),
+          roomTag: zod.string(),
+          creatorId: zod.string(),
+          creatorName: zod.string(),
+          question: zod.string(),
+          options: zod.array(
+            zod.object({
+              id: zod.number(),
+              text: zod.string(),
+              votes: zod.number(),
+              votedByMe: zod.boolean(),
+            }),
+          ),
+          totalVotes: zod.number(),
+          myVoteOptionId: zod.number().nullish(),
+          expiresAt: zod.coerce.date().nullish(),
+          isExpired: zod.boolean(),
+          createdAt: zod.coerce.date(),
+        }),
+        zod.null(),
+      ])
+      .optional(),
+    createdAt: zod.coerce.date(),
+  }),
+  replies: zod.array(
+    zod.object({
+      id: zod.number(),
+      conversationId: zod.number().nullish(),
+      roomTag: zod.string().nullish(),
+      senderId: zod.string(),
+      senderName: zod.string(),
+      senderAvatarUrl: zod.string().nullish(),
+      content: zod.string(),
+      replyToId: zod.number().nullish(),
+      replyToContent: zod.string().nullish(),
+      replyToSenderName: zod.string().nullish(),
+      replyCount: zod.number(),
+      imageUrl: zod.string().nullish(),
+      audioUrl: zod.string().nullish(),
+      reactions: zod.array(
+        zod.object({
+          emoji: zod.string(),
+          count: zod.number(),
+          reactedByMe: zod.boolean(),
+        }),
+      ),
+      attachments: zod.array(
+        zod.object({
+          id: zod.number(),
+          kind: zod.enum(["image", "gif", "link_preview", "poll"]),
+          url: zod.string(),
+          title: zod.string().nullish(),
+          description: zod.string().nullish(),
+          thumbnailUrl: zod.string().nullish(),
+        }),
+      ),
+      mentions: zod.array(
+        zod.object({
+          id: zod.string(),
+          username: zod.string(),
+          displayName: zod.string(),
+        }),
+      ),
+      readByOther: zod.boolean().nullish(),
+      poll: zod
+        .union([
+          zod.object({
+            id: zod.number(),
+            roomTag: zod.string(),
+            creatorId: zod.string(),
+            creatorName: zod.string(),
+            question: zod.string(),
+            options: zod.array(
+              zod.object({
+                id: zod.number(),
+                text: zod.string(),
+                votes: zod.number(),
+                votedByMe: zod.boolean(),
+              }),
+            ),
+            totalVotes: zod.number(),
+            myVoteOptionId: zod.number().nullish(),
+            expiresAt: zod.coerce.date().nullish(),
+            isExpired: zod.boolean(),
+            createdAt: zod.coerce.date(),
+          }),
+          zod.null(),
+        ])
+        .optional(),
+      createdAt: zod.coerce.date(),
+    }),
+  ),
+});
+
+/**
+ * @summary Add a reaction to a post
+ */
+export const AddPostReactionParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const AddPostReactionBody = zod.object({
+  emoji: zod.string(),
+});
+
+/**
+ * @summary Remove my reaction from a post
+ */
+export const RemovePostReactionParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const RemovePostReactionQueryParams = zod.object({
+  emoji: zod.coerce.string(),
+});
+
+/**
+ * @summary Autocomplete suggestions for @mentions
+ */
+export const GetMentionSuggestionsQueryParams = zod.object({
+  q: zod.coerce.string().optional(),
+  scopeType: zod.coerce.string().optional(),
+  scopeId: zod.coerce.string().optional(),
+});
+
+export const GetMentionSuggestionsResponseItem = zod.object({
+  id: zod.string(),
+  username: zod.string(),
+  displayName: zod.string(),
+  avatarUrl: zod.string().nullish(),
+  discriminator: zod.string().nullish(),
+});
+export const GetMentionSuggestionsResponse = zod.array(
+  GetMentionSuggestionsResponseItem,
+);
+
+/**
+ * @summary List my notifications (newest first)
+ */
+export const GetNotificationsQueryParams = zod.object({
+  limit: zod.coerce.number().optional(),
+});
+
+export const GetNotificationsResponse = zod.object({
+  items: zod.array(
+    zod.object({
+      id: zod.number(),
+      kind: zod.enum(["mention", "reply", "reaction", "follow", "dm"]),
+      actor: zod
+        .union([
+          zod.object({
+            id: zod.string(),
+            username: zod.string(),
+            displayName: zod.string(),
+            avatarUrl: zod.string().nullish(),
+          }),
+          zod.null(),
+        ])
+        .optional(),
+      targetType: zod
+        .enum(["message", "post", "conversation", "user", "null"])
+        .nullish(),
+      targetId: zod.number().nullish(),
+      targetTextId: zod.string().nullish(),
+      snippet: zod.string().nullish(),
+      href: zod.string().nullish(),
+      readAt: zod.coerce.date().nullish(),
+      createdAt: zod.coerce.date(),
+    }),
+  ),
+  unreadCount: zod.number(),
+});
+
+/**
+ * @summary Total unread notifications + DMs badge counts
+ */
+export const GetUnreadNotificationCountResponse = zod.object({
+  notifications: zod.number(),
+  dms: zod.number(),
+  total: zod.number(),
+});
+
+/**
+ * @summary Mark a single notification as read
+ */
+export const MarkNotificationReadParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+/**
+ * @summary Heartbeat that current user is typing in this conversation
+ */
+export const PingConversationTypingParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+/**
+ * @summary Who is typing in this conversation right now (excluding me)
+ */
+export const GetConversationTypingParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const GetConversationTypingResponse = zod.object({
+  users: zod.array(
+    zod.object({
+      id: zod.string(),
+      displayName: zod.string(),
+    }),
+  ),
+});
+
+/**
+ * @summary Record per-message read receipt up to a given message id
+ */
+export const MarkConversationReadParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const MarkConversationReadBody = zod.object({
+  messageId: zod.number().nullish(),
+});
+
+/**
  * @summary List hashtag rooms I follow (with unread/last message)
  */
 export const GetRoomsResponseItem = zod.object({
@@ -970,6 +1297,8 @@ export const GetRoomsResponseItem = zod.object({
         content: zod.string(),
         replyToId: zod.number().nullish(),
         replyToContent: zod.string().nullish(),
+        replyToSenderName: zod.string().nullish(),
+        replyCount: zod.number(),
         imageUrl: zod.string().nullish(),
         audioUrl: zod.string().nullish(),
         reactions: zod.array(
@@ -989,6 +1318,14 @@ export const GetRoomsResponseItem = zod.object({
             thumbnailUrl: zod.string().nullish(),
           }),
         ),
+        mentions: zod.array(
+          zod.object({
+            id: zod.string(),
+            username: zod.string(),
+            displayName: zod.string(),
+          }),
+        ),
+        readByOther: zod.boolean().nullish(),
         poll: zod
           .union([
             zod.object({
@@ -1052,6 +1389,8 @@ export const GetTrendingRoomsResponseItem = zod.object({
         content: zod.string(),
         replyToId: zod.number().nullish(),
         replyToContent: zod.string().nullish(),
+        replyToSenderName: zod.string().nullish(),
+        replyCount: zod.number(),
         imageUrl: zod.string().nullish(),
         audioUrl: zod.string().nullish(),
         reactions: zod.array(
@@ -1071,6 +1410,14 @@ export const GetTrendingRoomsResponseItem = zod.object({
             thumbnailUrl: zod.string().nullish(),
           }),
         ),
+        mentions: zod.array(
+          zod.object({
+            id: zod.string(),
+            username: zod.string(),
+            displayName: zod.string(),
+          }),
+        ),
+        readByOther: zod.boolean().nullish(),
         poll: zod
           .union([
             zod.object({
@@ -1124,6 +1471,8 @@ export const GetRoomMessagesResponseItem = zod.object({
   content: zod.string(),
   replyToId: zod.number().nullish(),
   replyToContent: zod.string().nullish(),
+  replyToSenderName: zod.string().nullish(),
+  replyCount: zod.number(),
   imageUrl: zod.string().nullish(),
   audioUrl: zod.string().nullish(),
   reactions: zod.array(
@@ -1143,6 +1492,14 @@ export const GetRoomMessagesResponseItem = zod.object({
       thumbnailUrl: zod.string().nullish(),
     }),
   ),
+  mentions: zod.array(
+    zod.object({
+      id: zod.string(),
+      username: zod.string(),
+      displayName: zod.string(),
+    }),
+  ),
+  readByOther: zod.boolean().nullish(),
   poll: zod
     .union([
       zod.object({
@@ -1855,57 +2212,6 @@ export const GetFollowSuggestionsResponse = zod.array(
 );
 
 /**
- * @summary List my recent notifications
- */
-export const getMyNotificationsQueryLimitDefault = 30;
-
-export const GetMyNotificationsQueryParams = zod.object({
-  limit: zod.coerce.number().default(getMyNotificationsQueryLimitDefault),
-});
-
-export const GetMyNotificationsResponseItem = zod.object({
-  id: zod.number(),
-  kind: zod.string().describe("e.g. follow"),
-  actor: zod.object({
-    id: zod.string(),
-    username: zod.string(),
-    displayName: zod.string(),
-    bio: zod.string().nullish(),
-    avatarUrl: zod.string().nullish(),
-    status: zod.string(),
-    featuredHashtag: zod.string().nullish(),
-    discriminator: zod.string().nullish(),
-    role: zod.string(),
-    mvpPlan: zod.boolean(),
-    verified: zod.boolean(),
-    lastSeenAt: zod.coerce.date(),
-    hashtags: zod.array(zod.string()),
-    sharedHashtags: zod.array(zod.string()),
-    matchScore: zod.number(),
-    friendStatus: zod
-      .string()
-      .nullish()
-      .describe("One of: friends, request_sent, request_received, none"),
-    isFollowing: zod.boolean().optional(),
-    followsMe: zod.boolean().optional(),
-    isMuted: zod.boolean().optional(),
-    isBlocked: zod.boolean().optional(),
-  }),
-  createdAt: zod.coerce.date(),
-  readAt: zod.coerce.date().nullish(),
-});
-export const GetMyNotificationsResponse = zod.array(
-  GetMyNotificationsResponseItem,
-);
-
-/**
- * @summary Count my unread notifications
- */
-export const GetMyUnreadNotificationCountResponse = zod.object({
-  count: zod.number(),
-});
-
-/**
  * @summary Redeem an MVP plan code
  */
 export const RedeemMvpCodeBody = zod.object({
@@ -2028,6 +2334,20 @@ export const GetMyFeedPostsResponseItem = zod.object({
   content: zod.string(),
   hashtags: zod.array(zod.string()),
   imageUrls: zod.array(zod.string()),
+  reactions: zod.array(
+    zod.object({
+      emoji: zod.string(),
+      count: zod.number(),
+      reactedByMe: zod.boolean(),
+    }),
+  ),
+  mentions: zod.array(
+    zod.object({
+      id: zod.string(),
+      username: zod.string(),
+      displayName: zod.string(),
+    }),
+  ),
   createdAt: zod.coerce.date(),
 });
 export const GetMyFeedPostsResponse = zod.array(GetMyFeedPostsResponseItem);
@@ -2054,6 +2374,20 @@ export const GetHashtagPostsResponseItem = zod.object({
   content: zod.string(),
   hashtags: zod.array(zod.string()),
   imageUrls: zod.array(zod.string()),
+  reactions: zod.array(
+    zod.object({
+      emoji: zod.string(),
+      count: zod.number(),
+      reactedByMe: zod.boolean(),
+    }),
+  ),
+  mentions: zod.array(
+    zod.object({
+      id: zod.string(),
+      username: zod.string(),
+      displayName: zod.string(),
+    }),
+  ),
   createdAt: zod.coerce.date(),
 });
 export const GetHashtagPostsResponse = zod.array(GetHashtagPostsResponseItem);
@@ -2080,6 +2414,20 @@ export const GetUserPostsResponseItem = zod.object({
   content: zod.string(),
   hashtags: zod.array(zod.string()),
   imageUrls: zod.array(zod.string()),
+  reactions: zod.array(
+    zod.object({
+      emoji: zod.string(),
+      count: zod.number(),
+      reactedByMe: zod.boolean(),
+    }),
+  ),
+  mentions: zod.array(
+    zod.object({
+      id: zod.string(),
+      username: zod.string(),
+      displayName: zod.string(),
+    }),
+  ),
   createdAt: zod.coerce.date(),
 });
 export const GetUserPostsResponse = zod.array(GetUserPostsResponseItem);
@@ -2369,6 +2717,8 @@ export const GetCommunityResponse = zod.object({
             content: zod.string(),
             replyToId: zod.number().nullish(),
             replyToContent: zod.string().nullish(),
+            replyToSenderName: zod.string().nullish(),
+            replyCount: zod.number(),
             imageUrl: zod.string().nullish(),
             audioUrl: zod.string().nullish(),
             reactions: zod.array(
@@ -2388,6 +2738,14 @@ export const GetCommunityResponse = zod.object({
                 thumbnailUrl: zod.string().nullish(),
               }),
             ),
+            mentions: zod.array(
+              zod.object({
+                id: zod.string(),
+                username: zod.string(),
+                displayName: zod.string(),
+              }),
+            ),
+            readByOther: zod.boolean().nullish(),
             poll: zod
               .union([
                 zod.object({
@@ -2517,6 +2875,8 @@ export const JoinCommunityResponse = zod.object({
             content: zod.string(),
             replyToId: zod.number().nullish(),
             replyToContent: zod.string().nullish(),
+            replyToSenderName: zod.string().nullish(),
+            replyCount: zod.number(),
             imageUrl: zod.string().nullish(),
             audioUrl: zod.string().nullish(),
             reactions: zod.array(
@@ -2536,6 +2896,14 @@ export const JoinCommunityResponse = zod.object({
                 thumbnailUrl: zod.string().nullish(),
               }),
             ),
+            mentions: zod.array(
+              zod.object({
+                id: zod.string(),
+                username: zod.string(),
+                displayName: zod.string(),
+              }),
+            ),
+            readByOther: zod.boolean().nullish(),
             poll: zod
               .union([
                 zod.object({
@@ -2665,6 +3033,8 @@ export const LeaveCommunityResponse = zod.object({
             content: zod.string(),
             replyToId: zod.number().nullish(),
             replyToContent: zod.string().nullish(),
+            replyToSenderName: zod.string().nullish(),
+            replyCount: zod.number(),
             imageUrl: zod.string().nullish(),
             audioUrl: zod.string().nullish(),
             reactions: zod.array(
@@ -2684,6 +3054,14 @@ export const LeaveCommunityResponse = zod.object({
                 thumbnailUrl: zod.string().nullish(),
               }),
             ),
+            mentions: zod.array(
+              zod.object({
+                id: zod.string(),
+                username: zod.string(),
+                displayName: zod.string(),
+              }),
+            ),
+            readByOther: zod.boolean().nullish(),
             poll: zod
               .union([
                 zod.object({

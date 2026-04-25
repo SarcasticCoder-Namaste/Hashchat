@@ -12,9 +12,10 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { Reply, Smile, CornerDownRight } from "lucide-react";
+import { Reply, Smile, CornerDownRight, MessageSquare, Check, CheckCheck } from "lucide-react";
 import { LinkPreviewCard } from "./LinkPreviewCard";
 import { PollCard } from "./PollCard";
+import { renderRichContent } from "@/lib/mentions";
 
 const QUICK_REACTIONS = ["👍", "❤️", "😂", "😮", "😢", "🔥", "🎉", "🙌"];
 
@@ -24,6 +25,8 @@ interface MessageBubbleProps {
   isMine: boolean;
   onReply: (m: Message) => void;
   onInvalidate: () => void;
+  onOpenThread?: (m: Message) => void;
+  showReadReceipt?: boolean;
 }
 
 export function MessageBubble({
@@ -32,6 +35,8 @@ export function MessageBubble({
   isMine,
   onReply,
   onInvalidate,
+  onOpenThread,
+  showReadReceipt,
 }: MessageBubbleProps) {
   const [pickerOpen, setPickerOpen] = useState(false);
   const add = useAddMessageReaction({
@@ -160,17 +165,35 @@ export function MessageBubble({
             )}
             <div className="px-3.5 py-2" data-msg-pad>
             {message.content && (
-              <p className="whitespace-pre-wrap break-words">{message.content}</p>
+              <p className="whitespace-pre-wrap break-words">
+                {renderRichContent(message.content, message.mentions)}
+              </p>
             )}
             <p
               className={[
-                "mt-1 text-[10px]",
+                "mt-1 flex items-center gap-1 text-[10px]",
+                isMine ? "justify-end" : "justify-start",
                 isMine
                   ? "text-primary-foreground/70"
                   : "text-muted-foreground/70",
               ].join(" ")}
             >
-              {time}
+              <span>{time}</span>
+              {showReadReceipt && isMine && (
+                message.readByOther ? (
+                  <CheckCheck
+                    className="h-3 w-3"
+                    data-testid={`receipt-seen-${message.id}`}
+                    aria-label="Seen"
+                  />
+                ) : (
+                  <Check
+                    className="h-3 w-3"
+                    data-testid={`receipt-delivered-${message.id}`}
+                    aria-label="Delivered"
+                  />
+                )
+              )}
             </p>
             </div>
           </div>
@@ -191,6 +214,20 @@ export function MessageBubble({
               onToggle={toggleEmoji}
               align={isMine ? "end" : "start"}
             />
+          )}
+          {message.replyCount > 0 && onOpenThread && (
+            <button
+              type="button"
+              onClick={() => onOpenThread(message)}
+              className={[
+                "mt-1 inline-flex items-center gap-1 text-xs text-primary hover:underline",
+                isMine ? "self-end" : "self-start",
+              ].join(" ")}
+              data-testid={`button-view-thread-${message.id}`}
+            >
+              <MessageSquare className="h-3 w-3" />
+              {message.replyCount} {message.replyCount === 1 ? "reply" : "replies"}
+            </button>
           )}
         </div>
         <MessageActions
@@ -262,7 +299,7 @@ export function MessageBubble({
         )}
         {message.content && (
           <p className="mt-0.5 whitespace-pre-wrap break-words text-sm text-foreground">
-            {message.content}
+            {renderRichContent(message.content, message.mentions)}
           </p>
         )}
         {message.attachments?.map((a) =>
@@ -282,6 +319,17 @@ export function MessageBubble({
             onToggle={toggleEmoji}
             align="start"
           />
+        )}
+        {message.replyCount > 0 && onOpenThread && (
+          <button
+            type="button"
+            onClick={() => onOpenThread(message)}
+            className="mt-1 inline-flex items-center gap-1 text-xs text-primary hover:underline"
+            data-testid={`button-view-thread-${message.id}`}
+          >
+            <MessageSquare className="h-3 w-3" />
+            {message.replyCount} {message.replyCount === 1 ? "reply" : "replies"}
+          </button>
         )}
       </div>
       <MessageActions

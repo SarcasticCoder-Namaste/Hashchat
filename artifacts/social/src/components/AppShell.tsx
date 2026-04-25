@@ -294,7 +294,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
             </Link>
             <div className="flex items-center gap-1">
               <FriendCodeSearch />
-              <NotificationsBell enabled={!!me} />
+              <NotificationsBell enabled={!!me} testIdSuffix="mobile" />
               <ThemeToggle />
               <Button
                 variant="ghost"

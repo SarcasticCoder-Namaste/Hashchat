@@ -3,125 +3,139 @@ import {
   db,
   notificationsTable,
   usersTable,
-  userHashtagsTable,
+  conversationsTable,
+  conversationReadsTable,
+  messagesTable,
 } from "@workspace/db";
-import { and, desc, eq, inArray, isNull, sql } from "drizzle-orm";
+import { and, desc, eq, gt, inArray, isNull, or, sql } from "drizzle-orm";
 import { requireAuth, getUserId } from "../middlewares/requireAuth";
-import { loadBlockWall } from "../lib/relationships";
+import { buildHref } from "../lib/notifications";
 
 const router: IRouter = Router();
 
-async function loadActorMatchUsers(myId: string, actorIds: string[]) {
-  if (actorIds.length === 0) return new Map<string, unknown>();
-  const others = await db
-    .select()
-    .from(usersTable)
-    .where(inArray(usersTable.id, actorIds));
-  const tagsRows = await db
-    .select()
-    .from(userHashtagsTable)
-    .where(inArray(userHashtagsTable.userId, actorIds));
-  const myTagsRows = await db
-    .select({ tag: userHashtagsTable.tag })
-    .from(userHashtagsTable)
-    .where(eq(userHashtagsTable.userId, myId));
-  const myTagSet = new Set(myTagsRows.map((r) => r.tag));
-  const otherTags = new Map<string, string[]>();
-  for (const r of tagsRows) {
-    if (!otherTags.has(r.userId)) otherTags.set(r.userId, []);
-    otherTags.get(r.userId)!.push(r.tag);
-  }
-  const map = new Map<string, unknown>();
-  for (const o of others) {
-    const tags = otherTags.get(o.id) ?? [];
-    const shared = tags.filter((t) => myTagSet.has(t));
-    map.set(o.id, {
-      id: o.id,
-      username: o.username,
-      displayName: o.displayName,
-      bio: o.bio,
-      avatarUrl: o.avatarUrl,
-      status: o.status,
-      featuredHashtag: o.featuredHashtag,
-      discriminator: o.discriminator,
-      role: o.role,
-      mvpPlan: o.mvpPlan,
-      lastSeenAt: o.lastSeenAt.toISOString(),
-      hashtags: tags,
-      sharedHashtags: shared,
-      matchScore: shared.length,
-    });
-  }
-  return map;
-}
+router.get("/notifications", requireAuth, async (req, res): Promise<void> => {
+  const me = getUserId(req);
+  const limitRaw = parseInt(String(req.query.limit ?? "50"), 10);
+  const limit = Math.min(Math.max(Number.isNaN(limitRaw) ? 50 : limitRaw, 1), 100);
 
-router.get(
-  "/me/notifications",
-  requireAuth,
-  async (req, res): Promise<void> => {
-    const me = getUserId(req);
-    const limit = Math.min(
-      Math.max(parseInt(String(req.query.limit ?? "30"), 10) || 30, 1),
-      100,
+  const rows = await db
+    .select()
+    .from(notificationsTable)
+    .where(eq(notificationsTable.recipientId, me))
+    .orderBy(desc(notificationsTable.createdAt))
+    .limit(limit);
+
+  const actorIds = Array.from(
+    new Set(rows.map((r) => r.actorId).filter((v): v is string => !!v)),
+  );
+  const actorRows = actorIds.length
+    ? await db
+        .select({
+          id: usersTable.id,
+          username: usersTable.username,
+          displayName: usersTable.displayName,
+          avatarUrl: usersTable.avatarUrl,
+        })
+        .from(usersTable)
+        .where(inArray(usersTable.id, actorIds))
+    : [];
+  const actorMap = new Map(actorRows.map((a) => [a.id, a]));
+
+  const items = rows.map((r) => {
+    const actor = r.actorId ? actorMap.get(r.actorId) : null;
+    return {
+      id: r.id,
+      kind: r.kind,
+      actor: actor
+        ? {
+            id: actor.id,
+            username: actor.username,
+            displayName: actor.displayName,
+            avatarUrl: actor.avatarUrl,
+          }
+        : null,
+      targetType: r.targetType,
+      targetId: r.targetId,
+      targetTextId: r.targetTextId,
+      snippet: r.snippet,
+      href: buildHref(r.targetType, r.targetId, r.targetTextId),
+      readAt: r.readAt ? r.readAt.toISOString() : null,
+      createdAt: r.createdAt.toISOString(),
+    };
+  });
+
+  const [unread] = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(notificationsTable)
+    .where(
+      and(
+        eq(notificationsTable.recipientId, me),
+        isNull(notificationsTable.readAt),
+      ),
     );
-    const blockWall = await loadBlockWall(me);
-    const rows = await db
-      .select()
-      .from(notificationsTable)
-      .where(eq(notificationsTable.userId, me))
-      .orderBy(desc(notificationsTable.createdAt))
-      .limit(limit);
 
-    const visible = rows.filter((r) => !blockWall.has(r.actorId));
-    const actorIds = Array.from(new Set(visible.map((r) => r.actorId)));
-    const actorMap = await loadActorMatchUsers(me, actorIds);
-
-    const items = visible
-      .map((r) => {
-        const actor = actorMap.get(r.actorId);
-        if (!actor) return null;
-        return {
-          id: r.id,
-          kind: r.kind,
-          actor,
-          createdAt: r.createdAt.toISOString(),
-          readAt: r.readAt ? r.readAt.toISOString() : null,
-        };
-      })
-      .filter((x): x is NonNullable<typeof x> => x !== null);
-
-    res.json(items);
-  },
-);
+  res.json({ items, unreadCount: unread?.count ?? 0 });
+});
 
 router.get(
-  "/me/notifications/unread-count",
+  "/notifications/unread-count",
   requireAuth,
   async (req, res): Promise<void> => {
     const me = getUserId(req);
-    const blockWall = await loadBlockWall(me);
-    const blockedIds = Array.from(blockWall);
-    const [row] = await db
+
+    const [n] = await db
       .select({ count: sql<number>`count(*)::int` })
       .from(notificationsTable)
       .where(
         and(
-          eq(notificationsTable.userId, me),
+          eq(notificationsTable.recipientId, me),
           isNull(notificationsTable.readAt),
-          blockedIds.length > 0
-            ? sql`${notificationsTable.actorId} NOT IN (${sql.join(
-                blockedIds.map((id) => sql`${id}`),
-                sql`, `,
-              )})`
-            : sql`true`,
         ),
       );
-    res.json({ count: row?.count ?? 0 });
+
+    // Compute DM badge: number of conversations with unread messages from other.
+    const convos = await db
+      .select()
+      .from(conversationsTable)
+      .where(
+        or(eq(conversationsTable.userAId, me), eq(conversationsTable.userBId, me)),
+      );
+    let dms = 0;
+    if (convos.length > 0) {
+      const convoIds = convos.map((c) => c.id);
+      const reads = await db
+        .select()
+        .from(conversationReadsTable)
+        .where(
+          and(
+            eq(conversationReadsTable.userId, me),
+            inArray(conversationReadsTable.conversationId, convoIds),
+          ),
+        );
+      const readMap = new Map(reads.map((r) => [r.conversationId, r.lastReadAt]));
+      for (const c of convos) {
+        const lastReadAt = readMap.get(c.id) ?? new Date(0);
+        const [u] = await db
+          .select({ count: sql<number>`count(*)::int` })
+          .from(messagesTable)
+          .where(
+            and(
+              eq(messagesTable.conversationId, c.id),
+              sql`${messagesTable.senderId} <> ${me}`,
+              gt(messagesTable.createdAt, lastReadAt),
+            ),
+          );
+        if ((u?.count ?? 0) > 0) dms += 1;
+      }
+    }
+
+    const notifications = n?.count ?? 0;
+    res.json({ notifications, dms, total: notifications + dms });
   },
 );
 
 router.post(
-  "/me/notifications/read",
+  "/notifications/read-all",
   requireAuth,
   async (req, res): Promise<void> => {
     const me = getUserId(req);
@@ -130,8 +144,32 @@ router.post(
       .set({ readAt: new Date() })
       .where(
         and(
-          eq(notificationsTable.userId, me),
+          eq(notificationsTable.recipientId, me),
           isNull(notificationsTable.readAt),
+        ),
+      );
+    res.status(204).end();
+  },
+);
+
+router.post(
+  "/notifications/:id/read",
+  requireAuth,
+  async (req, res): Promise<void> => {
+    const me = getUserId(req);
+    const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    const id = parseInt(raw, 10);
+    if (Number.isNaN(id)) {
+      res.status(400).json({ error: "Invalid id" });
+      return;
+    }
+    await db
+      .update(notificationsTable)
+      .set({ readAt: new Date() })
+      .where(
+        and(
+          eq(notificationsTable.id, id),
+          eq(notificationsTable.recipientId, me),
         ),
       );
     res.status(204).end();

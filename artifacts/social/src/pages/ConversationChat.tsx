@@ -10,17 +10,23 @@ import {
   useBlockUser,
   useMuteUser,
   useUnfollowUser,
+  useGetConversationTyping,
+  usePingConversationTyping,
+  useMarkConversationRead,
   getGetConversationMessagesQueryKey,
   getGetConversationsQueryKey,
   getGetMyRelationshipsQueryKey,
+  getGetConversationTypingQueryKey,
+  getGetUnreadNotificationCountQueryKey,
   type Message,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useUpload } from "@workspace/object-storage-web";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { MessageBubble } from "@/components/MessageBubble";
+import { MentionTextarea, type MentionFieldHandle } from "@/components/MentionTextarea";
+import { ThreadDrawer } from "@/components/ThreadDrawer";
 import { ImageUploadButton } from "@/components/ImageUploadButton";
 import { GifPickerButton } from "@/components/GifPickerButton";
 import { VoiceMessageButton } from "@/components/VoiceMessageButton";
@@ -54,8 +60,10 @@ export default function ConversationChat({ id }: { id: number }) {
   const { user: clerkUser } = useUser();
   const [draft, setDraft] = useState("");
   const [replyTo, setReplyTo] = useState<Message | null>(null);
+  const [threadParent, setThreadParent] = useState<Message | null>(null);
   const scrollerRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<MentionFieldHandle>(null);
+  const lastTypingPing = useRef(0);
 
   const convs = useGetConversations();
   const conv = convs.data?.find((c) => c.id === id);
@@ -81,6 +89,49 @@ export default function ConversationChat({ id }: { id: number }) {
       },
     },
   });
+
+  const typingQuery = useGetConversationTyping(id, {
+    query: {
+      queryKey: getGetConversationTypingQueryKey(id),
+      refetchInterval: 2000,
+    },
+  });
+  const typingPing = usePingConversationTyping();
+  const markRead = useMarkConversationRead({
+    mutation: {
+      onSuccess: () => {
+        qc.invalidateQueries({ queryKey: getGetConversationsQueryKey() });
+        qc.invalidateQueries({ queryKey: getGetUnreadNotificationCountQueryKey() });
+      },
+    },
+  });
+
+  function pingTyping() {
+    const now = Date.now();
+    if (now - lastTypingPing.current < 1500) return;
+    lastTypingPing.current = now;
+    typingPing.mutate({ id });
+  }
+
+  // Mark conversation read whenever new messages arrive (or on mount).
+  const lastMsgId = msgs.data && msgs.data.length > 0 ? msgs.data[msgs.data.length - 1].id : null;
+  useEffect(() => {
+    if (lastMsgId !== null) {
+      markRead.mutate({ id, data: { messageId: lastMsgId } });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, lastMsgId]);
+
+  useEffect(() => {
+    function onFocus() {
+      if (lastMsgId !== null) {
+        markRead.mutate({ id, data: { messageId: lastMsgId } });
+      }
+    }
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, lastMsgId]);
 
   const { toast } = useToast();
   const otherUserId = conv?.otherUser.id;
@@ -173,6 +224,12 @@ export default function ConversationChat({ id }: { id: number }) {
     setReplyTo(m);
     setTimeout(() => inputRef.current?.focus(), 0);
   }
+
+  function openThread(m: Message) {
+    setThreadParent(m);
+  }
+
+  const typingUsers = typingQuery.data?.users ?? [];
 
   const initials =
     conv?.otherUser.displayName
@@ -348,6 +405,8 @@ export default function ConversationChat({ id }: { id: number }) {
                   isMine={mine}
                   onReply={startReply}
                   onInvalidate={invalidateMessages}
+                  onOpenThread={openThread}
+                  showReadReceipt
                 />
               );
             })}
@@ -394,6 +453,19 @@ export default function ConversationChat({ id }: { id: number }) {
             </button>
           </div>
         )}
+        {typingUsers.length > 0 && (
+          <div
+            className="flex items-center gap-2 px-1 text-xs text-muted-foreground"
+            data-testid="typing-indicator"
+          >
+            <span className="inline-flex items-center gap-0.5">
+              <span className="inline-block h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground" style={{ animationDelay: "0ms" }} />
+              <span className="inline-block h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground" style={{ animationDelay: "120ms" }} />
+              <span className="inline-block h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground" style={{ animationDelay: "240ms" }} />
+            </span>
+            <span>{typingUsers.map((u) => u.displayName).join(", ")} is typing…</span>
+          </div>
+        )}
         <div className="flex items-center gap-2">
           <ImageUploadButton onUploaded={sendImage} testId="button-upload-dm-image" />
           <GifPickerButton
@@ -401,12 +473,18 @@ export default function ConversationChat({ id }: { id: number }) {
             testId="button-pick-dm-gif"
           />
           <VoiceMessageButton onUploaded={sendAudio} testId="button-record-dm-voice" />
-          <Input
+          <MentionTextarea
             ref={inputRef}
             placeholder="Type a message…"
             value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            data-testid="input-dm-message"
+            onChange={setDraft}
+            onSubmit={() => {
+              if (draft.trim() && !send.isPending) {
+                send.mutate({ id, data: { content: draft.trim(), replyToId: replyTo?.id ?? null } });
+              }
+            }}
+            onUserActivity={pingTyping}
+            testId="input-dm-message"
           />
           <Button
             type="submit"
@@ -421,6 +499,14 @@ export default function ConversationChat({ id }: { id: number }) {
           </Button>
         </div>
       </form>
+      <ThreadDrawer
+        open={threadParent !== null}
+        onOpenChange={(o) => {
+          if (!o) setThreadParent(null);
+        }}
+        parentId={threadParent?.id ?? null}
+        scope={{ type: "conversation", id }}
+      />
     </div>
   );
 }

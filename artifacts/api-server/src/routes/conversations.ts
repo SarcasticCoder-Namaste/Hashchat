@@ -3,6 +3,7 @@ import {
   db,
   conversationsTable,
   conversationReadsTable,
+  conversationTypingTable,
   conversationBackgroundsTable,
   messagesTable,
   usersTable,
@@ -22,7 +23,10 @@ import {
   OpenConversationBody,
   SendConversationMessageBody,
   SetConversationBackgroundBody,
+  MarkConversationReadBody,
 } from "@workspace/api-zod";
+import { resolveMentions, recordMentions } from "../lib/mentions";
+import { createNotification } from "../lib/notifications";
 
 const router: IRouter = Router();
 
@@ -228,12 +232,18 @@ router.get("/conversations/:id/messages", requireAuth, async (req, res): Promise
     .orderBy(messagesTable.createdAt)
     .limit(200);
 
+  const lastMsgId = rows.length > 0 ? rows[rows.length - 1].id : null;
   await db
     .insert(conversationReadsTable)
-    .values({ conversationId: id, userId: me, lastReadAt: new Date() })
+    .values({
+      conversationId: id,
+      userId: me,
+      lastReadAt: new Date(),
+      lastReadMessageId: lastMsgId,
+    })
     .onConflictDoUpdate({
       target: [conversationReadsTable.conversationId, conversationReadsTable.userId],
-      set: { lastReadAt: new Date() },
+      set: { lastReadAt: new Date(), lastReadMessageId: lastMsgId },
     });
 
   res.json(await buildMessages(rows, me));
@@ -314,9 +324,196 @@ router.post("/conversations/:id/messages", requireAuth, async (req, res): Promis
     .update(conversationsTable)
     .set({ updatedAt: new Date() })
     .where(eq(conversationsTable.id, id));
+
+  // Clear my typing state for this convo
+  await db
+    .delete(conversationTypingTable)
+    .where(
+      and(
+        eq(conversationTypingTable.conversationId, id),
+        eq(conversationTypingTable.userId, me),
+      ),
+    );
+
+  // Mention parsing + notifications
+  const resolved = await resolveMentions(parsed.data.content);
+  const recorded = await recordMentions({
+    mentionerId: me,
+    targetType: "message",
+    targetId: created.id,
+    resolved,
+  });
+  const mentionedSet = new Set(recorded.map((u) => u.id));
+  for (const u of recorded) {
+    if (u.id === otherId) continue;
+    await createNotification({
+      recipientId: u.id,
+      actorId: me,
+      kind: "mention",
+      targetType: "conversation",
+      targetId: id,
+      snippet: parsed.data.content.slice(0, 200),
+    });
+  }
+
+  // Reply notification (only if not me, and not the same as DM-counterparty getting the dm-notification anyway)
+  if (replyToId !== null) {
+    const [parent] = await db
+      .select({ senderId: messagesTable.senderId })
+      .from(messagesTable)
+      .where(eq(messagesTable.id, replyToId))
+      .limit(1);
+    if (parent && parent.senderId !== me && !mentionedSet.has(parent.senderId)) {
+      await createNotification({
+        recipientId: parent.senderId,
+        actorId: me,
+        kind: "reply",
+        targetType: "conversation",
+        targetId: id,
+        snippet: parsed.data.content.slice(0, 200),
+      });
+    }
+  }
+
   const [built] = await buildMessages([created], me);
   res.status(201).json(built);
 });
+
+// Typing indicator endpoints
+router.post(
+  "/conversations/:id/typing",
+  requireAuth,
+  async (req, res): Promise<void> => {
+    const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    const id = parseInt(raw, 10);
+    if (Number.isNaN(id)) {
+      res.status(400).json({ error: "Invalid id" });
+      return;
+    }
+    const me = getUserId(req);
+    const [convo] = await db
+      .select()
+      .from(conversationsTable)
+      .where(eq(conversationsTable.id, id))
+      .limit(1);
+    if (!convo || (convo.userAId !== me && convo.userBId !== me)) {
+      res.status(404).json({ error: "Not found" });
+      return;
+    }
+    await db
+      .insert(conversationTypingTable)
+      .values({ conversationId: id, userId: me, updatedAt: new Date() })
+      .onConflictDoUpdate({
+        target: [
+          conversationTypingTable.conversationId,
+          conversationTypingTable.userId,
+        ],
+        set: { updatedAt: new Date() },
+      });
+    res.status(204).end();
+  },
+);
+
+router.get(
+  "/conversations/:id/typing",
+  requireAuth,
+  async (req, res): Promise<void> => {
+    const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    const id = parseInt(raw, 10);
+    if (Number.isNaN(id)) {
+      res.status(400).json({ error: "Invalid id" });
+      return;
+    }
+    const me = getUserId(req);
+    const [convo] = await db
+      .select()
+      .from(conversationsTable)
+      .where(eq(conversationsTable.id, id))
+      .limit(1);
+    if (!convo || (convo.userAId !== me && convo.userBId !== me)) {
+      res.status(404).json({ error: "Not found" });
+      return;
+    }
+    const cutoff = new Date(Date.now() - 4000);
+    const rows = await db
+      .select({
+        id: conversationTypingTable.userId,
+        displayName: usersTable.displayName,
+      })
+      .from(conversationTypingTable)
+      .innerJoin(usersTable, eq(usersTable.id, conversationTypingTable.userId))
+      .where(
+        and(
+          eq(conversationTypingTable.conversationId, id),
+          gt(conversationTypingTable.updatedAt, cutoff),
+          sql`${conversationTypingTable.userId} <> ${me}`,
+        ),
+      );
+    res.json({ users: rows });
+  },
+);
+
+router.post(
+  "/conversations/:id/read",
+  requireAuth,
+  async (req, res): Promise<void> => {
+    const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    const id = parseInt(raw, 10);
+    if (Number.isNaN(id)) {
+      res.status(400).json({ error: "Invalid id" });
+      return;
+    }
+    const me = getUserId(req);
+    const [convo] = await db
+      .select()
+      .from(conversationsTable)
+      .where(eq(conversationsTable.id, id))
+      .limit(1);
+    if (!convo || (convo.userAId !== me && convo.userBId !== me)) {
+      res.status(404).json({ error: "Not found" });
+      return;
+    }
+    let messageId: number | null = null;
+    if (req.body && Object.keys(req.body).length > 0) {
+      const parsed = MarkConversationReadBody.safeParse(req.body);
+      if (!parsed.success) {
+        res.status(400).json({ error: parsed.error.message });
+        return;
+      }
+      messageId = parsed.data.messageId ?? null;
+    }
+    if (messageId === null) {
+      const [latest] = await db
+        .select({ id: messagesTable.id })
+        .from(messagesTable)
+        .where(
+          and(
+            eq(messagesTable.conversationId, id),
+            sql`${messagesTable.deletedAt} IS NULL`,
+          ),
+        )
+        .orderBy(desc(messagesTable.createdAt))
+        .limit(1);
+      messageId = latest?.id ?? null;
+    }
+    await db
+      .insert(conversationReadsTable)
+      .values({
+        conversationId: id,
+        userId: me,
+        lastReadAt: new Date(),
+        lastReadMessageId: messageId,
+      })
+      .onConflictDoUpdate({
+        target: [
+          conversationReadsTable.conversationId,
+          conversationReadsTable.userId,
+        ],
+        set: { lastReadAt: new Date(), lastReadMessageId: messageId },
+      });
+    res.status(204).end();
+  },
+);
 
 router.patch("/conversations/:id/background", requireAuth, async (req, res): Promise<void> => {
   const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;

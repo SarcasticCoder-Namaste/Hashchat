@@ -133,6 +133,23 @@ export const conversationReadsTable = pgTable(
     lastReadAt: timestamp("last_read_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
+    lastReadMessageId: integer("last_read_message_id"),
+  },
+  (t) => [primaryKey({ columns: [t.conversationId, t.userId] })],
+);
+
+export const conversationTypingTable = pgTable(
+  "conversation_typing",
+  {
+    conversationId: integer("conversation_id")
+      .notNull()
+      .references(() => conversationsTable.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => usersTable.id, { onDelete: "cascade" }),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (t) => [primaryKey({ columns: [t.conversationId, t.userId] })],
 );
@@ -196,6 +213,72 @@ export const reactionsTable = pgTable(
       .defaultNow(),
   },
   (t) => [primaryKey({ columns: [t.messageId, t.userId, t.emoji] })],
+);
+
+export const postReactionsTable = pgTable(
+  "post_reactions",
+  {
+    postId: integer("post_id")
+      .notNull()
+      .references(() => postsTable.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => usersTable.id, { onDelete: "cascade" }),
+    emoji: text("emoji").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.postId, t.userId, t.emoji] })],
+);
+
+export const mentionsTable = pgTable(
+  "mentions",
+  {
+    id: serial("id").primaryKey(),
+    mentionerId: text("mentioner_id")
+      .notNull()
+      .references(() => usersTable.id, { onDelete: "cascade" }),
+    mentionedUserId: text("mentioned_user_id")
+      .notNull()
+      .references(() => usersTable.id, { onDelete: "cascade" }),
+    targetType: text("target_type").notNull(),
+    targetId: integer("target_id").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    index("mentions_target_idx").on(t.targetType, t.targetId),
+    index("mentions_mentioned_idx").on(t.mentionedUserId, t.createdAt),
+  ],
+);
+
+export const notificationsTable = pgTable(
+  "notifications",
+  {
+    id: serial("id").primaryKey(),
+    recipientId: text("recipient_id")
+      .notNull()
+      .references(() => usersTable.id, { onDelete: "cascade" }),
+    actorId: text("actor_id").references(() => usersTable.id, {
+      onDelete: "cascade",
+    }),
+    kind: text("kind").notNull(),
+    targetType: text("target_type"),
+    targetId: integer("target_id"),
+    targetTextId: text("target_text_id"),
+    snippet: text("snippet"),
+    extra: text("extra"),
+    readAt: timestamp("read_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    index("notifications_recipient_idx").on(t.recipientId, t.createdAt),
+    index("notifications_unread_idx").on(t.recipientId, t.readAt),
+  ],
 );
 
 export const friendshipsTable = pgTable(
@@ -463,32 +546,6 @@ export const userMutesTable = pgTable(
       .defaultNow(),
   },
   (t) => [primaryKey({ columns: [t.muterId, t.mutedId] })],
-);
-
-export const notificationsTable = pgTable(
-  "notifications",
-  {
-    id: serial("id").primaryKey(),
-    userId: text("user_id")
-      .notNull()
-      .references(() => usersTable.id, { onDelete: "cascade" }),
-    kind: text("kind").notNull(),
-    actorId: text("actor_id")
-      .notNull()
-      .references(() => usersTable.id, { onDelete: "cascade" }),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-    readAt: timestamp("read_at", { withTimezone: true }),
-  },
-  (t) => [
-    index("notifications_user_idx").on(t.userId, t.createdAt),
-    uniqueIndex("notifications_user_kind_actor_unique").on(
-      t.userId,
-      t.kind,
-      t.actorId,
-    ),
-  ],
 );
 
 export const hashtagMutesTable = pgTable(

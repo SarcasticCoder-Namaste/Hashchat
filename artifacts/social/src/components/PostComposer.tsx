@@ -5,7 +5,7 @@ import {
   type CreatePostBody,
 } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
+import { MentionTextarea } from "./MentionTextarea";
 import { ImageIcon, Loader2, Send, X } from "lucide-react";
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
@@ -69,18 +69,19 @@ export function PostComposer({
       className="flex flex-col gap-2 rounded-xl border border-border bg-card p-3"
       data-testid="post-composer"
     >
-      <Textarea
+      <MentionTextarea
         value={content}
-        onChange={(e) => setContent(e.target.value)}
+        onChange={setContent}
+        variant="textarea"
+        rows={3}
+        className="resize-none border-0 bg-transparent p-0 text-sm shadow-none focus-visible:ring-0 focus-visible:border-transparent placeholder:text-muted-foreground min-h-[72px] w-full outline-none"
         placeholder={
           placeholder ??
           (defaultHashtag
             ? `Share something with #${defaultHashtag}…`
             : "What's happening?")
         }
-        rows={3}
-        className="resize-none border-0 bg-transparent p-0 shadow-none focus-visible:ring-0"
-        data-testid="input-post-content"
+        testId="input-post-content"
       />
       {imageUrls.length > 0 && (
         <div className="grid grid-cols-2 gap-2">

@@ -233,20 +233,6 @@ export interface FollowingFeedItem {
   createdAt: string;
 }
 
-export interface Notification {
-  id: number;
-  /** e.g. follow */
-  kind: string;
-  actor: MatchUser;
-  createdAt: string;
-  /** @nullable */
-  readAt?: string | null;
-}
-
-export interface UnreadCount {
-  count: number;
-}
-
 export interface FriendRequestList {
   incoming: MatchUser[];
   outgoing: MatchUser[];
@@ -278,6 +264,12 @@ export interface MessageAttachment {
   description?: string | null;
   /** @nullable */
   thumbnailUrl?: string | null;
+}
+
+export interface MentionedUser {
+  id: string;
+  username: string;
+  displayName: string;
 }
 
 export interface PollOption {
@@ -319,11 +311,17 @@ export interface Message {
   /** @nullable */
   replyToContent?: string | null;
   /** @nullable */
+  replyToSenderName?: string | null;
+  replyCount: number;
+  /** @nullable */
   imageUrl?: string | null;
   /** @nullable */
   audioUrl?: string | null;
   reactions: Reaction[];
   attachments: MessageAttachment[];
+  mentions: MentionedUser[];
+  /** @nullable */
+  readByOther?: boolean | null;
   poll?: Poll | null;
   createdAt: string;
 }
@@ -618,6 +616,8 @@ export interface Post {
   content: string;
   hashtags: string[];
   imageUrls: string[];
+  reactions: Reaction[];
+  mentions: MentionedUser[];
   createdAt: string;
 }
 
@@ -895,6 +895,99 @@ export interface PremiumCheckoutResponse {
   provider: PremiumCheckoutResponseProvider;
 }
 
+export interface MentionSuggestion {
+  id: string;
+  username: string;
+  displayName: string;
+  /** @nullable */
+  avatarUrl?: string | null;
+  /** @nullable */
+  discriminator?: string | null;
+}
+
+export interface MessageThread {
+  parent: Message;
+  replies: Message[];
+}
+
+export interface NotificationActor {
+  id: string;
+  username: string;
+  displayName: string;
+  /** @nullable */
+  avatarUrl?: string | null;
+}
+
+export type NotificationKind =
+  (typeof NotificationKind)[keyof typeof NotificationKind];
+
+export const NotificationKind = {
+  mention: "mention",
+  reply: "reply",
+  reaction: "reaction",
+  follow: "follow",
+  dm: "dm",
+} as const;
+
+/**
+ * @nullable
+ */
+export type NotificationTargetType =
+  | (typeof NotificationTargetType)[keyof typeof NotificationTargetType]
+  | null;
+
+export const NotificationTargetType = {
+  message: "message",
+  post: "post",
+  conversation: "conversation",
+  user: "user",
+  null: "null",
+} as const;
+
+export interface Notification {
+  id: number;
+  kind: NotificationKind;
+  actor?: NotificationActor | null;
+  /** @nullable */
+  targetType?: NotificationTargetType;
+  /** @nullable */
+  targetId?: number | null;
+  /** @nullable */
+  targetTextId?: string | null;
+  /** @nullable */
+  snippet?: string | null;
+  /** @nullable */
+  href?: string | null;
+  /** @nullable */
+  readAt?: string | null;
+  createdAt: string;
+}
+
+export interface NotificationsResponse {
+  items: Notification[];
+  unreadCount: number;
+}
+
+export interface UnreadCountResponse {
+  notifications: number;
+  dms: number;
+  total: number;
+}
+
+export interface TypingUser {
+  id: string;
+  displayName: string;
+}
+
+export interface TypingResponse {
+  users: TypingUser[];
+}
+
+export interface MarkConversationReadBody {
+  /** @nullable */
+  messageId?: number | null;
+}
+
 export type GetTrendingHashtagsParams = {
   limit?: number;
 };
@@ -923,6 +1016,20 @@ export type RemoveMessageReactionParams = {
   emoji: string;
 };
 
+export type RemovePostReactionParams = {
+  emoji: string;
+};
+
+export type GetMentionSuggestionsParams = {
+  q?: string;
+  scopeType?: string;
+  scopeId?: string;
+};
+
+export type GetNotificationsParams = {
+  limit?: number;
+};
+
 export type GetTrendingRoomsParams = {
   limit?: number;
 };
@@ -945,10 +1052,6 @@ export type GetFollowSuggestionsParams = {
    * If provided, suggest people similar to this user.
    */
   username?: string;
-};
-
-export type GetMyNotificationsParams = {
-  limit?: number;
 };
 
 export type GetMyFeedPostsParams = {

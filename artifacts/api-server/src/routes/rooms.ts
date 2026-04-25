@@ -17,6 +17,8 @@ import { isValidStorageUrl } from "../lib/storageUrls";
 import { isAllowedGifUrl } from "../lib/giphy";
 import { SendRoomMessageBody } from "@workspace/api-zod";
 import { normalizeTag } from "../lib/hashtags";
+import { resolveMentions, recordMentions } from "../lib/mentions";
+import { createNotification } from "../lib/notifications";
 import {
   buildMessages,
   maybeAttachLinkPreview,
@@ -272,6 +274,46 @@ router.post("/rooms/:tag/messages", requireAuth, async (req, res): Promise<void>
   if (parsed.data.content) {
     void maybeAttachLinkPreview(created.id, parsed.data.content);
   }
+
+  const resolved = await resolveMentions(parsed.data.content);
+  const recorded = await recordMentions({
+    mentionerId: me,
+    targetType: "message",
+    targetId: created.id,
+    resolved,
+  });
+  const mentionedSet = new Set(recorded.map((u) => u.id));
+  for (const u of recorded) {
+    await createNotification({
+      recipientId: u.id,
+      actorId: me,
+      kind: "mention",
+      targetType: "message",
+      targetId: created.id,
+      targetTextId: `room:${tag}`,
+      snippet: parsed.data.content.slice(0, 200),
+    });
+  }
+
+  if (replyToId !== null) {
+    const [parent] = await db
+      .select({ senderId: messagesTable.senderId })
+      .from(messagesTable)
+      .where(eq(messagesTable.id, replyToId))
+      .limit(1);
+    if (parent && parent.senderId !== me && !mentionedSet.has(parent.senderId)) {
+      await createNotification({
+        recipientId: parent.senderId,
+        actorId: me,
+        kind: "reply",
+        targetType: "message",
+        targetId: created.id,
+        targetTextId: `room:${tag}`,
+        snippet: parsed.data.content.slice(0, 200),
+      });
+    }
+  }
+
   const [built] = await buildMessages([created], me);
   res.status(201).json(built);
 });

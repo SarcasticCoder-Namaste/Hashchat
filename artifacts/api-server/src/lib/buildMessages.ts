@@ -7,6 +7,9 @@ import {
   pollsTable,
   pollOptionsTable,
   pollVotesTable,
+  mentionsTable,
+  conversationsTable,
+  conversationReadsTable,
 } from "@workspace/db";
 import { and, eq, inArray, or, sql } from "drizzle-orm";
 import { fetchLinkPreview, extractFirstUrl } from "./linkPreview";
@@ -40,7 +43,7 @@ export async function buildMessages(rows: RawMessage[], myUserId: string) {
   const replyIds = rows
     .map((r) => r.replyToId)
     .filter((v): v is number => v !== null);
-  const replyMap = new Map<number, string>();
+  const replyMap = new Map<number, { content: string; senderId: string }>();
   if (replyIds.length > 0) {
     const conversationIds = Array.from(
       new Set(
@@ -57,7 +60,11 @@ export async function buildMessages(rows: RawMessage[], myUserId: string) {
       scopeFilters.push(inArray(messagesTable.roomTag, roomTags));
     if (scopeFilters.length > 0) {
       const replies = await db
-        .select({ id: messagesTable.id, content: messagesTable.content })
+        .select({
+          id: messagesTable.id,
+          content: messagesTable.content,
+          senderId: messagesTable.senderId,
+        })
         .from(messagesTable)
         .where(
           and(
@@ -66,8 +73,52 @@ export async function buildMessages(rows: RawMessage[], myUserId: string) {
             sql`${messagesTable.deletedAt} IS NULL`,
           ),
         );
-      for (const r of replies) replyMap.set(r.id, r.content);
+      for (const r of replies)
+        replyMap.set(r.id, { content: r.content, senderId: r.senderId });
     }
+  }
+
+  // Reply count per message (count of children pointing at this message)
+  const messageIdsForReplyCount = rows.map((r) => r.id);
+  const replyCountMap = new Map<number, number>();
+  if (messageIdsForReplyCount.length > 0) {
+    const replyCounts = await db
+      .select({
+        parentId: messagesTable.replyToId,
+        count: sql<number>`count(*)::int`,
+      })
+      .from(messagesTable)
+      .where(
+        and(
+          inArray(messagesTable.replyToId, messageIdsForReplyCount),
+          sql`${messagesTable.deletedAt} IS NULL`,
+        ),
+      )
+      .groupBy(messagesTable.replyToId);
+    for (const c of replyCounts) {
+      if (c.parentId !== null) replyCountMap.set(c.parentId, c.count);
+    }
+  }
+
+  // Collect extra sender ids referenced by replies so we can label them
+  const extraSenderIds = Array.from(
+    new Set(
+      Array.from(replyMap.values())
+        .map((v) => v.senderId)
+        .filter((id) => !senderMap.has(id)),
+    ),
+  );
+  if (extraSenderIds.length > 0) {
+    const extra = await db
+      .select({
+        id: usersTable.id,
+        displayName: usersTable.displayName,
+        username: usersTable.username,
+        avatarUrl: usersTable.avatarUrl,
+      })
+      .from(usersTable)
+      .where(inArray(usersTable.id, extraSenderIds));
+    for (const s of extra) senderMap.set(s.id, s);
   }
 
   const messageIds = rows.map((r) => r.id);
@@ -202,10 +253,94 @@ export async function buildMessages(rows: RawMessage[], myUserId: string) {
     }
   }
 
+  // Mentions for these messages
+  const mentionRows = messageIds.length
+    ? await db
+        .select({
+          targetId: mentionsTable.targetId,
+          userId: usersTable.id,
+          username: usersTable.username,
+          displayName: usersTable.displayName,
+        })
+        .from(mentionsTable)
+        .innerJoin(usersTable, eq(usersTable.id, mentionsTable.mentionedUserId))
+        .where(
+          and(
+            eq(mentionsTable.targetType, "message"),
+            inArray(mentionsTable.targetId, messageIds),
+          ),
+        )
+    : [];
+  const mentionMap = new Map<
+    number,
+    { id: string; username: string; displayName: string }[]
+  >();
+  for (const m of mentionRows) {
+    const list = mentionMap.get(m.targetId) ?? [];
+    list.push({
+      id: m.userId,
+      username: m.username,
+      displayName: m.displayName,
+    });
+    mentionMap.set(m.targetId, list);
+  }
+
+  // Per-message read receipts: for DM messages I sent, did the other user read past it?
+  const dmConvIds = Array.from(
+    new Set(
+      rows
+        .filter((r) => r.conversationId !== null && r.senderId === myUserId)
+        .map((r) => r.conversationId as number),
+    ),
+  );
+  const otherReadByConv = new Map<
+    number,
+    { lastReadMessageId: number | null; lastReadAt: Date }
+  >();
+  if (dmConvIds.length > 0) {
+    const convs = await db
+      .select()
+      .from(conversationsTable)
+      .where(inArray(conversationsTable.id, dmConvIds));
+    const otherIdByConv = new Map<number, string>();
+    for (const c of convs) {
+      const other = c.userAId === myUserId ? c.userBId : c.userAId;
+      otherIdByConv.set(c.id, other);
+    }
+    const reads = await db
+      .select()
+      .from(conversationReadsTable)
+      .where(inArray(conversationReadsTable.conversationId, dmConvIds));
+    for (const r of reads) {
+      const otherId = otherIdByConv.get(r.conversationId);
+      if (!otherId) continue;
+      if (r.userId !== otherId) continue;
+      otherReadByConv.set(r.conversationId, {
+        lastReadMessageId: r.lastReadMessageId,
+        lastReadAt: r.lastReadAt,
+      });
+    }
+  }
+
   return rows.map((r) => {
     const sender = senderMap.get(r.senderId);
     const pollId = messagePollIds.get(r.id);
     const poll = pollId !== undefined ? (pollMap.get(pollId) ?? null) : null;
+    const replyMeta = r.replyToId ? replyMap.get(r.replyToId) : undefined;
+    const replyToSender = replyMeta ? senderMap.get(replyMeta.senderId) : undefined;
+    let readByOther: boolean | null = null;
+    if (r.conversationId !== null && r.senderId === myUserId) {
+      const meta = otherReadByConv.get(r.conversationId);
+      if (meta) {
+        if (meta.lastReadMessageId !== null) {
+          readByOther = meta.lastReadMessageId >= r.id;
+        } else {
+          readByOther = meta.lastReadAt.getTime() >= r.createdAt.getTime();
+        }
+      } else {
+        readByOther = false;
+      }
+    }
     return {
       id: r.id,
       conversationId: r.conversationId,
@@ -217,14 +352,20 @@ export async function buildMessages(rows: RawMessage[], myUserId: string) {
       imageUrl: r.imageUrl,
       audioUrl: r.audioUrl,
       replyToId: r.replyToId,
-      replyToContent: r.replyToId ? (replyMap.get(r.replyToId) ?? null) : null,
+      replyToContent: replyMeta?.content ?? null,
+      replyToSenderName:
+        replyToSender?.displayName ?? replyToSender?.username ?? null,
+      replyCount: replyCountMap.get(r.id) ?? 0,
       reactions: reactionMap.get(r.id) ?? [],
       attachments: attachmentMap.get(r.id) ?? [],
+      mentions: mentionMap.get(r.id) ?? [],
+      readByOther,
       poll,
       createdAt: r.createdAt.toISOString(),
     };
   });
 }
+
 
 function emptyPollShape() {
   return {

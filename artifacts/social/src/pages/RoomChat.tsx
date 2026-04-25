@@ -18,9 +18,10 @@ import {
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { MessageBubble } from "@/components/MessageBubble";
+import { MentionTextarea, type MentionFieldHandle } from "@/components/MentionTextarea";
+import { ThreadDrawer } from "@/components/ThreadDrawer";
 import { ImageUploadButton } from "@/components/ImageUploadButton";
 import { GifPickerButton } from "@/components/GifPickerButton";
 import { VoiceMessageButton } from "@/components/VoiceMessageButton";
@@ -51,8 +52,9 @@ export default function RoomChat({ tag }: { tag: string }) {
   const [draft, setDraft] = useState("");
   const [replyTo, setReplyTo] = useState<Message | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [threadParent, setThreadParent] = useState<Message | null>(null);
   const scrollerRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<MentionFieldHandle>(null);
   const { toast } = useToast();
 
   const hashtagQ = useGetHashtag(cleanTag);
@@ -159,6 +161,10 @@ export default function RoomChat({ tag }: { tag: string }) {
   function startReply(m: Message) {
     setReplyTo(m);
     setTimeout(() => inputRef.current?.focus(), 0);
+  }
+
+  function openThread(m: Message) {
+    setThreadParent(m);
   }
 
   const meQ = useGetMe();
@@ -312,9 +318,10 @@ export default function RoomChat({ tag }: { tag: string }) {
                 key={m.id}
                 message={m}
                 variant="room"
-                isMine={false}
+                isMine={m.senderId === meId}
                 onReply={startReply}
                 onInvalidate={invalidateMessages}
+                onOpenThread={openThread}
               />
             ))}
           </div>
@@ -361,12 +368,20 @@ export default function RoomChat({ tag }: { tag: string }) {
             testId="button-pick-room-gif"
           />
           <VoiceMessageButton onUploaded={sendAudio} testId="button-record-room-voice" />
-          <Input
+          <MentionTextarea
             ref={inputRef}
             placeholder={`Message #${cleanTag}…`}
             value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            data-testid="input-room-message"
+            onChange={setDraft}
+            onSubmit={() => {
+              if (draft.trim() && !send.isPending) {
+                send.mutate({
+                  tag: cleanTag,
+                  data: { content: draft.trim(), replyToId: replyTo?.id ?? null },
+                });
+              }
+            }}
+            testId="input-room-message"
           />
           <Button
             type="submit"
@@ -381,6 +396,14 @@ export default function RoomChat({ tag }: { tag: string }) {
           </Button>
         </div>
       </form>
+      <ThreadDrawer
+        open={threadParent !== null}
+        onOpenChange={(o) => {
+          if (!o) setThreadParent(null);
+        }}
+        parentId={threadParent?.id ?? null}
+        scope={{ type: "room", tag: cleanTag }}
+      />
       </>)}
         </TabsContent>
         <TabsContent
