@@ -558,8 +558,14 @@ export interface ReelItem {
   id: string;
   title: string;
   channel: string;
+  channelId?: string;
+  channelAvatar?: string | null;
   thumbnail: string;
   publishedAt: string;
+  description?: string;
+  viewCount?: number | null;
+  likeCount?: number | null;
+  commentCount?: number | null;
 }
 
 export interface ReelsList {

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { getYoutubeReels } from "@workspace/api-client-react";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -15,6 +16,9 @@ import {
   ExternalLink,
   Bookmark,
   Sparkles,
+  Eye,
+  ThumbsUp,
+  MessageCircle,
 } from "lucide-react";
 
 const SUGGESTED_QUERIES = [
@@ -36,9 +40,37 @@ type Reel = {
   id: string;
   title: string;
   channel: string;
+  channelId?: string;
+  channelAvatar?: string | null;
   thumbnail: string;
   publishedAt: string;
+  description?: string;
+  viewCount?: number | null;
+  likeCount?: number | null;
+  commentCount?: number | null;
 };
+
+function formatCount(n: number | null | undefined): string {
+  if (n == null) return "";
+  if (n < 1000) return String(n);
+  if (n < 1_000_000) return `${(n / 1000).toFixed(n < 10_000 ? 1 : 0)}K`.replace(".0", "");
+  if (n < 1_000_000_000)
+    return `${(n / 1_000_000).toFixed(n < 10_000_000 ? 1 : 0)}M`.replace(".0", "");
+  return `${(n / 1_000_000_000).toFixed(1)}B`.replace(".0", "");
+}
+
+function formatRelative(iso: string): string {
+  const t = new Date(iso).getTime();
+  if (Number.isNaN(t)) return "";
+  const diff = Math.max(0, Date.now() - t) / 1000;
+  if (diff < 60) return "just now";
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+  if (diff < 86400 * 7) return `${Math.floor(diff / 86400)}d ago`;
+  if (diff < 86400 * 30) return `${Math.floor(diff / (86400 * 7))}w ago`;
+  if (diff < 86400 * 365) return `${Math.floor(diff / (86400 * 30))}mo ago`;
+  return `${Math.floor(diff / (86400 * 365))}y ago`;
+}
 
 const SAVED_KEY = "hashchat:saved-reels";
 
@@ -404,13 +436,32 @@ function ReelPlayerModal({
     if (c && target) {
       c.scrollTo({ top: target.offsetTop, behavior: "auto" });
     }
-    const prevOverflow = document.body.style.overflow;
+    // Lock body + html scroll AND any scrollable ancestor element (AppShell uses
+    // <main className="overflow-y-auto"> instead of body for scroll; we walk the
+    // DOM and freeze every overflow:auto/scroll ancestor of the modal mount point).
+    const prevBody = document.body.style.overflow;
+    const prevHtml = document.documentElement.style.overflow;
     document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
+    const lockedAncestors: Array<{ el: HTMLElement; prev: string }> = [];
+    document
+      .querySelectorAll<HTMLElement>("main, [data-scroll-root]")
+      .forEach((el) => {
+        const cs = getComputedStyle(el);
+        if (cs.overflowY === "auto" || cs.overflowY === "scroll") {
+          lockedAncestors.push({ el, prev: el.style.overflow });
+          el.style.overflow = "hidden";
+        }
+      });
     previousActiveElement.current =
       (document.activeElement as HTMLElement | null) ?? null;
     closeBtnRef.current?.focus();
     return () => {
-      document.body.style.overflow = prevOverflow;
+      document.body.style.overflow = prevBody;
+      document.documentElement.style.overflow = prevHtml;
+      lockedAncestors.forEach(({ el, prev }) => {
+        el.style.overflow = prev;
+      });
       previousActiveElement.current?.focus?.();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -513,23 +564,31 @@ function ReelPlayerModal({
     }
   };
 
-  return (
+  const canScrollPrev = activeIndex > 0;
+  const canScrollNext = activeIndex < items.length - 1;
+
+  const modal = (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 bg-black"
+      className="fixed inset-0 z-[100] bg-black"
       data-testid="reel-player-modal"
       role="dialog"
       aria-modal="true"
       aria-label="Shorts player"
     >
       <div className="pointer-events-none absolute inset-x-0 top-0 z-30 flex items-center justify-between p-4">
-        <div
-          className="pointer-events-auto rounded-full bg-black/55 px-3 py-1 text-xs font-medium text-white backdrop-blur"
-          data-testid="reel-counter"
-        >
-          {Math.min(activeIndex + 1, items.length)} / {items.length}
+        <div className="pointer-events-auto flex items-center gap-2">
+          <span className="rounded bg-red-600 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide text-white shadow-md">
+            Shorts
+          </span>
+          <div
+            className="rounded-full bg-black/55 px-3 py-1 text-xs font-medium text-white backdrop-blur"
+            data-testid="reel-counter"
+          >
+            {Math.min(activeIndex + 1, items.length)} / {items.length}
+          </div>
         </div>
         <button
           ref={closeBtnRef}
@@ -552,6 +611,7 @@ function ReelPlayerModal({
           const isActive = i === activeIndex;
           const isNear = Math.abs(i - activeIndex) <= 1;
           const saved = isSaved(reel.id);
+          const initials = reel.channel?.charAt(0)?.toUpperCase() ?? "?";
           return (
             <section
               key={reel.id}
@@ -603,22 +663,127 @@ function ReelPlayerModal({
                 )}
               </div>
 
-              <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-black/85 via-black/40 to-transparent px-4 pb-6 pt-20">
+              <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-black via-black/60 to-transparent px-4 pb-6 pt-24">
                 <div className="mx-auto max-w-[min(100vw,calc(100dvh*9/16))] pr-20">
+                  <div className="mb-2 flex items-center gap-2">
+                    {reel.channelAvatar ? (
+                      <img
+                        src={reel.channelAvatar}
+                        alt={reel.channel}
+                        className="h-9 w-9 rounded-full border-2 border-white/30 object-cover shadow-md"
+                        loading="lazy"
+                      />
+                    ) : (
+                      <div className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-white/30 bg-gradient-to-br from-pink-500 to-violet-500 text-sm font-bold text-white shadow-md">
+                        {initials}
+                      </div>
+                    )}
+                    <a
+                      href={
+                        reel.channelId
+                          ? `https://www.youtube.com/channel/${reel.channelId}`
+                          : `https://www.youtube.com/results?search_query=${encodeURIComponent(reel.channel)}`
+                      }
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="pointer-events-auto truncate text-sm font-semibold text-white drop-shadow-md hover:underline"
+                    >
+                      @{reel.channel}
+                    </a>
+                    <a
+                      href="https://www.youtube.com/account"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      data-testid="button-reel-subscribe"
+                      className="pointer-events-auto ml-1 rounded-full bg-white px-3 py-1 text-[11px] font-bold uppercase tracking-wide text-black shadow-sm transition hover:bg-white/90"
+                    >
+                      Subscribe
+                    </a>
+                  </div>
                   <p className="line-clamp-2 text-sm font-semibold text-white drop-shadow-md md:text-base">
                     {reel.title}
                   </p>
-                  <p className="mt-1 truncate text-xs text-white/85 drop-shadow-md">
-                    @{reel.channel}
-                  </p>
+                  <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-white/80 drop-shadow-md">
+                    {reel.viewCount != null && (
+                      <span className="inline-flex items-center gap-1">
+                        <Eye className="h-3 w-3" />
+                        {formatCount(reel.viewCount)} views
+                      </span>
+                    )}
+                    {reel.publishedAt && (
+                      <span>{formatRelative(reel.publishedAt)}</span>
+                    )}
+                  </div>
                 </div>
               </div>
 
               <div className="absolute bottom-24 right-3 z-20 flex flex-col items-center gap-4 md:right-6">
+                {reel.channelAvatar ? (
+                  <a
+                    href={
+                      reel.channelId
+                        ? `https://www.youtube.com/channel/${reel.channelId}`
+                        : `https://www.youtube.com/results?search_query=${encodeURIComponent(reel.channel)}`
+                    }
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={`Open channel ${reel.channel}`}
+                    className="relative h-12 w-12 overflow-hidden rounded-full border-2 border-white shadow-lg"
+                  >
+                    <img
+                      src={reel.channelAvatar}
+                      alt={reel.channel}
+                      className="h-full w-full object-cover"
+                    />
+                    <span className="absolute -bottom-1 left-1/2 flex h-5 w-5 -translate-x-1/2 items-center justify-center rounded-full bg-red-600 text-[12px] font-bold leading-none text-white shadow">
+                      +
+                    </span>
+                  </a>
+                ) : null}
+                <ActionButton
+                  label={
+                    reel.likeCount != null
+                      ? formatCount(reel.likeCount)
+                      : "Like"
+                  }
+                  onClick={() => onToggleSave(reel)}
+                  testId="button-reel-modal-save"
+                  active={saved}
+                >
+                  <ThumbsUp
+                    className={[
+                      "h-6 w-6",
+                      saved ? "fill-current" : "",
+                    ].join(" ")}
+                  />
+                </ActionButton>
+                {reel.commentCount != null && (
+                  <a
+                    href={`https://www.youtube.com/shorts/${reel.id}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex flex-col items-center gap-1 text-white/90 hover:text-white"
+                    aria-label="Open comments on YouTube"
+                  >
+                    <span className="rounded-full bg-black/60 p-3 backdrop-blur transition hover:bg-black/80">
+                      <MessageCircle className="h-6 w-6" />
+                    </span>
+                    <span className="text-[11px] font-medium drop-shadow">
+                      {formatCount(reel.commentCount)}
+                    </span>
+                  </a>
+                )}
+                <ActionButton
+                  label="Share"
+                  onClick={() => share(reel)}
+                  testId="button-reel-share"
+                >
+                  <Share2 className="h-6 w-6" />
+                </ActionButton>
                 <ActionButton
                   label={saved ? "Saved" : "Save"}
                   onClick={() => onToggleSave(reel)}
-                  testId="button-reel-modal-save"
+                  testId="button-reel-modal-bookmark"
                   active={saved}
                 >
                   <Heart
@@ -627,13 +792,6 @@ function ReelPlayerModal({
                       saved ? "fill-current" : "",
                     ].join(" ")}
                   />
-                </ActionButton>
-                <ActionButton
-                  label="Share"
-                  onClick={() => share(reel)}
-                  testId="button-reel-share"
-                >
-                  <Share2 className="h-6 w-6" />
                 </ActionButton>
                 <a
                   href={`https://www.youtube.com/shorts/${reel.id}`}
@@ -667,6 +825,56 @@ function ReelPlayerModal({
         )}
       </div>
 
+      {/* Desktop-only side scroll buttons (the YouTube iframe captures wheel
+          events on desktop, so users can't scroll with the mouse — these give
+          them a way to advance like real YouTube Shorts). */}
+      <div className="absolute right-24 top-1/2 z-30 hidden -translate-y-1/2 flex-col gap-3 md:flex lg:right-32">
+        <button
+          type="button"
+          onClick={() => scrollToIndex(Math.max(activeIndex - 1, 0))}
+          disabled={!canScrollPrev}
+          data-testid="button-reel-scroll-prev"
+          aria-label="Previous short"
+          className="rounded-full bg-white/15 p-3 text-white backdrop-blur transition hover:bg-white/30 disabled:cursor-not-allowed disabled:opacity-30"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="h-5 w-5"
+          >
+            <polyline points="18 15 12 9 6 15" />
+          </svg>
+        </button>
+        <button
+          type="button"
+          onClick={() =>
+            scrollToIndex(Math.min(activeIndex + 1, items.length - 1))
+          }
+          disabled={!canScrollNext}
+          data-testid="button-reel-scroll-next"
+          aria-label="Next short"
+          className="rounded-full bg-white/15 p-3 text-white backdrop-blur transition hover:bg-white/30 disabled:cursor-not-allowed disabled:opacity-30"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="h-5 w-5"
+          >
+            <polyline points="6 9 12 15 18 9" />
+          </svg>
+        </button>
+      </div>
+
       <button
         type="button"
         onClick={() => setMuted((m) => !m)}
@@ -680,11 +888,15 @@ function ReelPlayerModal({
       <div className="pointer-events-none absolute bottom-3 left-1/2 z-20 -translate-x-1/2 rounded-full bg-black/55 px-3 py-1 text-[11px] text-white/80 backdrop-blur md:hidden">
         Swipe up for next
       </div>
-      <div className="pointer-events-none absolute bottom-3 left-1/2 z-20 -translate-x-1/2 rounded-full bg-black/55 px-3 py-1 text-[11px] text-white/80 backdrop-blur hidden md:block">
-        ↑/↓ to scroll · S save · M mute · Esc close
+      <div className="pointer-events-none absolute bottom-3 left-1/2 z-20 -translate-x-1/2 hidden rounded-full bg-black/55 px-3 py-1 text-[11px] text-white/80 backdrop-blur md:block">
+        ↑/↓ scroll · S save · M mute · Esc close
       </div>
     </motion.div>
   );
+
+  return typeof document !== "undefined"
+    ? createPortal(modal, document.body)
+    : modal;
 }
 
 function ActionButton({
