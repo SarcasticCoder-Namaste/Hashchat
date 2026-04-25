@@ -9,6 +9,7 @@ import {
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { requireAuth, getUserId } from "../middlewares/requireAuth";
 import { isValidStorageUrl } from "../lib/storageUrls";
+import { isAllowedGifUrl } from "../lib/giphy";
 import { SendRoomMessageBody } from "@workspace/api-zod";
 import { normalizeTag } from "../lib/hashtags";
 import {
@@ -187,6 +188,10 @@ router.post("/rooms/:tag/messages", requireAuth, async (req, res): Promise<void>
     res.status(400).json({ error: "audioUrl must reference an uploaded object" });
     return;
   }
+  if (parsed.data.gifUrl != null && !isAllowedGifUrl(parsed.data.gifUrl)) {
+    res.status(400).json({ error: "gifUrl must come from the configured GIF provider" });
+    return;
+  }
   if (replyToId !== null) {
     const [refMsg] = await db
       .select({ id: messagesTable.id, roomTag: messagesTable.roomTag })
@@ -204,13 +209,18 @@ router.post("/rooms/:tag/messages", requireAuth, async (req, res): Promise<void>
       roomTag: tag,
       senderId: getUserId(req),
       content: parsed.data.content,
-      imageUrl: parsed.data.imageUrl ?? null,
+      // gif URLs are mirrored into imageUrl so legacy clients still render
+      // them; the kind="gif" attachment row preserves the distinction.
+      imageUrl: parsed.data.imageUrl ?? parsed.data.gifUrl ?? null,
       audioUrl: parsed.data.audioUrl ?? null,
       replyToId,
     })
     .returning();
   if (parsed.data.imageUrl) {
     await attachImage(created.id, parsed.data.imageUrl, "image");
+  }
+  if (parsed.data.gifUrl) {
+    await attachImage(created.id, parsed.data.gifUrl, "gif");
   }
   if (parsed.data.content) {
     // Detach: link preview fetch can take seconds; do not block send.

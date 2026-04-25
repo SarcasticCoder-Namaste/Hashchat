@@ -22,6 +22,7 @@ import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { MessageBubble } from "@/components/MessageBubble";
 import { ImageUploadButton } from "@/components/ImageUploadButton";
+import { GifPickerButton } from "@/components/GifPickerButton";
 import { VoiceMessageButton } from "@/components/VoiceMessageButton";
 import { CallButton } from "@/components/CallButton";
 import {
@@ -136,6 +137,13 @@ export default function ConversationChat({ id }: { id: number }) {
     send.mutate({
       id,
       data: { content: "", audioUrl, replyToId: replyTo?.id ?? null },
+    });
+  }
+
+  function sendGif(gifUrl: string) {
+    send.mutate({
+      id,
+      data: { content: "", gifUrl, replyToId: replyTo?.id ?? null },
     });
   }
 
@@ -388,6 +396,10 @@ export default function ConversationChat({ id }: { id: number }) {
         )}
         <div className="flex items-center gap-2">
           <ImageUploadButton onUploaded={sendImage} testId="button-upload-dm-image" />
+          <GifPickerButton
+            onPick={(g) => sendGif(g.url)}
+            testId="button-pick-dm-gif"
+          />
           <VoiceMessageButton onUploaded={sendAudio} testId="button-record-dm-voice" />
           <Input
             ref={inputRef}

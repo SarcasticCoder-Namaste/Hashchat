@@ -20,6 +20,7 @@ tags:
   - name: calls
   - name: posts
   - name: polls
+  - name: gifs
 paths:
   /healthz:
     get:
@@ -1153,6 +1154,36 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/LinkPreview" }
 
+  /gifs/search:
+    get:
+      operationId: searchGifs
+      tags: [gifs]
+      summary: Search GIFs via the configured GIF provider
+      parameters:
+        - name: q
+          in: query
+          required: false
+          schema: { type: string }
+        - name: limit
+          in: query
+          required: false
+          schema: { type: integer, default: 24 }
+        - name: offset
+          in: query
+          required: false
+          schema: { type: integer, default: 0 }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GifSearchResult" }
+        "503":
+          description: GIF provider not configured
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GifConfigError" }
+
   /reels/youtube:
     get:
       operationId: getYoutubeReels
@@ -1609,6 +1640,8 @@ components:
           type: ["string", "null"]
         audioUrl:
           type: ["string", "null"]
+        gifUrl:
+          type: ["string", "null"]
       required: [content]
 
     Reaction:
@@ -1746,6 +1779,35 @@ components:
       required: [items]
 
     ReelsConfigError:
+      type: object
+      properties:
+        error: { type: string }
+        message: { type: string }
+      required: [error, message]
+
+    Gif:
+      type: object
+      properties:
+        id: { type: string }
+        title: { type: string }
+        url: { type: string }
+        previewUrl: { type: string }
+        width: { type: integer }
+        height: { type: integer }
+      required: [id, title, url, previewUrl, width, height]
+
+    GifSearchResult:
+      type: object
+      properties:
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/Gif" }
+        nextOffset:
+          type: ["integer", "null"]
+        provider: { type: string }
+      required: [items, provider]
+
+    GifConfigError:
       type: object
       properties:
         error: { type: string }

@@ -20,6 +20,7 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { MessageBubble } from "@/components/MessageBubble";
 import { ImageUploadButton } from "@/components/ImageUploadButton";
+import { GifPickerButton } from "@/components/GifPickerButton";
 import { VoiceMessageButton } from "@/components/VoiceMessageButton";
 import { CallButton } from "@/components/CallButton";
 import { PostComposer } from "@/components/PostComposer";
@@ -117,6 +118,13 @@ export default function RoomChat({ tag }: { tag: string }) {
     send.mutate({
       tag: cleanTag,
       data: { content: "", audioUrl, replyToId: replyTo?.id ?? null },
+    });
+  }
+
+  function sendGif(gifUrl: string) {
+    send.mutate({
+      tag: cleanTag,
+      data: { content: "", gifUrl, replyToId: replyTo?.id ?? null },
     });
   }
 
@@ -256,6 +264,10 @@ export default function RoomChat({ tag }: { tag: string }) {
         )}
         <div className="flex items-center gap-2">
           <ImageUploadButton onUploaded={sendImage} testId="button-upload-room-image" />
+          <GifPickerButton
+            onPick={(g) => sendGif(g.url)}
+            testId="button-pick-room-gif"
+          />
           <VoiceMessageButton onUploaded={sendAudio} testId="button-record-room-voice" />
           <Input
             ref={inputRef}

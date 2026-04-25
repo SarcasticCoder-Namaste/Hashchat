@@ -567,6 +567,7 @@ export const SendConversationMessageBody = zod.object({
   replyToId: zod.number().nullish(),
   imageUrl: zod.string().nullish(),
   audioUrl: zod.string().nullish(),
+  gifUrl: zod.string().nullish(),
 });
 
 /**
@@ -822,6 +823,7 @@ export const SendRoomMessageBody = zod.object({
   replyToId: zod.number().nullish(),
   imageUrl: zod.string().nullish(),
   audioUrl: zod.string().nullish(),
+  gifUrl: zod.string().nullish(),
 });
 
 /**
@@ -1668,6 +1670,33 @@ export const GetLinkPreviewResponse = zod.object({
   title: zod.string().nullish(),
   description: zod.string().nullish(),
   thumbnailUrl: zod.string().nullish(),
+});
+
+/**
+ * @summary Search GIFs via the configured GIF provider
+ */
+export const searchGifsQueryLimitDefault = 24;
+export const searchGifsQueryOffsetDefault = 0;
+
+export const SearchGifsQueryParams = zod.object({
+  q: zod.coerce.string().optional(),
+  limit: zod.coerce.number().default(searchGifsQueryLimitDefault),
+  offset: zod.coerce.number().default(searchGifsQueryOffsetDefault),
+});
+
+export const SearchGifsResponse = zod.object({
+  items: zod.array(
+    zod.object({
+      id: zod.string(),
+      title: zod.string(),
+      url: zod.string(),
+      previewUrl: zod.string(),
+      width: zod.number(),
+      height: zod.number(),
+    }),
+  ),
+  nextOffset: zod.number().nullish(),
+  provider: zod.string(),
 });
 
 export const GetYoutubeReelsQueryParams = zod.object({

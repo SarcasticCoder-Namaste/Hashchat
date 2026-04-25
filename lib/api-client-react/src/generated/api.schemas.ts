@@ -411,6 +411,8 @@ export interface SendMessageBody {
   imageUrl?: string | null;
   /** @nullable */
   audioUrl?: string | null;
+  /** @nullable */
+  gifUrl?: string | null;
 }
 
 export interface ReactionBody {
@@ -521,6 +523,27 @@ export interface ReelsConfigError {
   message: string;
 }
 
+export interface Gif {
+  id: string;
+  title: string;
+  url: string;
+  previewUrl: string;
+  width: number;
+  height: number;
+}
+
+export interface GifSearchResult {
+  items: Gif[];
+  /** @nullable */
+  nextOffset?: number | null;
+  provider: string;
+}
+
+export interface GifConfigError {
+  error: string;
+  message: string;
+}
+
 export interface PostAuthor {
   id: string;
   username: string;
@@ -612,6 +635,12 @@ export type GetFollowingFeedParams = {
 
 export type GetLinkPreviewParams = {
   url: string;
+};
+
+export type SearchGifsParams = {
+  q?: string;
+  limit?: number;
+  offset?: number;
 };
 
 export type GetYoutubeReelsParams = {

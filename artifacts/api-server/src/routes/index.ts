@@ -18,6 +18,7 @@ import postsRouter from "./posts";
 import pollsRouter from "./polls";
 import linkPreviewRouter from "./linkPreview";
 import socialRouter from "./social";
+import gifsRouter from "./gifs";
 
 const router: IRouter = Router();
 
@@ -40,5 +41,6 @@ router.use(postsRouter);
 router.use(pollsRouter);
 router.use(linkPreviewRouter);
 router.use(socialRouter);
+router.use(gifsRouter);
 
 export default router;

@@ -38,6 +38,8 @@ import type {
   GetTrendingHashtagsParams,
   GetTrendingRoomsParams,
   GetYoutubeReelsParams,
+  GifConfigError,
+  GifSearchResult,
   Hashtag,
   HashtagDetail,
   HealthStatus,
@@ -60,6 +62,7 @@ import type {
   ReelsList,
   RemoveMessageReactionParams,
   Room,
+  SearchGifsParams,
   SearchHashtagsParams,
   SendMessageBody,
   SetBackgroundBody,
@@ -6667,6 +6670,100 @@ export function useGetLinkPreview<
   },
 ): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getGetLinkPreviewQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Search GIFs via the configured GIF provider
+ */
+export const getSearchGifsUrl = (params?: SearchGifsParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/gifs/search?${stringifiedParams}`
+    : `/api/gifs/search`;
+};
+
+export const searchGifs = async (
+  params?: SearchGifsParams,
+  options?: RequestInit,
+): Promise<GifSearchResult> => {
+  return customFetch<GifSearchResult>(getSearchGifsUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getSearchGifsQueryKey = (params?: SearchGifsParams) => {
+  return [`/api/gifs/search`, ...(params ? [params] : [])] as const;
+};
+
+export const getSearchGifsQueryOptions = <
+  TData = Awaited<ReturnType<typeof searchGifs>>,
+  TError = ErrorType<GifConfigError>,
+>(
+  params?: SearchGifsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof searchGifs>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getSearchGifsQueryKey(params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof searchGifs>>> = ({
+    signal,
+  }) => searchGifs(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof searchGifs>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type SearchGifsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof searchGifs>>
+>;
+export type SearchGifsQueryError = ErrorType<GifConfigError>;
+
+/**
+ * @summary Search GIFs via the configured GIF provider
+ */
+
+export function useSearchGifs<
+  TData = Awaited<ReturnType<typeof searchGifs>>,
+  TError = ErrorType<GifConfigError>,
+>(
+  params?: SearchGifsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof searchGifs>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getSearchGifsQueryOptions(params, options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;
