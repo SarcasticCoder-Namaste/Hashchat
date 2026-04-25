@@ -78,8 +78,13 @@ V4 additions:
 - Storage: upload URL endpoint requires auth; persisted image/background URLs are validated to point at our `/objects/<id>` namespace; private object reads are unauthenticated by design (UUID unguessability) so `<img>` tags work without bearer headers.
 - GIF picker in DMs and rooms backed by Giphy v1 API (`GIPHY_API_KEY` secret). Server-side `/api/gifs/search` endpoint proxies trending + search; key is never sent to the browser. `SendMessageBody.gifUrl` is validated against an allowlist of Giphy CDN hostnames, mirrored into `messages.imageUrl` for legacy renderers, and stored as a `kind="gif"` row in `message_attachments`. Picker degrades gracefully (503 → "GIFs aren't set up" panel) when the key is missing.
 
-Reels v2 (full Shorts experience):
+Reels v3 (true YouTube Shorts feel):
 - Tabbed Feed/Saved view (Saved persists in `localStorage` under `hashchat:saved-reels`, capped at 200).
-- Tap-to-play fullscreen modal with autoplaying YouTube embed iframe, prev/next buttons, share (uses `navigator.share` with clipboard fallback), and "Open in YouTube" link. Keyboard nav: ↑/k = prev, ↓/j = next, Esc = close, s = save.
-- Real pagination: `/api/reels/youtube` accepts `pageToken` and returns `{items, nextPageToken}`; client uses `useInfiniteQuery` to append pages with id-dedup so load-more never refetches the existing list. `ReelsList` schema includes `nextPageToken: string | null`.
+- Player is a **vertical snap-scroll modal** (not single-video prev/next): each short occupies a full `100dvh` page; `snap-y snap-mandatory` advances on swipe up / scroll wheel / arrow keys. Only the actively-visible page mounts a YouTube iframe (autoplay + loop + `playlist=<id>` for replay), other pages show the thumbnail with a play overlay that scrolls into view on tap. Iframes default `mute=1` for cross-browser autoplay; mute pill at top-right toggles (re-keyed iframe applies the new mute param).
+- IntersectionObserver tracks active index using a debounced (90 ms) tally over a `Map<index, ratio>` so momentum-scroll doesn't flap the active state. Counter pill shows position (e.g. "3 / 24").
+- Right-side action bar (Shorts-style): Save (heart fills pink), Share (`navigator.share` with clipboard fallback), open-in-YouTube link.
+- Auto-loads more when active index is within 3 of the end (`useInfiniteQuery.fetchNextPage`), throttled by `lastFetchedAtLength` ref so the same tail can't request twice.
+- Backend `/api/reels/youtube` accepts `pageToken`, returns `{items, nextPageToken}`; `ReelsList` schema includes nullable `nextPageToken`.
+- Accessibility: `role="dialog"`, `aria-modal="true"`, focus moves to close button on open and is restored on close, body scroll locked while open.
+- Keyboard: ↑/k prev, ↓/j next, s save, m mute, Esc close.
 - 12 category chips (trending/viral/funny/dance/tech/diy/gaming/food/music/sports/travel/anime).
