@@ -11,6 +11,7 @@ export type UserPublicFields = {
   discriminator: string | null;
   role: string;
   mvpPlan: boolean;
+  verified: boolean;
   lastSeenAt: string;
 };
 
@@ -26,6 +27,7 @@ export function publicUser(u: User): UserPublicFields {
     discriminator: u.discriminator,
     role: u.role,
     mvpPlan: u.mvpPlan,
+    verified: u.verified,
     lastSeenAt: u.lastSeenAt.toISOString(),
   };
 }

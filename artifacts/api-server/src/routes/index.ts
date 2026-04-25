@@ -21,6 +21,8 @@ import socialRouter from "./social";
 import gifsRouter from "./gifs";
 import notificationsRouter from "./notifications";
 import eventsRouter from "./events";
+import communitiesRouter from "./communities";
+import premiumRouter from "./premium";
 
 const router: IRouter = Router();
 
@@ -46,5 +48,7 @@ router.use(socialRouter);
 router.use(gifsRouter);
 router.use(notificationsRouter);
 router.use(eventsRouter);
+router.use(communitiesRouter);
+router.use(premiumRouter);
 
 export default router;

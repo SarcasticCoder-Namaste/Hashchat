@@ -110,6 +110,7 @@ router.get("/discover/people", requireAuth, async (req, res): Promise<void> => {
       discriminator: u.discriminator,
       role: u.role,
       mvpPlan: u.mvpPlan,
+      verified: u.verified,
       lastSeenAt: u.lastSeenAt.toISOString(),
       hashtags: tags,
       sharedHashtags: shared,

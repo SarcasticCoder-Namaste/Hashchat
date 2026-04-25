@@ -28,6 +28,10 @@ export const usersTable = pgTable("users", {
   friendCode: text("friend_code"),
   role: text("role").notNull().default("user"),
   mvpPlan: boolean("mvp_plan").notNull().default(false),
+  verified: boolean("verified").notNull().default(false),
+  premiumUntil: timestamp("premium_until", { withTimezone: true }),
+  stripeCustomerId: text("stripe_customer_id"),
+  stripeSubscriptionId: text("stripe_subscription_id"),
   bannedAt: timestamp("banned_at", { withTimezone: true }),
   lastSeenAt: timestamp("last_seen_at", { withTimezone: true })
     .notNull()
@@ -562,9 +566,169 @@ export const hashtagMetricsDailyTable = pgTable(
   ],
 );
 
+export const communitiesTable = pgTable(
+  "communities",
+  {
+    id: serial("id").primaryKey(),
+    slug: text("slug").notNull(),
+    name: text("name").notNull(),
+    description: text("description"),
+    bannerUrl: text("banner_url"),
+    creatorId: text("creator_id")
+      .notNull()
+      .references(() => usersTable.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [uniqueIndex("communities_slug_unique").on(t.slug)],
+);
+
+export const communityHashtagsTable = pgTable(
+  "community_hashtags",
+  {
+    communityId: integer("community_id")
+      .notNull()
+      .references(() => communitiesTable.id, { onDelete: "cascade" }),
+    tag: text("tag")
+      .notNull()
+      .references(() => hashtagsTable.tag, { onDelete: "cascade" }),
+  },
+  (t) => [
+    primaryKey({ columns: [t.communityId, t.tag] }),
+    index("community_hashtags_tag_idx").on(t.tag),
+  ],
+);
+
+export const communityMembersTable = pgTable(
+  "community_members",
+  {
+    communityId: integer("community_id")
+      .notNull()
+      .references(() => communitiesTable.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => usersTable.id, { onDelete: "cascade" }),
+    role: text("role").notNull().default("member"),
+    joinedAt: timestamp("joined_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.communityId, t.userId] }),
+    index("community_members_user_idx").on(t.userId),
+  ],
+);
+
+export const roomVisibilityTable = pgTable("room_visibility", {
+  tag: text("tag")
+    .primaryKey()
+    .references(() => hashtagsTable.tag, { onDelete: "cascade" }),
+  isPrivate: boolean("is_private").notNull().default(false),
+  ownerId: text("owner_id")
+    .notNull()
+    .references(() => usersTable.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+export const roomMembersTable = pgTable(
+  "room_members",
+  {
+    tag: text("tag")
+      .notNull()
+      .references(() => hashtagsTable.tag, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => usersTable.id, { onDelete: "cascade" }),
+    joinedAt: timestamp("joined_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.tag, t.userId] }),
+    index("room_members_user_idx").on(t.userId),
+  ],
+);
+
+export const roomInvitesTable = pgTable(
+  "room_invites",
+  {
+    code: text("code").primaryKey(),
+    tag: text("tag")
+      .notNull()
+      .references(() => hashtagsTable.tag, { onDelete: "cascade" }),
+    createdBy: text("created_by")
+      .notNull()
+      .references(() => usersTable.id, { onDelete: "cascade" }),
+    maxUses: integer("max_uses"),
+    useCount: integer("use_count").notNull().default(0),
+    expiresAt: timestamp("expires_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [index("room_invites_tag_idx").on(t.tag)],
+);
+
+export const roomJoinRequestsTable = pgTable(
+  "room_join_requests",
+  {
+    tag: text("tag")
+      .notNull()
+      .references(() => hashtagsTable.tag, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => usersTable.id, { onDelete: "cascade" }),
+    status: text("status").notNull().default("pending"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    decidedAt: timestamp("decided_at", { withTimezone: true }),
+    decidedBy: text("decided_by").references(() => usersTable.id, {
+      onDelete: "set null",
+    }),
+  },
+  (t) => [
+    primaryKey({ columns: [t.tag, t.userId] }),
+    index("room_join_requests_status_idx").on(t.tag, t.status),
+  ],
+);
+
+export const subscriptionsTable = pgTable("subscriptions", {
+  userId: text("user_id")
+    .primaryKey()
+    .references(() => usersTable.id, { onDelete: "cascade" }),
+  stripeCustomerId: text("stripe_customer_id"),
+  stripeSubscriptionId: text("stripe_subscription_id"),
+  plan: text("plan").notNull().default("premium"),
+  status: text("status").notNull().default("inactive"),
+  currentPeriodEnd: timestamp("current_period_end", { withTimezone: true }),
+  cancelAtPeriodEnd: boolean("cancel_at_period_end").notNull().default(false),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
 export type Event = typeof eventsTable.$inferSelect;
 export type EventRsvp = typeof eventRsvpsTable.$inferSelect;
 export type HashtagMetricsDaily = typeof hashtagMetricsDailyTable.$inferSelect;
+export type Community = typeof communitiesTable.$inferSelect;
+export type CommunityHashtag = typeof communityHashtagsTable.$inferSelect;
+export type CommunityMember = typeof communityMembersTable.$inferSelect;
+export type RoomVisibility = typeof roomVisibilityTable.$inferSelect;
+export type RoomMember = typeof roomMembersTable.$inferSelect;
+export type RoomInvite = typeof roomInvitesTable.$inferSelect;
+export type RoomJoinRequest = typeof roomJoinRequestsTable.$inferSelect;
+export type Subscription = typeof subscriptionsTable.$inferSelect;
+
 export type Post = typeof postsTable.$inferSelect;
 export type PostMedia = typeof postMediaTable.$inferSelect;
 export type Poll = typeof pollsTable.$inferSelect;

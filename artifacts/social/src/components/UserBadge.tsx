@@ -1,6 +1,6 @@
 import { type ReactNode } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Crown, ShieldCheck, Sparkles } from "lucide-react";
+import { BadgeCheck, Crown, ShieldCheck, Sparkles } from "lucide-react";
 import { isOnline } from "@/lib/userPresence";
 
 function initialsFor(name: string) {
@@ -57,6 +57,7 @@ export function UserNameLine({
   discriminator,
   role,
   mvpPlan,
+  verified,
   featuredHashtag,
   className,
   showHandle = true,
@@ -67,6 +68,7 @@ export function UserNameLine({
   discriminator?: string | null;
   role?: string | null;
   mvpPlan?: boolean | null;
+  verified?: boolean | null;
   featuredHashtag?: string | null;
   className?: string;
   showHandle?: boolean;
@@ -80,6 +82,15 @@ export function UserNameLine({
         <p className="truncate text-sm font-semibold text-foreground">
           {displayName}
         </p>
+        {verified && (
+          <span
+            title="Verified"
+            data-testid="badge-verified"
+            className="inline-flex items-center text-sky-500 dark:text-sky-400"
+          >
+            <BadgeCheck className="h-3.5 w-3.5 fill-sky-500/20" />
+          </span>
+        )}
         {isAdmin && (
           <span
             title="Admin"

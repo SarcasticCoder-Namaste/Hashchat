@@ -32,6 +32,7 @@ async function buildPosts(rows: PostRow[]) {
       discriminator: usersTable.discriminator,
       role: usersTable.role,
       mvpPlan: usersTable.mvpPlan,
+      verified: usersTable.verified,
     })
     .from(usersTable)
     .where(inArray(usersTable.id, authorIds));
@@ -70,6 +71,7 @@ async function buildPosts(rows: PostRow[]) {
         discriminator: a?.discriminator ?? null,
         role: a?.role ?? "user",
         mvpPlan: a?.mvpPlan ?? false,
+        verified: a?.verified ?? false,
       },
       content: r.content,
       hashtags: tagsByPost.get(r.id) ?? [],

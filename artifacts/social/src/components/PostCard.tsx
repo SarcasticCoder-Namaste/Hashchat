@@ -5,7 +5,7 @@ import {
 } from "@workspace/api-client-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Trash2 } from "lucide-react";
+import { Trash2, BadgeCheck } from "lucide-react";
 
 interface PostCardProps {
   post: Post;
@@ -78,6 +78,11 @@ export function PostCard({ post, meId, onDeleted }: PostCardProps) {
           >
             {post.author.displayName}
           </Link>
+          {post.author.verified && (
+            <span title="Verified" data-testid="badge-verified" className="inline-flex shrink-0 items-center text-sky-500 dark:text-sky-400">
+              <BadgeCheck className="h-3.5 w-3.5 fill-sky-500/20" />
+            </span>
+          )}
           <span className="truncate text-xs text-muted-foreground">
             @{post.author.username}
           </span>

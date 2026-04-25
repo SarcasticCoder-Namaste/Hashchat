@@ -7,6 +7,8 @@ import {
   useFollowHashtag,
   useUnfollowHashtag,
   useGetMe,
+  useGetPremiumStatus,
+  useRequestRoomJoin,
   getGetRoomMessagesQueryKey,
   getGetHashtagQueryKey,
   getGetMyFollowedHashtagsQueryKey,
@@ -27,6 +29,8 @@ import { PostComposer } from "@/components/PostComposer";
 import { PostFeed } from "@/components/PostFeed";
 import { PollsPanel } from "@/components/PollsPanel";
 import { EventsPanel, LiveEventBanner } from "@/components/EventsPanel";
+import { RoomSettingsDialog } from "@/components/RoomSettingsDialog";
+import { useToast } from "@/hooks/use-toast";
 import {
   ArrowLeft,
   Hash,
@@ -37,6 +41,8 @@ import {
   X,
   Reply,
   BarChart3,
+  Settings as SettingsIcon,
+  Lock,
 } from "lucide-react";
 
 export default function RoomChat({ tag }: { tag: string }) {
@@ -44,16 +50,36 @@ export default function RoomChat({ tag }: { tag: string }) {
   const qc = useQueryClient();
   const [draft, setDraft] = useState("");
   const [replyTo, setReplyTo] = useState<Message | null>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const scrollerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const { toast } = useToast();
+
+  const hashtagQ = useGetHashtag(cleanTag);
+  const detail = hashtagQ.data;
+  const isPrivate = detail?.isPrivate ?? false;
+  const isMember = detail?.isMember ?? false;
+  const isLocked = isPrivate && !isMember;
 
   const messagesQ = useGetRoomMessages(cleanTag, {
     query: {
       queryKey: getGetRoomMessagesQueryKey(cleanTag),
       refetchInterval: 3000,
+      enabled: !isLocked,
     },
   });
-  const hashtagQ = useGetHashtag(cleanTag);
+
+  const premium = useGetPremiumStatus();
+  const requestJoin = useRequestRoomJoin({
+    mutation: {
+      onSuccess: () => {
+        qc.invalidateQueries({ queryKey: getGetHashtagQueryKey(cleanTag) });
+        toast({ title: "Request sent", description: "Owner will review it soon." });
+      },
+      onError: () =>
+        toast({ title: "Could not request access", variant: "destructive" }),
+    },
+  });
 
   function invalidateMessages() {
     qc.invalidateQueries({ queryKey: getGetRoomMessagesQueryKey(cleanTag) });
@@ -137,7 +163,6 @@ export default function RoomChat({ tag }: { tag: string }) {
 
   const meQ = useGetMe();
   const meId = meQ.data?.id ?? null;
-  const detail = hashtagQ.data;
   const [tab, setTab] = useState<"chat" | "posts" | "polls" | "events">(
     "chat",
   );
@@ -156,8 +181,13 @@ export default function RoomChat({ tag }: { tag: string }) {
           <Hash className="h-4 w-4" />
         </div>
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-semibold text-foreground">
+          <p className="flex items-center gap-1 truncate text-sm font-semibold text-foreground">
             #{cleanTag}
+            {isPrivate && (
+              <span title="Private room" className="text-violet-500" data-testid="badge-private-room">
+                <Lock className="h-3 w-3" />
+              </span>
+            )}
           </p>
           <p className="flex items-center gap-2 text-[11px] text-muted-foreground">
             <Users className="h-3 w-3" />
@@ -169,8 +199,12 @@ export default function RoomChat({ tag }: { tag: string }) {
             )}
           </p>
         </div>
-        <CallButton roomTag={cleanTag} kind="voice" testId="button-room-call-voice" />
-        <CallButton roomTag={cleanTag} kind="video" testId="button-room-call-video" />
+        {!isLocked && (
+          <>
+            <CallButton roomTag={cleanTag} kind="voice" testId="button-room-call-voice" />
+            <CallButton roomTag={cleanTag} kind="video" testId="button-room-call-video" />
+          </>
+        )}
         <Button
           size="icon"
           variant="ghost"
@@ -181,6 +215,15 @@ export default function RoomChat({ tag }: { tag: string }) {
           <Link href={`/app/tag/${encodeURIComponent(cleanTag)}`}>
             <BarChart3 className="h-4 w-4" />
           </Link>
+        </Button>
+        <Button
+          size="icon"
+          variant="ghost"
+          onClick={() => setSettingsOpen(true)}
+          data-testid="button-room-settings"
+          aria-label="Room settings"
+        >
+          <SettingsIcon className="h-4 w-4" />
         </Button>
         {detail && (
           <Button
@@ -224,6 +267,35 @@ export default function RoomChat({ tag }: { tag: string }) {
           className="m-0 flex min-h-0 flex-1 flex-col data-[state=inactive]:hidden"
           forceMount
         >
+      {isLocked ? (
+        <div className="flex min-h-0 flex-1 items-center justify-center bg-background px-6 py-10">
+          <div
+            className="max-w-sm rounded-2xl border border-border bg-card p-6 text-center shadow-sm"
+            data-testid="private-room-gate"
+          >
+            <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-violet-500/15 text-violet-500">
+              <Lock className="h-6 w-6" />
+            </div>
+            <p className="text-base font-semibold text-foreground">
+              #{cleanTag} is private
+            </p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              You need an invite or owner approval to view messages and posts.
+            </p>
+            <Button
+              className="brand-gradient-bg mt-4 text-white"
+              onClick={() => requestJoin.mutate({ tag: cleanTag })}
+              disabled={requestJoin.isPending}
+              data-testid="button-request-room-access"
+            >
+              {requestJoin.isPending && (
+                <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+              )}
+              Request access
+            </Button>
+          </div>
+        </div>
+      ) : (<>
       <div
         ref={scrollerRef}
         className="min-h-0 flex-1 overflow-y-auto bg-background px-4 py-6"
@@ -309,34 +381,47 @@ export default function RoomChat({ tag }: { tag: string }) {
           </Button>
         </div>
       </form>
+      </>)}
         </TabsContent>
         <TabsContent
           value="posts"
           className="m-0 flex min-h-0 flex-1 flex-col"
         >
-          <div className="min-h-0 flex-1 overflow-y-auto bg-background px-4 py-4">
-            <div className="mx-auto flex max-w-2xl flex-col gap-3">
-              <PostComposer
-                defaultHashtag={cleanTag}
-                onPosted={() =>
-                  qc.invalidateQueries({
-                    queryKey: getGetHashtagPostsQueryKey(cleanTag),
-                  })
-                }
-              />
-              <PostFeed
-                scope={{ kind: "hashtag", tag: cleanTag }}
-                meId={meId}
-                emptyMessage={`No posts in #${cleanTag} yet — be the first!`}
-              />
+          {isLocked ? (
+            <div className="flex min-h-0 flex-1 items-center justify-center bg-background px-6 py-10 text-sm text-muted-foreground">
+              Posts are private to members.
             </div>
-          </div>
+          ) : (
+            <div className="min-h-0 flex-1 overflow-y-auto bg-background px-4 py-4">
+              <div className="mx-auto flex max-w-2xl flex-col gap-3">
+                <PostComposer
+                  defaultHashtag={cleanTag}
+                  onPosted={() =>
+                    qc.invalidateQueries({
+                      queryKey: getGetHashtagPostsQueryKey(cleanTag),
+                    })
+                  }
+                />
+                <PostFeed
+                  scope={{ kind: "hashtag", tag: cleanTag }}
+                  meId={meId}
+                  emptyMessage={`No posts in #${cleanTag} yet — be the first!`}
+                />
+              </div>
+            </div>
+          )}
         </TabsContent>
         <TabsContent
           value="polls"
           className="m-0 flex min-h-0 flex-1 flex-col"
         >
-          <PollsPanel tag={cleanTag} />
+          {isLocked ? (
+            <div className="flex min-h-0 flex-1 items-center justify-center bg-background px-6 py-10 text-sm text-muted-foreground">
+              Polls are private to members.
+            </div>
+          ) : (
+            <PollsPanel tag={cleanTag} />
+          )}
         </TabsContent>
         <TabsContent
           value="events"
@@ -345,6 +430,12 @@ export default function RoomChat({ tag }: { tag: string }) {
           <EventsPanel tag={cleanTag} />
         </TabsContent>
       </Tabs>
+      <RoomSettingsDialog
+        tag={cleanTag}
+        open={settingsOpen}
+        onOpenChange={setSettingsOpen}
+        isPremium={premium.data?.verified ?? false}
+      />
     </div>
   );
 }

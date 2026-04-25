@@ -41,6 +41,8 @@ async function loadUser(userId: string) {
     friendCode: user.friendCode,
     role: user.role,
     mvpPlan: user.mvpPlan,
+    verified: user.verified,
+    premiumUntil: user.premiumUntil ? user.premiumUntil.toISOString() : null,
     lastSeenAt: user.lastSeenAt.toISOString(),
     hashtags: tags.map((t) => t.tag),
     followedHashtags: followed.map((t) => t.tag),

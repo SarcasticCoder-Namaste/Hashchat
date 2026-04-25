@@ -157,6 +157,7 @@ function UsersTab({ isAdmin }: { isAdmin: boolean }) {
                 discriminator={u.discriminator}
                 role={u.role}
                 mvpPlan={u.mvpPlan}
+                verified={u.verified}
                 className="flex-1"
               />
               {u.bannedAt && (

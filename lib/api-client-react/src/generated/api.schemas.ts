@@ -38,6 +38,9 @@ export interface User {
   friendCode?: string | null;
   role: string;
   mvpPlan: boolean;
+  verified: boolean;
+  /** @nullable */
+  premiumUntil?: string | null;
   lastSeenAt: string;
   hashtags: string[];
   followedHashtags: string[];
@@ -102,6 +105,7 @@ export interface MatchUser {
   discriminator?: string | null;
   role: string;
   mvpPlan: boolean;
+  verified: boolean;
   lastSeenAt: string;
   hashtags: string[];
   sharedHashtags: string[];
@@ -124,6 +128,10 @@ export interface HashtagDetail {
   followerCount: number;
   recentMessages: number;
   isFollowed: boolean;
+  isPrivate: boolean;
+  isMember: boolean;
+  /** @nullable */
+  ownerId?: string | null;
   topMembers: MatchUser[];
   relatedHashtags: string[];
 }
@@ -160,6 +168,7 @@ export interface PublicProfile {
   discriminator?: string | null;
   role: string;
   mvpPlan: boolean;
+  verified: boolean;
   lastSeenAt: string;
   createdAt: string;
   hashtags: string[];
@@ -463,6 +472,8 @@ export interface Room {
   recentMessages: number;
   lastMessage?: Message | null;
   isFollowed: boolean;
+  isPrivate: boolean;
+  isMember: boolean;
 }
 
 export interface OverviewStats {
@@ -487,6 +498,7 @@ export interface AdminUser {
   discriminator?: string | null;
   role: string;
   mvpPlan: boolean;
+  verified: boolean;
   lastSeenAt: string;
   /** @nullable */
   bannedAt?: string | null;
@@ -590,6 +602,7 @@ export interface PostAuthor {
   discriminator?: string | null;
   role: string;
   mvpPlan: boolean;
+  verified: boolean;
 }
 
 export interface Post {
@@ -721,6 +734,160 @@ export interface ForYouItem {
   person?: MatchUser | null;
 }
 
+export interface Community {
+  id: number;
+  slug: string;
+  name: string;
+  /** @nullable */
+  description?: string | null;
+  /** @nullable */
+  bannerUrl?: string | null;
+  creatorId: string;
+  memberCount: number;
+  hashtags: string[];
+  isMember: boolean;
+  createdAt: string;
+}
+
+export interface CommunityDetail {
+  id: number;
+  slug: string;
+  name: string;
+  /** @nullable */
+  description?: string | null;
+  /** @nullable */
+  bannerUrl?: string | null;
+  creatorId: string;
+  creator?: MatchUser | null;
+  memberCount: number;
+  members: MatchUser[];
+  hashtags: string[];
+  rooms: Room[];
+  isMember: boolean;
+  canEdit: boolean;
+  createdAt: string;
+}
+
+export interface CreateCommunityBody {
+  /**
+   * @minLength 2
+   * @maxLength 60
+   */
+  name: string;
+  /** @nullable */
+  description?: string | null;
+  /** @nullable */
+  bannerUrl?: string | null;
+  /**
+   * @minItems 1
+   * @maxItems 12
+   */
+  hashtags: string[];
+}
+
+export interface RoomVisibility {
+  tag: string;
+  isPrivate: boolean;
+  /** @nullable */
+  ownerId?: string | null;
+  canManage: boolean;
+  isMember: boolean;
+}
+
+export interface SetRoomVisibilityBody {
+  isPrivate: boolean;
+}
+
+export interface RoomInvite {
+  code: string;
+  tag: string;
+  url: string;
+  createdBy: string;
+  /** @nullable */
+  maxUses?: number | null;
+  useCount: number;
+  /** @nullable */
+  expiresAt?: string | null;
+  createdAt: string;
+}
+
+export interface CreateRoomInviteBody {
+  /** @nullable */
+  maxUses?: number | null;
+  /** @nullable */
+  expiresInHours?: number | null;
+}
+
+export interface RoomInvitePeek {
+  tag: string;
+  valid: boolean;
+  memberCount: number;
+  joined: boolean;
+  /** @nullable */
+  reason?: string | null;
+}
+
+export type RoomJoinRequestStatus =
+  (typeof RoomJoinRequestStatus)[keyof typeof RoomJoinRequestStatus];
+
+export const RoomJoinRequestStatus = {
+  pending: "pending",
+  approved: "approved",
+  denied: "denied",
+} as const;
+
+export interface RoomJoinRequest {
+  tag: string;
+  userId: string;
+  status: RoomJoinRequestStatus;
+  user?: MatchUser | null;
+  createdAt: string;
+}
+
+export type DecideJoinRequestBodyDecision =
+  (typeof DecideJoinRequestBodyDecision)[keyof typeof DecideJoinRequestBodyDecision];
+
+export const DecideJoinRequestBodyDecision = {
+  approve: "approve",
+  deny: "deny",
+} as const;
+
+export interface DecideJoinRequestBody {
+  decision: DecideJoinRequestBodyDecision;
+}
+
+export type PremiumStatusProvider =
+  (typeof PremiumStatusProvider)[keyof typeof PremiumStatusProvider];
+
+export const PremiumStatusProvider = {
+  stripe: "stripe",
+  dev: "dev",
+} as const;
+
+export interface PremiumStatus {
+  verified: boolean;
+  active: boolean;
+  /** @nullable */
+  plan?: string | null;
+  /** @nullable */
+  currentPeriodEnd?: string | null;
+  cancelAtPeriodEnd: boolean;
+  provider: PremiumStatusProvider;
+}
+
+export type PremiumCheckoutResponseProvider =
+  (typeof PremiumCheckoutResponseProvider)[keyof typeof PremiumCheckoutResponseProvider];
+
+export const PremiumCheckoutResponseProvider = {
+  stripe: "stripe",
+  dev: "dev",
+} as const;
+
+export interface PremiumCheckoutResponse {
+  url: string;
+  provider: PremiumCheckoutResponseProvider;
+}
+
 export type GetTrendingHashtagsParams = {
   limit?: number;
 };
@@ -799,4 +966,8 @@ export type SearchGifsParams = {
 export type GetYoutubeReelsParams = {
   q?: string;
   max?: number;
+};
+
+export type ListCommunitiesParams = {
+  mine?: boolean;
 };

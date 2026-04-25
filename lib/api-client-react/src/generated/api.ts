@@ -24,12 +24,17 @@ import type {
   Call,
   CallSignalBody,
   CallSignalList,
+  Community,
+  CommunityDetail,
   Conversation,
+  CreateCommunityBody,
   CreateEventBody,
   CreateMvpCodeBody,
   CreatePollBody,
   CreatePostBody,
+  CreateRoomInviteBody,
   CreatedCode,
+  DecideJoinRequestBody,
   DiscoverPeopleParams,
   Event,
   FollowingFeedItem,
@@ -56,6 +61,7 @@ import type {
   HealthStatus,
   InitiateCallBody,
   LinkPreview,
+  ListCommunitiesParams,
   LookupUserByCodeParams,
   MatchUser,
   Message,
@@ -67,6 +73,8 @@ import type {
   OverviewStats,
   Poll,
   Post,
+  PremiumCheckoutResponse,
+  PremiumStatus,
   PublicProfile,
   ReactionBody,
   RedeemCodeBody,
@@ -74,12 +82,17 @@ import type {
   ReelsList,
   RemoveMessageReactionParams,
   Room,
+  RoomInvite,
+  RoomInvitePeek,
+  RoomJoinRequest,
+  RoomVisibility,
   SearchGifsParams,
   SearchHashtagsParams,
   SendMessageBody,
   SetBackgroundBody,
   SetHashtagsBody,
   SetRoleBody,
+  SetRoomVisibilityBody,
   TrendingHashtag,
   UnreadCount,
   UpdateUserBody,
@@ -8051,3 +8064,1364 @@ export function useGetYoutubeReels<
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+/**
+ * @summary List browseable communities
+ */
+export const getListCommunitiesUrl = (params?: ListCommunitiesParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/communities?${stringifiedParams}`
+    : `/api/communities`;
+};
+
+export const listCommunities = async (
+  params?: ListCommunitiesParams,
+  options?: RequestInit,
+): Promise<Community[]> => {
+  return customFetch<Community[]>(getListCommunitiesUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListCommunitiesQueryKey = (params?: ListCommunitiesParams) => {
+  return [`/api/communities`, ...(params ? [params] : [])] as const;
+};
+
+export const getListCommunitiesQueryOptions = <
+  TData = Awaited<ReturnType<typeof listCommunities>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListCommunitiesParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listCommunities>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListCommunitiesQueryKey(params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listCommunities>>> = ({
+    signal,
+  }) => listCommunities(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listCommunities>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListCommunitiesQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listCommunities>>
+>;
+export type ListCommunitiesQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List browseable communities
+ */
+
+export function useListCommunities<
+  TData = Awaited<ReturnType<typeof listCommunities>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListCommunitiesParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listCommunities>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListCommunitiesQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Create a new community
+ */
+export const getCreateCommunityUrl = () => {
+  return `/api/communities`;
+};
+
+export const createCommunity = async (
+  createCommunityBody: CreateCommunityBody,
+  options?: RequestInit,
+): Promise<Community> => {
+  return customFetch<Community>(getCreateCommunityUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createCommunityBody),
+  });
+};
+
+export const getCreateCommunityMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createCommunity>>,
+    TError,
+    { data: BodyType<CreateCommunityBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createCommunity>>,
+  TError,
+  { data: BodyType<CreateCommunityBody> },
+  TContext
+> => {
+  const mutationKey = ["createCommunity"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createCommunity>>,
+    { data: BodyType<CreateCommunityBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return createCommunity(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateCommunityMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createCommunity>>
+>;
+export type CreateCommunityMutationBody = BodyType<CreateCommunityBody>;
+export type CreateCommunityMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Create a new community
+ */
+export const useCreateCommunity = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createCommunity>>,
+    TError,
+    { data: BodyType<CreateCommunityBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createCommunity>>,
+  TError,
+  { data: BodyType<CreateCommunityBody> },
+  TContext
+> => {
+  return useMutation(getCreateCommunityMutationOptions(options));
+};
+
+export const getGetCommunityUrl = (slug: string) => {
+  return `/api/communities/${slug}`;
+};
+
+export const getCommunity = async (
+  slug: string,
+  options?: RequestInit,
+): Promise<CommunityDetail> => {
+  return customFetch<CommunityDetail>(getGetCommunityUrl(slug), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetCommunityQueryKey = (slug: string) => {
+  return [`/api/communities/${slug}`] as const;
+};
+
+export const getGetCommunityQueryOptions = <
+  TData = Awaited<ReturnType<typeof getCommunity>>,
+  TError = ErrorType<unknown>,
+>(
+  slug: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getCommunity>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetCommunityQueryKey(slug);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getCommunity>>> = ({
+    signal,
+  }) => getCommunity(slug, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!slug,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getCommunity>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetCommunityQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getCommunity>>
+>;
+export type GetCommunityQueryError = ErrorType<unknown>;
+
+export function useGetCommunity<
+  TData = Awaited<ReturnType<typeof getCommunity>>,
+  TError = ErrorType<unknown>,
+>(
+  slug: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getCommunity>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetCommunityQueryOptions(slug, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export const getJoinCommunityUrl = (slug: string) => {
+  return `/api/communities/${slug}/join`;
+};
+
+export const joinCommunity = async (
+  slug: string,
+  options?: RequestInit,
+): Promise<CommunityDetail> => {
+  return customFetch<CommunityDetail>(getJoinCommunityUrl(slug), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getJoinCommunityMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof joinCommunity>>,
+    TError,
+    { slug: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof joinCommunity>>,
+  TError,
+  { slug: string },
+  TContext
+> => {
+  const mutationKey = ["joinCommunity"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof joinCommunity>>,
+    { slug: string }
+  > = (props) => {
+    const { slug } = props ?? {};
+
+    return joinCommunity(slug, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type JoinCommunityMutationResult = NonNullable<
+  Awaited<ReturnType<typeof joinCommunity>>
+>;
+
+export type JoinCommunityMutationError = ErrorType<unknown>;
+
+export const useJoinCommunity = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof joinCommunity>>,
+    TError,
+    { slug: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof joinCommunity>>,
+  TError,
+  { slug: string },
+  TContext
+> => {
+  return useMutation(getJoinCommunityMutationOptions(options));
+};
+
+export const getLeaveCommunityUrl = (slug: string) => {
+  return `/api/communities/${slug}/leave`;
+};
+
+export const leaveCommunity = async (
+  slug: string,
+  options?: RequestInit,
+): Promise<CommunityDetail> => {
+  return customFetch<CommunityDetail>(getLeaveCommunityUrl(slug), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getLeaveCommunityMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof leaveCommunity>>,
+    TError,
+    { slug: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof leaveCommunity>>,
+  TError,
+  { slug: string },
+  TContext
+> => {
+  const mutationKey = ["leaveCommunity"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof leaveCommunity>>,
+    { slug: string }
+  > = (props) => {
+    const { slug } = props ?? {};
+
+    return leaveCommunity(slug, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type LeaveCommunityMutationResult = NonNullable<
+  Awaited<ReturnType<typeof leaveCommunity>>
+>;
+
+export type LeaveCommunityMutationError = ErrorType<unknown>;
+
+export const useLeaveCommunity = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof leaveCommunity>>,
+    TError,
+    { slug: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof leaveCommunity>>,
+  TError,
+  { slug: string },
+  TContext
+> => {
+  return useMutation(getLeaveCommunityMutationOptions(options));
+};
+
+export const getGetRoomVisibilityUrl = (tag: string) => {
+  return `/api/rooms/${tag}/visibility`;
+};
+
+export const getRoomVisibility = async (
+  tag: string,
+  options?: RequestInit,
+): Promise<RoomVisibility> => {
+  return customFetch<RoomVisibility>(getGetRoomVisibilityUrl(tag), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetRoomVisibilityQueryKey = (tag: string) => {
+  return [`/api/rooms/${tag}/visibility`] as const;
+};
+
+export const getGetRoomVisibilityQueryOptions = <
+  TData = Awaited<ReturnType<typeof getRoomVisibility>>,
+  TError = ErrorType<unknown>,
+>(
+  tag: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getRoomVisibility>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetRoomVisibilityQueryKey(tag);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getRoomVisibility>>
+  > = ({ signal }) => getRoomVisibility(tag, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!tag,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getRoomVisibility>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetRoomVisibilityQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getRoomVisibility>>
+>;
+export type GetRoomVisibilityQueryError = ErrorType<unknown>;
+
+export function useGetRoomVisibility<
+  TData = Awaited<ReturnType<typeof getRoomVisibility>>,
+  TError = ErrorType<unknown>,
+>(
+  tag: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getRoomVisibility>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetRoomVisibilityQueryOptions(tag, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export const getSetRoomVisibilityUrl = (tag: string) => {
+  return `/api/rooms/${tag}/visibility`;
+};
+
+export const setRoomVisibility = async (
+  tag: string,
+  setRoomVisibilityBody: SetRoomVisibilityBody,
+  options?: RequestInit,
+): Promise<RoomVisibility> => {
+  return customFetch<RoomVisibility>(getSetRoomVisibilityUrl(tag), {
+    ...options,
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(setRoomVisibilityBody),
+  });
+};
+
+export const getSetRoomVisibilityMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof setRoomVisibility>>,
+    TError,
+    { tag: string; data: BodyType<SetRoomVisibilityBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof setRoomVisibility>>,
+  TError,
+  { tag: string; data: BodyType<SetRoomVisibilityBody> },
+  TContext
+> => {
+  const mutationKey = ["setRoomVisibility"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof setRoomVisibility>>,
+    { tag: string; data: BodyType<SetRoomVisibilityBody> }
+  > = (props) => {
+    const { tag, data } = props ?? {};
+
+    return setRoomVisibility(tag, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SetRoomVisibilityMutationResult = NonNullable<
+  Awaited<ReturnType<typeof setRoomVisibility>>
+>;
+export type SetRoomVisibilityMutationBody = BodyType<SetRoomVisibilityBody>;
+export type SetRoomVisibilityMutationError = ErrorType<unknown>;
+
+export const useSetRoomVisibility = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof setRoomVisibility>>,
+    TError,
+    { tag: string; data: BodyType<SetRoomVisibilityBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof setRoomVisibility>>,
+  TError,
+  { tag: string; data: BodyType<SetRoomVisibilityBody> },
+  TContext
+> => {
+  return useMutation(getSetRoomVisibilityMutationOptions(options));
+};
+
+export const getListRoomInvitesUrl = (tag: string) => {
+  return `/api/rooms/${tag}/invites`;
+};
+
+export const listRoomInvites = async (
+  tag: string,
+  options?: RequestInit,
+): Promise<RoomInvite[]> => {
+  return customFetch<RoomInvite[]>(getListRoomInvitesUrl(tag), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListRoomInvitesQueryKey = (tag: string) => {
+  return [`/api/rooms/${tag}/invites`] as const;
+};
+
+export const getListRoomInvitesQueryOptions = <
+  TData = Awaited<ReturnType<typeof listRoomInvites>>,
+  TError = ErrorType<unknown>,
+>(
+  tag: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listRoomInvites>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListRoomInvitesQueryKey(tag);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listRoomInvites>>> = ({
+    signal,
+  }) => listRoomInvites(tag, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!tag,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof listRoomInvites>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListRoomInvitesQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listRoomInvites>>
+>;
+export type ListRoomInvitesQueryError = ErrorType<unknown>;
+
+export function useListRoomInvites<
+  TData = Awaited<ReturnType<typeof listRoomInvites>>,
+  TError = ErrorType<unknown>,
+>(
+  tag: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listRoomInvites>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListRoomInvitesQueryOptions(tag, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export const getCreateRoomInviteUrl = (tag: string) => {
+  return `/api/rooms/${tag}/invites`;
+};
+
+export const createRoomInvite = async (
+  tag: string,
+  createRoomInviteBody?: CreateRoomInviteBody,
+  options?: RequestInit,
+): Promise<RoomInvite> => {
+  return customFetch<RoomInvite>(getCreateRoomInviteUrl(tag), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createRoomInviteBody),
+  });
+};
+
+export const getCreateRoomInviteMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createRoomInvite>>,
+    TError,
+    { tag: string; data: BodyType<CreateRoomInviteBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createRoomInvite>>,
+  TError,
+  { tag: string; data: BodyType<CreateRoomInviteBody> },
+  TContext
+> => {
+  const mutationKey = ["createRoomInvite"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createRoomInvite>>,
+    { tag: string; data: BodyType<CreateRoomInviteBody> }
+  > = (props) => {
+    const { tag, data } = props ?? {};
+
+    return createRoomInvite(tag, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateRoomInviteMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createRoomInvite>>
+>;
+export type CreateRoomInviteMutationBody = BodyType<CreateRoomInviteBody>;
+export type CreateRoomInviteMutationError = ErrorType<unknown>;
+
+export const useCreateRoomInvite = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createRoomInvite>>,
+    TError,
+    { tag: string; data: BodyType<CreateRoomInviteBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createRoomInvite>>,
+  TError,
+  { tag: string; data: BodyType<CreateRoomInviteBody> },
+  TContext
+> => {
+  return useMutation(getCreateRoomInviteMutationOptions(options));
+};
+
+export const getPeekRoomInviteUrl = (code: string) => {
+  return `/api/rooms/invites/${code}`;
+};
+
+export const peekRoomInvite = async (
+  code: string,
+  options?: RequestInit,
+): Promise<RoomInvitePeek> => {
+  return customFetch<RoomInvitePeek>(getPeekRoomInviteUrl(code), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getPeekRoomInviteQueryKey = (code: string) => {
+  return [`/api/rooms/invites/${code}`] as const;
+};
+
+export const getPeekRoomInviteQueryOptions = <
+  TData = Awaited<ReturnType<typeof peekRoomInvite>>,
+  TError = ErrorType<unknown>,
+>(
+  code: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof peekRoomInvite>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getPeekRoomInviteQueryKey(code);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof peekRoomInvite>>> = ({
+    signal,
+  }) => peekRoomInvite(code, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!code,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof peekRoomInvite>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type PeekRoomInviteQueryResult = NonNullable<
+  Awaited<ReturnType<typeof peekRoomInvite>>
+>;
+export type PeekRoomInviteQueryError = ErrorType<unknown>;
+
+export function usePeekRoomInvite<
+  TData = Awaited<ReturnType<typeof peekRoomInvite>>,
+  TError = ErrorType<unknown>,
+>(
+  code: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof peekRoomInvite>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getPeekRoomInviteQueryOptions(code, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export const getRedeemRoomInviteUrl = (code: string) => {
+  return `/api/rooms/invites/${code}`;
+};
+
+export const redeemRoomInvite = async (
+  code: string,
+  options?: RequestInit,
+): Promise<RoomInvitePeek> => {
+  return customFetch<RoomInvitePeek>(getRedeemRoomInviteUrl(code), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getRedeemRoomInviteMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof redeemRoomInvite>>,
+    TError,
+    { code: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof redeemRoomInvite>>,
+  TError,
+  { code: string },
+  TContext
+> => {
+  const mutationKey = ["redeemRoomInvite"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof redeemRoomInvite>>,
+    { code: string }
+  > = (props) => {
+    const { code } = props ?? {};
+
+    return redeemRoomInvite(code, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RedeemRoomInviteMutationResult = NonNullable<
+  Awaited<ReturnType<typeof redeemRoomInvite>>
+>;
+
+export type RedeemRoomInviteMutationError = ErrorType<unknown>;
+
+export const useRedeemRoomInvite = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof redeemRoomInvite>>,
+    TError,
+    { code: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof redeemRoomInvite>>,
+  TError,
+  { code: string },
+  TContext
+> => {
+  return useMutation(getRedeemRoomInviteMutationOptions(options));
+};
+
+export const getListRoomJoinRequestsUrl = (tag: string) => {
+  return `/api/rooms/${tag}/join-requests`;
+};
+
+export const listRoomJoinRequests = async (
+  tag: string,
+  options?: RequestInit,
+): Promise<RoomJoinRequest[]> => {
+  return customFetch<RoomJoinRequest[]>(getListRoomJoinRequestsUrl(tag), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListRoomJoinRequestsQueryKey = (tag: string) => {
+  return [`/api/rooms/${tag}/join-requests`] as const;
+};
+
+export const getListRoomJoinRequestsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listRoomJoinRequests>>,
+  TError = ErrorType<unknown>,
+>(
+  tag: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listRoomJoinRequests>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListRoomJoinRequestsQueryKey(tag);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listRoomJoinRequests>>
+  > = ({ signal }) => listRoomJoinRequests(tag, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!tag,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof listRoomJoinRequests>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListRoomJoinRequestsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listRoomJoinRequests>>
+>;
+export type ListRoomJoinRequestsQueryError = ErrorType<unknown>;
+
+export function useListRoomJoinRequests<
+  TData = Awaited<ReturnType<typeof listRoomJoinRequests>>,
+  TError = ErrorType<unknown>,
+>(
+  tag: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listRoomJoinRequests>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListRoomJoinRequestsQueryOptions(tag, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export const getRequestRoomJoinUrl = (tag: string) => {
+  return `/api/rooms/${tag}/join-requests`;
+};
+
+export const requestRoomJoin = async (
+  tag: string,
+  options?: RequestInit,
+): Promise<RoomJoinRequest> => {
+  return customFetch<RoomJoinRequest>(getRequestRoomJoinUrl(tag), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getRequestRoomJoinMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof requestRoomJoin>>,
+    TError,
+    { tag: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof requestRoomJoin>>,
+  TError,
+  { tag: string },
+  TContext
+> => {
+  const mutationKey = ["requestRoomJoin"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof requestRoomJoin>>,
+    { tag: string }
+  > = (props) => {
+    const { tag } = props ?? {};
+
+    return requestRoomJoin(tag, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RequestRoomJoinMutationResult = NonNullable<
+  Awaited<ReturnType<typeof requestRoomJoin>>
+>;
+
+export type RequestRoomJoinMutationError = ErrorType<unknown>;
+
+export const useRequestRoomJoin = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof requestRoomJoin>>,
+    TError,
+    { tag: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof requestRoomJoin>>,
+  TError,
+  { tag: string },
+  TContext
+> => {
+  return useMutation(getRequestRoomJoinMutationOptions(options));
+};
+
+export const getDecideRoomJoinRequestUrl = (tag: string, userId: string) => {
+  return `/api/rooms/${tag}/join-requests/${userId}`;
+};
+
+export const decideRoomJoinRequest = async (
+  tag: string,
+  userId: string,
+  decideJoinRequestBody: DecideJoinRequestBody,
+  options?: RequestInit,
+): Promise<OkResponse> => {
+  return customFetch<OkResponse>(getDecideRoomJoinRequestUrl(tag, userId), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(decideJoinRequestBody),
+  });
+};
+
+export const getDecideRoomJoinRequestMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof decideRoomJoinRequest>>,
+    TError,
+    { tag: string; userId: string; data: BodyType<DecideJoinRequestBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof decideRoomJoinRequest>>,
+  TError,
+  { tag: string; userId: string; data: BodyType<DecideJoinRequestBody> },
+  TContext
+> => {
+  const mutationKey = ["decideRoomJoinRequest"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof decideRoomJoinRequest>>,
+    { tag: string; userId: string; data: BodyType<DecideJoinRequestBody> }
+  > = (props) => {
+    const { tag, userId, data } = props ?? {};
+
+    return decideRoomJoinRequest(tag, userId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DecideRoomJoinRequestMutationResult = NonNullable<
+  Awaited<ReturnType<typeof decideRoomJoinRequest>>
+>;
+export type DecideRoomJoinRequestMutationBody = BodyType<DecideJoinRequestBody>;
+export type DecideRoomJoinRequestMutationError = ErrorType<unknown>;
+
+export const useDecideRoomJoinRequest = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof decideRoomJoinRequest>>,
+    TError,
+    { tag: string; userId: string; data: BodyType<DecideJoinRequestBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof decideRoomJoinRequest>>,
+  TError,
+  { tag: string; userId: string; data: BodyType<DecideJoinRequestBody> },
+  TContext
+> => {
+  return useMutation(getDecideRoomJoinRequestMutationOptions(options));
+};
+
+export const getGetPremiumStatusUrl = () => {
+  return `/api/premium/status`;
+};
+
+export const getPremiumStatus = async (
+  options?: RequestInit,
+): Promise<PremiumStatus> => {
+  return customFetch<PremiumStatus>(getGetPremiumStatusUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetPremiumStatusQueryKey = () => {
+  return [`/api/premium/status`] as const;
+};
+
+export const getGetPremiumStatusQueryOptions = <
+  TData = Awaited<ReturnType<typeof getPremiumStatus>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getPremiumStatus>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetPremiumStatusQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getPremiumStatus>>
+  > = ({ signal }) => getPremiumStatus({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getPremiumStatus>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetPremiumStatusQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getPremiumStatus>>
+>;
+export type GetPremiumStatusQueryError = ErrorType<unknown>;
+
+export function useGetPremiumStatus<
+  TData = Awaited<ReturnType<typeof getPremiumStatus>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getPremiumStatus>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetPremiumStatusQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export const getCreatePremiumCheckoutUrl = () => {
+  return `/api/premium/checkout`;
+};
+
+export const createPremiumCheckout = async (
+  options?: RequestInit,
+): Promise<PremiumCheckoutResponse> => {
+  return customFetch<PremiumCheckoutResponse>(getCreatePremiumCheckoutUrl(), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getCreatePremiumCheckoutMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createPremiumCheckout>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createPremiumCheckout>>,
+  TError,
+  void,
+  TContext
+> => {
+  const mutationKey = ["createPremiumCheckout"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createPremiumCheckout>>,
+    void
+  > = () => {
+    return createPremiumCheckout(requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreatePremiumCheckoutMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createPremiumCheckout>>
+>;
+
+export type CreatePremiumCheckoutMutationError = ErrorType<unknown>;
+
+export const useCreatePremiumCheckout = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createPremiumCheckout>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createPremiumCheckout>>,
+  TError,
+  void,
+  TContext
+> => {
+  return useMutation(getCreatePremiumCheckoutMutationOptions(options));
+};
+
+/**
+ * @summary Dev-only confirmation when Stripe is not configured
+ */
+export const getDevConfirmPremiumUrl = () => {
+  return `/api/premium/dev-confirm`;
+};
+
+export const devConfirmPremium = async (
+  options?: RequestInit,
+): Promise<PremiumStatus> => {
+  return customFetch<PremiumStatus>(getDevConfirmPremiumUrl(), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getDevConfirmPremiumMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof devConfirmPremium>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof devConfirmPremium>>,
+  TError,
+  void,
+  TContext
+> => {
+  const mutationKey = ["devConfirmPremium"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof devConfirmPremium>>,
+    void
+  > = () => {
+    return devConfirmPremium(requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DevConfirmPremiumMutationResult = NonNullable<
+  Awaited<ReturnType<typeof devConfirmPremium>>
+>;
+
+export type DevConfirmPremiumMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Dev-only confirmation when Stripe is not configured
+ */
+export const useDevConfirmPremium = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof devConfirmPremium>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof devConfirmPremium>>,
+  TError,
+  void,
+  TContext
+> => {
+  return useMutation(getDevConfirmPremiumMutationOptions(options));
+};

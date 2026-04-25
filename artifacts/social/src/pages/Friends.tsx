@@ -175,6 +175,7 @@ function UserList({
             discriminator={u.discriminator}
             role={u.role}
             mvpPlan={u.mvpPlan}
+            verified={u.verified}
             featuredHashtag={u.featuredHashtag}
             className="flex-1"
           />
@@ -405,6 +406,7 @@ function FindByCodeCard() {
               discriminator={result.discriminator ?? null}
               role={result.role ?? null}
               mvpPlan={result.mvpPlan ?? null}
+              verified={result.verified ?? null}
               featuredHashtag={result.featuredHashtag ?? null}
               showHandle={false}
             />

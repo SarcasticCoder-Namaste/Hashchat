@@ -54,6 +54,7 @@ async function loadMatchUsers(myId: string, otherIds: string[]) {
       discriminator: o.discriminator,
       role: o.role,
       mvpPlan: o.mvpPlan,
+      verified: o.verified,
       lastSeenAt: o.lastSeenAt.toISOString(),
       hashtags: tags,
       sharedHashtags: shared,

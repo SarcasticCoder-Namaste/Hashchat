@@ -198,6 +198,7 @@ export function FriendCodeSearch({
               discriminator={u.discriminator}
               role={u.role}
               mvpPlan={u.mvpPlan}
+              verified={u.verified}
               className="flex-1"
             />
           </div>

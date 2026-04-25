@@ -38,6 +38,10 @@ import PublicProfile from "@/pages/PublicProfile";
 import Profile from "@/pages/Profile";
 import Friends from "@/pages/Friends";
 import Reels from "@/pages/Reels";
+import Communities from "@/pages/Communities";
+import CommunityDetail from "@/pages/CommunityDetail";
+import Premium from "@/pages/Premium";
+import InviteRedeem from "@/pages/InviteRedeem";
 import AdminPanel from "@/pages/AdminPanel";
 import NotFound from "@/pages/not-found";
 import AppShell from "@/components/AppShell";
@@ -267,6 +271,30 @@ function ClerkProviderWithRoutes() {
               <ProtectedShell>
                 <Reels />
               </ProtectedShell>
+            </Route>
+            <Route path="/app/communities">
+              <ProtectedShell>
+                <Communities />
+              </ProtectedShell>
+            </Route>
+            <Route path="/app/communities/:slug">
+              {(params) => (
+                <ProtectedShell>
+                  <CommunityDetail slug={params.slug} />
+                </ProtectedShell>
+              )}
+            </Route>
+            <Route path="/app/premium">
+              <ProtectedShell>
+                <Premium />
+              </ProtectedShell>
+            </Route>
+            <Route path="/app/r/invite/:code">
+              {(params) => (
+                <ProtectedShell>
+                  <InviteRedeem code={params.code} />
+                </ProtectedShell>
+              )}
             </Route>
             <Route path="/app/admin">
               <ProtectedShell>

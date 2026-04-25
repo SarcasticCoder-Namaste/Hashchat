@@ -19,6 +19,8 @@ import {
   Film,
   ShieldCheck,
   Home as HomeIcon,
+  Users,
+  Sparkles,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -51,6 +53,7 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
     label: "Chat",
     items: [
       { href: "/app/rooms", label: "Rooms", icon: Hash },
+      { href: "/app/communities", label: "Communities", icon: Users },
       { href: "/app/messages", label: "Messages", icon: MessageCircle },
     ],
   },
@@ -58,6 +61,7 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
     label: "You",
     items: [
       { href: "/app/friends", label: "Friends", icon: UserPlus },
+      { href: "/app/premium", label: "Premium", icon: Sparkles },
       { href: "/app/settings", label: "Settings", icon: SettingsIcon },
     ],
   },
@@ -67,7 +71,7 @@ const MOBILE_NAV: NavItem[] = [
   { href: "/app/home", label: "Home", icon: HomeIcon },
   { href: "/app/discover", label: "Discover", icon: Compass },
   { href: "/app/rooms", label: "Rooms", icon: Hash },
-  { href: "/app/reels", label: "Reels", icon: Film },
+  { href: "/app/communities", label: "Communities", icon: Users },
   { href: "/app/messages", label: "Messages", icon: MessageCircle },
   { href: "/app/friends", label: "Friends", icon: UserPlus },
   { href: "/app/settings", label: "Settings", icon: SettingsIcon },
@@ -257,6 +261,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
                   discriminator={me.discriminator}
                   role={me.role}
                   mvpPlan={me.mvpPlan}
+                  verified={me.verified}
                   className="flex-1"
                 />
               </Link>

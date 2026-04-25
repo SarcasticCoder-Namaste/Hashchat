@@ -23,6 +23,8 @@ tags:
   - name: gifs
   - name: notifications
   - name: events
+  - name: communities
+  - name: premium
 paths:
   /healthz:
     get:
@@ -1415,6 +1417,242 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/ReelsConfigError" }
 
+  /communities:
+    get:
+      operationId: listCommunities
+      tags: [communities]
+      summary: List browseable communities
+      parameters:
+        - name: mine
+          in: query
+          required: false
+          schema: { type: boolean }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Community" }
+    post:
+      operationId: createCommunity
+      tags: [communities]
+      summary: Create a new community
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateCommunityBody" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Community" }
+
+  /communities/{slug}:
+    get:
+      operationId: getCommunity
+      tags: [communities]
+      parameters:
+        - { name: slug, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CommunityDetail" }
+
+  /communities/{slug}/join:
+    post:
+      operationId: joinCommunity
+      tags: [communities]
+      parameters:
+        - { name: slug, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CommunityDetail" }
+
+  /communities/{slug}/leave:
+    post:
+      operationId: leaveCommunity
+      tags: [communities]
+      parameters:
+        - { name: slug, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CommunityDetail" }
+
+  /rooms/{tag}/visibility:
+    get:
+      operationId: getRoomVisibility
+      tags: [rooms]
+      parameters:
+        - { name: tag, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RoomVisibility" }
+    put:
+      operationId: setRoomVisibility
+      tags: [rooms]
+      parameters:
+        - { name: tag, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SetRoomVisibilityBody" }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RoomVisibility" }
+
+  /rooms/{tag}/invites:
+    get:
+      operationId: listRoomInvites
+      tags: [rooms]
+      parameters:
+        - { name: tag, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/RoomInvite" }
+    post:
+      operationId: createRoomInvite
+      tags: [rooms]
+      parameters:
+        - { name: tag, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateRoomInviteBody" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RoomInvite" }
+
+  /rooms/invites/{code}:
+    get:
+      operationId: peekRoomInvite
+      tags: [rooms]
+      parameters:
+        - { name: code, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RoomInvitePeek" }
+    post:
+      operationId: redeemRoomInvite
+      tags: [rooms]
+      parameters:
+        - { name: code, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RoomInvitePeek" }
+
+  /rooms/{tag}/join-requests:
+    get:
+      operationId: listRoomJoinRequests
+      tags: [rooms]
+      parameters:
+        - { name: tag, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/RoomJoinRequest" }
+    post:
+      operationId: requestRoomJoin
+      tags: [rooms]
+      parameters:
+        - { name: tag, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RoomJoinRequest" }
+
+  /rooms/{tag}/join-requests/{userId}:
+    post:
+      operationId: decideRoomJoinRequest
+      tags: [rooms]
+      parameters:
+        - { name: tag, in: path, required: true, schema: { type: string } }
+        - { name: userId, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/DecideJoinRequestBody" }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/OkResponse" }
+
+  /premium/status:
+    get:
+      operationId: getPremiumStatus
+      tags: [premium]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PremiumStatus" }
+
+  /premium/checkout:
+    post:
+      operationId: createPremiumCheckout
+      tags: [premium]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PremiumCheckoutResponse" }
+
+  /premium/dev-confirm:
+    post:
+      operationId: devConfirmPremium
+      tags: [premium]
+      summary: Dev-only confirmation when Stripe is not configured
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PremiumStatus" }
+
 components:
   schemas:
     HealthStatus:
@@ -1454,6 +1692,10 @@ components:
           type: ["string", "null"]
         role: { type: string }
         mvpPlan: { type: boolean }
+        verified: { type: boolean }
+        premiumUntil:
+          type: ["string", "null"]
+          format: date-time
         lastSeenAt: { type: string, format: date-time }
         hashtags:
           type: array
@@ -1462,7 +1704,7 @@ components:
           type: array
           items: { type: string }
         createdAt: { type: string, format: date-time }
-      required: [id, username, displayName, status, role, mvpPlan, lastSeenAt, hashtags, followedHashtags, createdAt]
+      required: [id, username, displayName, status, role, mvpPlan, verified, lastSeenAt, hashtags, followedHashtags, createdAt]
 
     UpdateUserBody:
       type: object
@@ -1525,13 +1767,17 @@ components:
         followerCount: { type: integer }
         recentMessages: { type: integer }
         isFollowed: { type: boolean }
+        isPrivate: { type: boolean }
+        isMember: { type: boolean }
+        ownerId:
+          type: ["string", "null"]
         topMembers:
           type: array
           items: { $ref: "#/components/schemas/MatchUser" }
         relatedHashtags:
           type: array
           items: { type: string }
-      required: [tag, memberCount, messageCount, followerCount, recentMessages, isFollowed, topMembers, relatedHashtags]
+      required: [tag, memberCount, messageCount, followerCount, recentMessages, isFollowed, isPrivate, isMember, topMembers, relatedHashtags]
 
     MatchUser:
       type: object
@@ -1550,6 +1796,7 @@ components:
           type: ["string", "null"]
         role: { type: string }
         mvpPlan: { type: boolean }
+        verified: { type: boolean }
         lastSeenAt: { type: string, format: date-time }
         hashtags:
           type: array
@@ -1565,7 +1812,7 @@ components:
         followsMe: { type: boolean }
         isMuted: { type: boolean }
         isBlocked: { type: boolean }
-      required: [id, username, displayName, status, role, mvpPlan, lastSeenAt, hashtags, sharedHashtags, matchScore]
+      required: [id, username, displayName, status, role, mvpPlan, verified, lastSeenAt, hashtags, sharedHashtags, matchScore]
 
     FriendCodeResponse:
       type: object
@@ -1603,6 +1850,7 @@ components:
           type: ["string", "null"]
         role: { type: string }
         mvpPlan: { type: boolean }
+        verified: { type: boolean }
         lastSeenAt: { type: string, format: date-time }
         createdAt: { type: string, format: date-time }
         hashtags:
@@ -1620,7 +1868,7 @@ components:
         friendStatus:
           type: ["string", "null"]
       required:
-        [id, username, displayName, status, role, mvpPlan, lastSeenAt, createdAt,
+        [id, username, displayName, status, role, mvpPlan, verified, lastSeenAt, createdAt,
          hashtags, mutualHashtags, followerCount, followingCount,
          isFollowing, followsMe, isMuted, isBlocked]
 
@@ -1927,7 +2175,9 @@ components:
             - $ref: "#/components/schemas/Message"
             - type: "null"
         isFollowed: { type: boolean }
-      required: [tag, memberCount, messageCount, followerCount, recentMessages, isFollowed]
+        isPrivate: { type: boolean }
+        isMember: { type: boolean }
+      required: [tag, memberCount, messageCount, followerCount, recentMessages, isFollowed, isPrivate, isMember]
 
     OverviewStats:
       type: object
@@ -1955,12 +2205,13 @@ components:
           type: ["string", "null"]
         role: { type: string }
         mvpPlan: { type: boolean }
+        verified: { type: boolean }
         lastSeenAt: { type: string, format: date-time }
         bannedAt:
           type: ["string", "null"]
           format: date-time
         createdAt: { type: string, format: date-time }
-      required: [id, username, displayName, status, role, mvpPlan, lastSeenAt, createdAt]
+      required: [id, username, displayName, status, role, mvpPlan, verified, lastSeenAt, createdAt]
 
     SetRoleBody:
       type: object
@@ -2082,7 +2333,8 @@ components:
           type: ["string", "null"]
         role: { type: string }
         mvpPlan: { type: boolean }
-      required: [id, username, displayName, role, mvpPlan]
+        verified: { type: boolean }
+      required: [id, username, displayName, role, mvpPlan, verified]
 
     Post:
       type: object
@@ -2287,3 +2539,159 @@ components:
             - { $ref: "#/components/schemas/MatchUser" }
             - { type: "null" }
       required: [kind, id, score, reason]
+
+    Community:
+      type: object
+      properties:
+        id: { type: integer }
+        slug: { type: string }
+        name: { type: string }
+        description:
+          type: ["string", "null"]
+        bannerUrl:
+          type: ["string", "null"]
+        creatorId: { type: string }
+        memberCount: { type: integer }
+        hashtags:
+          type: array
+          items: { type: string }
+        isMember: { type: boolean }
+        createdAt: { type: string, format: date-time }
+      required: [id, slug, name, creatorId, memberCount, hashtags, isMember, createdAt]
+
+    CommunityDetail:
+      type: object
+      properties:
+        id: { type: integer }
+        slug: { type: string }
+        name: { type: string }
+        description:
+          type: ["string", "null"]
+        bannerUrl:
+          type: ["string", "null"]
+        creatorId: { type: string }
+        creator:
+          oneOf:
+            - $ref: "#/components/schemas/MatchUser"
+            - type: "null"
+        memberCount: { type: integer }
+        members:
+          type: array
+          items: { $ref: "#/components/schemas/MatchUser" }
+        hashtags:
+          type: array
+          items: { type: string }
+        rooms:
+          type: array
+          items: { $ref: "#/components/schemas/Room" }
+        isMember: { type: boolean }
+        canEdit: { type: boolean }
+        createdAt: { type: string, format: date-time }
+      required: [id, slug, name, creatorId, memberCount, members, hashtags, rooms, isMember, canEdit, createdAt]
+
+    CreateCommunityBody:
+      type: object
+      properties:
+        name: { type: string, minLength: 2, maxLength: 60 }
+        description:
+          type: ["string", "null"]
+        bannerUrl:
+          type: ["string", "null"]
+        hashtags:
+          type: array
+          minItems: 1
+          maxItems: 12
+          items: { type: string, minLength: 1 }
+      required: [name, hashtags]
+
+    RoomVisibility:
+      type: object
+      properties:
+        tag: { type: string }
+        isPrivate: { type: boolean }
+        ownerId:
+          type: ["string", "null"]
+        canManage: { type: boolean }
+        isMember: { type: boolean }
+      required: [tag, isPrivate, canManage, isMember]
+
+    SetRoomVisibilityBody:
+      type: object
+      properties:
+        isPrivate: { type: boolean }
+      required: [isPrivate]
+
+    RoomInvite:
+      type: object
+      properties:
+        code: { type: string }
+        tag: { type: string }
+        url: { type: string }
+        createdBy: { type: string }
+        maxUses:
+          type: ["integer", "null"]
+        useCount: { type: integer }
+        expiresAt:
+          type: ["string", "null"]
+          format: date-time
+        createdAt: { type: string, format: date-time }
+      required: [code, tag, url, createdBy, useCount, createdAt]
+
+    CreateRoomInviteBody:
+      type: object
+      properties:
+        maxUses:
+          type: ["integer", "null"]
+        expiresInHours:
+          type: ["integer", "null"]
+
+    RoomInvitePeek:
+      type: object
+      properties:
+        tag: { type: string }
+        valid: { type: boolean }
+        memberCount: { type: integer }
+        joined: { type: boolean }
+        reason:
+          type: ["string", "null"]
+      required: [tag, valid, memberCount, joined]
+
+    RoomJoinRequest:
+      type: object
+      properties:
+        tag: { type: string }
+        userId: { type: string }
+        status: { type: string, enum: [pending, approved, denied] }
+        user:
+          oneOf:
+            - $ref: "#/components/schemas/MatchUser"
+            - type: "null"
+        createdAt: { type: string, format: date-time }
+      required: [tag, userId, status, createdAt]
+
+    DecideJoinRequestBody:
+      type: object
+      properties:
+        decision: { type: string, enum: [approve, deny] }
+      required: [decision]
+
+    PremiumStatus:
+      type: object
+      properties:
+        verified: { type: boolean }
+        active: { type: boolean }
+        plan:
+          type: ["string", "null"]
+        currentPeriodEnd:
+          type: ["string", "null"]
+          format: date-time
+        cancelAtPeriodEnd: { type: boolean }
+        provider: { type: string, enum: [stripe, dev] }
+      required: [verified, active, cancelAtPeriodEnd, provider]
+
+    PremiumCheckoutResponse:
+      type: object
+      properties:
+        url: { type: string }
+        provider: { type: string, enum: [stripe, dev] }
+      required: [url, provider]

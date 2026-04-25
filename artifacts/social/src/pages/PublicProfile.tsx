@@ -38,6 +38,7 @@ import {
   UserPlus,
   UserMinus,
   UserCheck,
+  BadgeCheck,
   Crown,
   Sparkles,
   Star,
@@ -153,6 +154,11 @@ export default function PublicProfile({ username }: { username: string }) {
               <h1 className="truncate text-2xl font-bold text-foreground" data-testid="profile-display-name">
                 {user.displayName}
               </h1>
+              {user.verified && (
+                <span title="Verified" className="inline-flex items-center text-sky-500 dark:text-sky-400" data-testid="badge-verified">
+                  <BadgeCheck className="h-5 w-5 fill-sky-500/20" />
+                </span>
+              )}
               {user.role === "admin" && (
                 <span className="inline-flex items-center gap-0.5 rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700 dark:text-amber-300">
                   <Crown className="h-2.5 w-2.5" /> Admin

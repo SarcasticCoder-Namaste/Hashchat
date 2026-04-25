@@ -13,6 +13,11 @@ import {
 import { eq, sql, and, desc, inArray, ilike, gte } from "drizzle-orm";
 import { requireAuth, getUserId } from "../middlewares/requireAuth";
 import { normalizeTag } from "../lib/hashtags";
+import {
+  loadPrivateTags,
+  loadMyRoomMemberships,
+  getRoomAccess,
+} from "../lib/roomVisibility";
 
 const router: IRouter = Router();
 
@@ -52,7 +57,7 @@ router.get("/hashtags/trending", async (req, res): Promise<void> => {
     .limit(limit * 2);
 
   let tags = recent.map((r) => r.tag).filter((t): t is string => !!t);
-  if (tags.length < limit) {
+  if (tags.length < limit * 2) {
     const fallback = await db
       .select({
         tag: userHashtagsTable.tag,
@@ -61,12 +66,14 @@ router.get("/hashtags/trending", async (req, res): Promise<void> => {
       .from(userHashtagsTable)
       .groupBy(userHashtagsTable.tag)
       .orderBy(desc(sql`count(*)`))
-      .limit(limit);
+      .limit(limit * 2);
     for (const f of fallback) {
       if (!tags.includes(f.tag)) tags.push(f.tag);
     }
   }
-  tags = tags.slice(0, limit);
+  // Filter out private rooms from trending
+  const privateTags = await loadPrivateTags(tags);
+  tags = tags.filter((t) => !privateTags.has(t)).slice(0, limit);
 
   const recentMap = new Map(recent.map((r) => [r.tag!, r.recent]));
   const rows = await Promise.all(tags.map(buildHashtagRow));
@@ -450,6 +457,7 @@ router.get("/hashtags/:tag", requireAuth, async (req, res): Promise<void> => {
       discriminator: usersTable.discriminator,
       role: usersTable.role,
       mvpPlan: usersTable.mvpPlan,
+      verified: usersTable.verified,
       lastSeenAt: usersTable.lastSeenAt,
     })
     .from(userHashtagsTable)
@@ -490,6 +498,7 @@ router.get("/hashtags/:tag", requireAuth, async (req, res): Promise<void> => {
       discriminator: m.discriminator,
       role: m.role,
       mvpPlan: m.mvpPlan,
+      verified: m.verified,
       lastSeenAt: (m.lastSeenAt ?? new Date(0)).toISOString(),
       hashtags: tags,
       sharedHashtags: shared,
@@ -517,11 +526,15 @@ router.get("/hashtags/:tag", requireAuth, async (req, res): Promise<void> => {
     related = relatedRows.map((r) => r.tag);
   }
 
+  const access = await getRoomAccess(tag, getUserId(req));
   res.json({
     ...base,
     recentMessages: recent?.count ?? 0,
     isFollowed: (followed?.count ?? 0) > 0,
-    topMembers,
+    isPrivate: access.isPrivate,
+    isMember: access.isMember,
+    ownerId: access.ownerId,
+    topMembers: access.isPrivate && !access.isMember ? [] : topMembers,
     relatedHashtags: related,
   });
 });
