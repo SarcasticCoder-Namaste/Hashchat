@@ -12,8 +12,14 @@ import {
   useGetMyPhotos,
   useGetMyFriendCode,
   useRegenerateMyFriendCode,
+  useGetMyBlocksAndMutes,
+  useUnblockUser,
+  useUnmuteUser,
+  useUnmuteHashtag,
   getGetMeQueryKey,
   getGetMyFriendCodeQueryKey,
+  getGetMyBlocksAndMutesQueryKey,
+  getGetMyRelationshipsQueryKey,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useTheme } from "@/components/ThemeProvider";
@@ -57,6 +63,9 @@ import {
   Smile,
   Camera,
   Circle,
+  Ban,
+  EyeOff,
+  ShieldOff,
 } from "lucide-react";
 import { ImageUploadButton } from "@/components/ImageUploadButton";
 import {
@@ -293,7 +302,7 @@ export default function Settings() {
       <FriendCodeCard />
 
       <Tabs defaultValue="profile">
-        <TabsList className="grid h-auto w-full grid-cols-4 gap-1 p-1 sm:grid-cols-8">
+        <TabsList className="grid h-auto w-full grid-cols-3 gap-1 p-1 sm:grid-cols-9">
           <TabsTrigger
             value="profile"
             data-testid="tab-profile"
@@ -333,6 +342,14 @@ export default function Settings() {
           >
             <Lock className="h-4 w-4 shrink-0" />
             <span className="truncate">Privacy</span>
+          </TabsTrigger>
+          <TabsTrigger
+            value="blocks"
+            data-testid="tab-blocks"
+            className="flex flex-col items-center gap-1 px-1 py-2 text-[11px] sm:flex-row sm:gap-1.5 sm:text-xs"
+          >
+            <ShieldOff className="h-4 w-4 shrink-0" />
+            <span className="truncate">Blocks</span>
           </TabsTrigger>
           <TabsTrigger
             value="chat"
@@ -838,6 +855,10 @@ export default function Settings() {
           <PrivacyTab />
         </TabsContent>
 
+        <TabsContent value="blocks" className="mt-4">
+          <BlocksMutesTab />
+        </TabsContent>
+
         <TabsContent value="chat" className="mt-4">
           <ChatPrefsTab />
         </TabsContent>
@@ -1229,6 +1250,254 @@ function PrivacyTab() {
         />
       </div>
     </div>
+  );
+}
+
+function BlocksMutesTab() {
+  const qc = useQueryClient();
+  const { toast } = useToast();
+  const { data, isLoading } = useGetMyBlocksAndMutes();
+
+  const invalidate = () => {
+    qc.invalidateQueries({ queryKey: getGetMyBlocksAndMutesQueryKey() });
+    qc.invalidateQueries({ queryKey: getGetMyRelationshipsQueryKey() });
+  };
+  const unblock = useUnblockUser({
+    mutation: {
+      onSuccess: () => {
+        invalidate();
+        toast({ title: "Unblocked" });
+      },
+    },
+  });
+  const unmute = useUnmuteUser({
+    mutation: {
+      onSuccess: () => {
+        invalidate();
+        toast({ title: "Unmuted" });
+      },
+    },
+  });
+  const unmuteTag = useUnmuteHashtag({
+    mutation: {
+      onSuccess: () => {
+        invalidate();
+        toast({ title: "Hashtag unmuted" });
+      },
+    },
+  });
+
+  if (isLoading || !data) {
+    return (
+      <div className="flex h-40 items-center justify-center rounded-xl border border-border bg-card">
+        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground/70" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
+        <div>
+          <h2 className="flex items-center gap-2 text-lg font-semibold text-foreground">
+            <ShieldOff className="h-4 w-4 text-primary" /> Blocks &amp; mutes
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            Review who you've blocked or muted, and undo any of these actions
+            at any time.
+          </p>
+        </div>
+      </div>
+
+      <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
+        <div className="mb-3 flex items-center justify-between gap-2">
+          <h3 className="flex items-center gap-2 text-base font-semibold text-foreground">
+            <Ban className="h-4 w-4 text-destructive" /> Blocked accounts
+          </h3>
+          <span
+            className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground"
+            data-testid="blocks-count"
+          >
+            {data.blocked.length}
+          </span>
+        </div>
+        {data.blocked.length === 0 ? (
+          <p
+            className="rounded-lg border border-dashed border-border px-3 py-6 text-center text-sm text-muted-foreground"
+            data-testid="blocks-empty"
+          >
+            You haven't blocked anyone. Blocked accounts won't be able to find
+            or message you.
+          </p>
+        ) : (
+          <ul className="divide-y divide-border" data-testid="blocks-list">
+            {data.blocked.map((u) => (
+              <BlockMuteUserRow
+                key={u.id}
+                user={u}
+                actionLabel="Unblock"
+                testIdPrefix="block"
+                disabled={unblock.isPending}
+                onAction={() => unblock.mutate({ id: u.id })}
+              />
+            ))}
+          </ul>
+        )}
+      </div>
+
+      <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
+        <div className="mb-3 flex items-center justify-between gap-2">
+          <h3 className="flex items-center gap-2 text-base font-semibold text-foreground">
+            <EyeOff className="h-4 w-4 text-amber-500" /> Muted accounts
+          </h3>
+          <span
+            className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground"
+            data-testid="mutes-count"
+          >
+            {data.muted.length}
+          </span>
+        </div>
+        {data.muted.length === 0 ? (
+          <p
+            className="rounded-lg border border-dashed border-border px-3 py-6 text-center text-sm text-muted-foreground"
+            data-testid="mutes-empty"
+          >
+            You haven't muted anyone. Muting hides their posts without
+            blocking them.
+          </p>
+        ) : (
+          <ul className="divide-y divide-border" data-testid="mutes-list">
+            {data.muted.map((u) => (
+              <BlockMuteUserRow
+                key={u.id}
+                user={u}
+                actionLabel="Unmute"
+                testIdPrefix="mute"
+                disabled={unmute.isPending}
+                onAction={() => unmute.mutate({ id: u.id })}
+              />
+            ))}
+          </ul>
+        )}
+      </div>
+
+      <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
+        <div className="mb-3 flex items-center justify-between gap-2">
+          <h3 className="flex items-center gap-2 text-base font-semibold text-foreground">
+            <Hash className="h-4 w-4 text-primary" /> Muted hashtags
+          </h3>
+          <span
+            className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground"
+            data-testid="muted-tags-count"
+          >
+            {data.mutedHashtags.length}
+          </span>
+        </div>
+        {data.mutedHashtags.length === 0 ? (
+          <p
+            className="rounded-lg border border-dashed border-border px-3 py-6 text-center text-sm text-muted-foreground"
+            data-testid="muted-tags-empty"
+          >
+            No muted hashtags. Mute a hashtag from any room to hide its posts
+            from your feeds.
+          </p>
+        ) : (
+          <ul
+            className="flex flex-wrap gap-2"
+            data-testid="muted-tags-list"
+          >
+            {data.mutedHashtags.map((h) => (
+              <li
+                key={h.tag}
+                className="inline-flex items-center gap-2 rounded-full border border-border bg-muted/40 py-1 pl-3 pr-1 text-sm text-foreground"
+                data-testid={`muted-tag-${h.tag}`}
+              >
+                <span className="inline-flex items-center gap-1">
+                  <Hash className="h-3.5 w-3.5 text-muted-foreground" />
+                  {h.tag}
+                </span>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 rounded-full px-2 text-xs"
+                  disabled={unmuteTag.isPending}
+                  onClick={() => unmuteTag.mutate({ tag: h.tag })}
+                  data-testid={`button-unmute-tag-${h.tag}`}
+                >
+                  Unmute
+                </Button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function BlockMuteUserRow({
+  user,
+  actionLabel,
+  testIdPrefix,
+  disabled,
+  onAction,
+}: {
+  user: {
+    id: string;
+    username: string;
+    displayName: string;
+    avatarUrl?: string | null;
+    discriminator?: string | null;
+  };
+  actionLabel: string;
+  testIdPrefix: string;
+  disabled: boolean;
+  onAction: () => void;
+}) {
+  const initials = (user.displayName || user.username || "?")
+    .split(" ")
+    .map((s) => s[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
+  return (
+    <li
+      className="flex items-center gap-3 py-3"
+      data-testid={`${testIdPrefix}-row-${user.id}`}
+    >
+      <Avatar className="h-10 w-10 shrink-0">
+        {user.avatarUrl ? (
+          <AvatarImage src={user.avatarUrl} alt={user.displayName} />
+        ) : null}
+        <AvatarFallback className="bg-primary/15 text-primary">
+          {initials}
+        </AvatarFallback>
+      </Avatar>
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-semibold text-foreground">
+          {user.displayName}
+        </p>
+        <p className="truncate text-xs text-muted-foreground">
+          @{user.username}
+          {user.discriminator && (
+            <span className="ml-1 text-muted-foreground/70">
+              #{user.discriminator}
+            </span>
+          )}
+        </p>
+      </div>
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        disabled={disabled}
+        onClick={onAction}
+        data-testid={`button-${testIdPrefix}-action-${user.id}`}
+      >
+        {actionLabel}
+      </Button>
+    </li>
   );
 }
 

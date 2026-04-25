@@ -20,6 +20,7 @@ import type {
   AddPhotoBody,
   AdminStats,
   AdminUser,
+  BlocksAndMutes,
   Call,
   CallSignalBody,
   CallSignalList,
@@ -5107,6 +5108,81 @@ export function useGetMyRelationships<
   request?: SecondParameter<typeof customFetch>;
 }): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getGetMyRelationshipsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Detailed list of blocked users, muted users and muted hashtags
+ */
+export const getGetMyBlocksAndMutesUrl = () => {
+  return `/api/me/blocks-mutes`;
+};
+
+export const getMyBlocksAndMutes = async (
+  options?: RequestInit,
+): Promise<BlocksAndMutes> => {
+  return customFetch<BlocksAndMutes>(getGetMyBlocksAndMutesUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetMyBlocksAndMutesQueryKey = () => {
+  return [`/api/me/blocks-mutes`] as const;
+};
+
+export const getGetMyBlocksAndMutesQueryOptions = <
+  TData = Awaited<ReturnType<typeof getMyBlocksAndMutes>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getMyBlocksAndMutes>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetMyBlocksAndMutesQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getMyBlocksAndMutes>>
+  > = ({ signal }) => getMyBlocksAndMutes({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getMyBlocksAndMutes>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetMyBlocksAndMutesQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getMyBlocksAndMutes>>
+>;
+export type GetMyBlocksAndMutesQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Detailed list of blocked users, muted users and muted hashtags
+ */
+
+export function useGetMyBlocksAndMutes<
+  TData = Awaited<ReturnType<typeof getMyBlocksAndMutes>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getMyBlocksAndMutes>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetMyBlocksAndMutesQueryOptions(options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;

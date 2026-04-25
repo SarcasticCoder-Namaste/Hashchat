@@ -44,7 +44,7 @@ Routes (relative to base path):
 - `/app/reels` — YouTube Shorts feed (Instagram coming soon)
 - `/app/admin` — role-gated admin panel (Users / MVP Codes / Stats)
 - `/app/friends` — friend requests + connections
-- `/app/settings` — profile, hashtags, appearance, account (with MVP code redeem)
+- `/app/settings` — profile, hashtags, appearance, notifications, privacy, blocks & mutes, chat, photos, account (with MVP code redeem). The "Blocks" tab lists every blocked user, muted user, and muted hashtag with one-click undo (powered by `GET /api/me/blocks-mutes`).
 
 V3 additions:
 - 5-digit `discriminator` per user (e.g. `@alice #12345`), backfilled lazily on auth.

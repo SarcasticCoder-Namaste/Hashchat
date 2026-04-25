@@ -874,6 +874,18 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/MyRelationships" }
 
+  /me/blocks-mutes:
+    get:
+      operationId: getMyBlocksAndMutes
+      tags: [users]
+      summary: Detailed list of blocked users, muted users and muted hashtags
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/BlocksAndMutes" }
+
   /discover/following:
     get:
       operationId: getFollowingFeed
@@ -1434,6 +1446,38 @@ components:
           type: array
           items: { type: string }
       required: [following, blocked, muted, mutedHashtags]
+
+    BlocksAndMutesUser:
+      type: object
+      properties:
+        id: { type: string }
+        username: { type: string }
+        displayName: { type: string }
+        avatarUrl:
+          type: ["string", "null"]
+        discriminator:
+          type: ["string", "null"]
+        actedAt: { type: string, format: date-time }
+      required: [id, username, displayName, actedAt]
+
+    BlocksAndMutes:
+      type: object
+      properties:
+        blocked:
+          type: array
+          items: { $ref: "#/components/schemas/BlocksAndMutesUser" }
+        muted:
+          type: array
+          items: { $ref: "#/components/schemas/BlocksAndMutesUser" }
+        mutedHashtags:
+          type: array
+          items:
+            type: object
+            properties:
+              tag: { type: string }
+              actedAt: { type: string, format: date-time }
+            required: [tag, actedAt]
+      required: [blocked, muted, mutedHashtags]
 
     FollowingFeedItem:
       type: object

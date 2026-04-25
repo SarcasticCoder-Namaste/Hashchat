@@ -269,6 +269,72 @@ router.get(
   },
 );
 
+router.get(
+  "/me/blocks-mutes",
+  requireAuth,
+  async (req, res): Promise<void> => {
+    const me = getUserId(req);
+    const [blockRows, muteRows, hashtagMuteRows] = await Promise.all([
+      db
+        .select({
+          id: usersTable.id,
+          username: usersTable.username,
+          displayName: usersTable.displayName,
+          avatarUrl: usersTable.avatarUrl,
+          discriminator: usersTable.discriminator,
+          actedAt: userBlocksTable.createdAt,
+        })
+        .from(userBlocksTable)
+        .innerJoin(usersTable, eq(usersTable.id, userBlocksTable.blockedId))
+        .where(eq(userBlocksTable.blockerId, me))
+        .orderBy(desc(userBlocksTable.createdAt)),
+      db
+        .select({
+          id: usersTable.id,
+          username: usersTable.username,
+          displayName: usersTable.displayName,
+          avatarUrl: usersTable.avatarUrl,
+          discriminator: usersTable.discriminator,
+          actedAt: userMutesTable.createdAt,
+        })
+        .from(userMutesTable)
+        .innerJoin(usersTable, eq(usersTable.id, userMutesTable.mutedId))
+        .where(eq(userMutesTable.muterId, me))
+        .orderBy(desc(userMutesTable.createdAt)),
+      db
+        .select({
+          tag: hashtagMutesTable.tag,
+          actedAt: hashtagMutesTable.createdAt,
+        })
+        .from(hashtagMutesTable)
+        .where(eq(hashtagMutesTable.userId, me))
+        .orderBy(desc(hashtagMutesTable.createdAt)),
+    ]);
+    res.json({
+      blocked: blockRows.map((r) => ({
+        id: r.id,
+        username: r.username,
+        displayName: r.displayName,
+        avatarUrl: r.avatarUrl,
+        discriminator: r.discriminator,
+        actedAt: r.actedAt.toISOString(),
+      })),
+      muted: muteRows.map((r) => ({
+        id: r.id,
+        username: r.username,
+        displayName: r.displayName,
+        avatarUrl: r.avatarUrl,
+        discriminator: r.discriminator,
+        actedAt: r.actedAt.toISOString(),
+      })),
+      mutedHashtags: hashtagMuteRows.map((r) => ({
+        tag: r.tag,
+        actedAt: r.actedAt.toISOString(),
+      })),
+    });
+  },
+);
+
 // ----- Public profile by username -----
 
 router.get(

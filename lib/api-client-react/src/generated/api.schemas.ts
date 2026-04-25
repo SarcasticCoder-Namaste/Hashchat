@@ -181,6 +181,28 @@ export interface MyRelationships {
   mutedHashtags: string[];
 }
 
+export interface BlocksAndMutesUser {
+  id: string;
+  username: string;
+  displayName: string;
+  /** @nullable */
+  avatarUrl?: string | null;
+  /** @nullable */
+  discriminator?: string | null;
+  actedAt: string;
+}
+
+export type BlocksAndMutesMutedHashtagsItem = {
+  tag: string;
+  actedAt: string;
+};
+
+export interface BlocksAndMutes {
+  blocked: BlocksAndMutesUser[];
+  muted: BlocksAndMutesUser[];
+  mutedHashtags: BlocksAndMutesMutedHashtagsItem[];
+}
+
 export type FollowingFeedItemKind =
   (typeof FollowingFeedItemKind)[keyof typeof FollowingFeedItemKind];
 

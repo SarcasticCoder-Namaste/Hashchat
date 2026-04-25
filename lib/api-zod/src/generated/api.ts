@@ -1369,6 +1369,38 @@ export const GetMyRelationshipsResponse = zod.object({
 });
 
 /**
+ * @summary Detailed list of blocked users, muted users and muted hashtags
+ */
+export const GetMyBlocksAndMutesResponse = zod.object({
+  blocked: zod.array(
+    zod.object({
+      id: zod.string(),
+      username: zod.string(),
+      displayName: zod.string(),
+      avatarUrl: zod.string().nullish(),
+      discriminator: zod.string().nullish(),
+      actedAt: zod.coerce.date(),
+    }),
+  ),
+  muted: zod.array(
+    zod.object({
+      id: zod.string(),
+      username: zod.string(),
+      displayName: zod.string(),
+      avatarUrl: zod.string().nullish(),
+      discriminator: zod.string().nullish(),
+      actedAt: zod.coerce.date(),
+    }),
+  ),
+  mutedHashtags: zod.array(
+    zod.object({
+      tag: zod.string(),
+      actedAt: zod.coerce.date(),
+    }),
+  ),
+});
+
+/**
  * @summary Recent activity (posts and joined rooms) from people I follow
  */
 export const getFollowingFeedQueryLimitDefault = 30;
