@@ -1,9 +1,11 @@
-import { Link } from "wouter";
+import { Link, useLocation, useSearch } from "wouter";
+import { useMemo } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   useGetMe,
   useGetMyFollowedHashtags,
   getGetMyFeedPostsQueryKey,
+  getGetHashtagPostsQueryKey,
 } from "@workspace/api-client-react";
 import { PostFeed } from "@/components/PostFeed";
 import { PostComposer } from "@/components/PostComposer";
@@ -15,8 +17,27 @@ export default function Home() {
   const meId = meQ.data?.id ?? null;
   const followedQ = useGetMyFollowedHashtags();
   const qc = useQueryClient();
+  const [, setLocation] = useLocation();
+  const search = useSearch();
 
   const followed = followedQ.data ?? [];
+
+  const rawTag = useMemo(() => {
+    const params = new URLSearchParams(search);
+    return params.get("tag")?.toLowerCase() ?? null;
+  }, [search]);
+
+  const followedTags = useMemo(() => followed.map((f) => f.tag), [followed]);
+  const selectedTag =
+    rawTag && followedTags.includes(rawTag) ? rawTag : null;
+
+  function selectTag(tag: string | null) {
+    if (tag) {
+      setLocation(`/app/home?tag=${encodeURIComponent(tag)}`);
+    } else {
+      setLocation("/app/home");
+    }
+  }
 
   return (
     <div className="mx-auto max-w-3xl space-y-6 px-4 py-6 md:px-8 md:py-10">
@@ -48,19 +69,79 @@ export default function Home() {
         </div>
       ) : (
         <div className="flex flex-col gap-3">
+          <div
+            className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1"
+            data-testid="home-tag-chips"
+          >
+            <button
+              type="button"
+              onClick={() => selectTag(null)}
+              className={[
+                "shrink-0 rounded-full px-3 py-1.5 text-sm font-medium transition-colors",
+                selectedTag === null
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-muted text-muted-foreground hover:bg-muted/70",
+              ].join(" ")}
+              aria-pressed={selectedTag === null}
+              data-testid="chip-tag-all"
+            >
+              All
+            </button>
+            {followed.map((f) => {
+              const active = selectedTag === f.tag;
+              return (
+                <button
+                  key={f.tag}
+                  type="button"
+                  onClick={() => selectTag(active ? null : f.tag)}
+                  className={[
+                    "inline-flex shrink-0 items-center gap-1 rounded-full px-3 py-1.5 text-sm font-medium transition-colors",
+                    active
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-muted text-muted-foreground hover:bg-muted/70",
+                  ].join(" ")}
+                  aria-pressed={active}
+                  data-testid={`chip-tag-${f.tag}`}
+                >
+                  <Hash className="h-3.5 w-3.5" />
+                  {f.tag}
+                </button>
+              );
+            })}
+          </div>
+
           <PostComposer
-            placeholder="Share something with the rooms you follow…"
-            onPosted={() =>
+            placeholder={
+              selectedTag
+                ? `Share something in #${selectedTag}…`
+                : "Share something with the rooms you follow…"
+            }
+            onPosted={() => {
               qc.invalidateQueries({
                 queryKey: getGetMyFeedPostsQueryKey(),
-              })
-            }
+              });
+              if (selectedTag) {
+                qc.invalidateQueries({
+                  queryKey: getGetHashtagPostsQueryKey(selectedTag),
+                });
+              }
+            }}
           />
-          <PostFeed
-            scope={{ kind: "home" }}
-            meId={meId}
-            emptyMessage="No posts yet from the rooms you follow — check back soon!"
-          />
+          {selectedTag ? (
+            <PostFeed
+              key={`tag-${selectedTag}`}
+              scope={{ kind: "hashtag", tag: selectedTag }}
+              meId={meId}
+              emptyMessage={`No posts in #${selectedTag} yet — be the first!`}
+            />
+          ) : (
+            <PostFeed
+              key="home-all"
+              scope={{ kind: "home" }}
+              meId={meId}
+              emptyMessage="No posts yet from the rooms you follow — check back soon!"
+            />
+          )}
         </div>
       )}
     </div>
