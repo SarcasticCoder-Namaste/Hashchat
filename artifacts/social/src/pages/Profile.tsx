@@ -66,8 +66,10 @@ import {
   Ban,
   EyeOff,
   ShieldOff,
+  QrCode,
 } from "lucide-react";
 import { ImageUploadButton } from "@/components/ImageUploadButton";
+import { FriendCodeQRDialog } from "@/components/FriendCodeQRDialog";
 import {
   BANNER_PRESETS,
   AVATAR_EMOJIS,
@@ -1789,6 +1791,7 @@ function FriendCodeCard() {
   const { toast } = useToast();
   const { data, isLoading } = useGetMyFriendCode();
   const [regenerating, setRegenerating] = useState(false);
+  const [qrOpen, setQrOpen] = useState(false);
   const regen = useRegenerateMyFriendCode({
     mutation: {
       onMutate: () => setRegenerating(true),
@@ -1855,6 +1858,15 @@ function FriendCodeCard() {
         </Button>
         <Button
           size="sm"
+          variant="secondary"
+          onClick={() => setQrOpen(true)}
+          disabled={!code}
+          data-testid="button-show-friend-code-qr"
+        >
+          <QrCode className="mr-1.5 h-3.5 w-3.5" /> Show QR
+        </Button>
+        <Button
+          size="sm"
           variant="outline"
           onClick={() => regen.mutate()}
           disabled={regenerating || !code}
@@ -1868,6 +1880,13 @@ function FriendCodeCard() {
           Regenerate
         </Button>
       </div>
+      {code && (
+        <FriendCodeQRDialog
+          code={code}
+          open={qrOpen}
+          onOpenChange={setQrOpen}
+        />
+      )}
     </div>
   );
 }

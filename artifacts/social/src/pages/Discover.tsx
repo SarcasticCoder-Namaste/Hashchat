@@ -1,4 +1,5 @@
-import { Link, useLocation } from "wouter";
+import { useMemo } from "react";
+import { Link, useLocation, useSearch } from "wouter";
 import {
   useDiscoverPeople,
   useGetTrendingHashtags,
@@ -69,6 +70,17 @@ export default function Discover() {
   const { data: matches, isLoading } = useDiscoverPeople({ limit: 12 });
   const { data: trending } = useGetTrendingHashtags({ limit: 10 });
   const { data: friends } = useGetMyFriends();
+  const search = useSearch();
+  const initialFriendCode = useMemo(() => {
+    const params = new URLSearchParams(search ?? "");
+    const raw = params.get("friendCode") ?? params.get("code");
+    if (!raw) return undefined;
+    const norm = raw
+      .toUpperCase()
+      .replace(/^#/, "")
+      .replace(/[^A-Z0-9]/g, "");
+    return norm || undefined;
+  }, [search]);
 
   const firstName = me?.displayName.split(" ")[0];
 
@@ -127,7 +139,11 @@ export default function Discover() {
         </div>
       </div>
 
-      <FriendCodeSearch variant="block" />
+      <FriendCodeSearch
+        variant="block"
+        initialCode={initialFriendCode}
+        autoLookup={Boolean(initialFriendCode)}
+      />
 
       {/* Tabs: For you / Following */}
       <Tabs defaultValue="foryou" className="w-full">

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import {
   lookupUserByFriendCode,
@@ -20,6 +20,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { PresenceAvatar, UserNameLine } from "@/components/UserBadge";
+import { FriendCodeScanDialog } from "@/components/FriendCodeScanDialog";
 import {
   Search,
   Hash,
@@ -29,6 +30,7 @@ import {
   MessageCircle,
   Loader2,
   X,
+  Camera,
 } from "lucide-react";
 
 type LookupState =
@@ -39,14 +41,19 @@ type LookupState =
 
 export function FriendCodeSearch({
   variant = "header",
+  initialCode,
+  autoLookup = false,
 }: {
   variant?: "header" | "block";
+  initialCode?: string;
+  autoLookup?: boolean;
 }) {
   const qc = useQueryClient();
   const [, setLocation] = useLocation();
   const [open, setOpen] = useState(false);
-  const [code, setCode] = useState("");
+  const [code, setCode] = useState(initialCode ?? "");
   const [state, setState] = useState<LookupState>({ status: "idle" });
+  const [scanOpen, setScanOpen] = useState(false);
 
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: getDiscoverPeopleQueryKey() });
@@ -109,8 +116,11 @@ export function FriendCodeSearch({
       .replace(/[^A-Z0-9]/g, "");
   }
 
-  async function runLookup() {
-    const normalized = normalizeForRequest(code);
+  const runLookupFor = useCallback(async (raw: string) => {
+    const normalized = raw
+      .toUpperCase()
+      .replace(/^#/, "")
+      .replace(/[^A-Z0-9]/g, "");
     if (!normalized) return;
     setState({ status: "loading" });
     try {
@@ -121,12 +131,29 @@ export function FriendCodeSearch({
     } catch {
       setState({ status: "not_found" });
     }
+  }, []);
+
+  async function runLookup() {
+    await runLookupFor(code);
   }
 
   function reset() {
     setCode("");
     setState({ status: "idle" });
   }
+
+  function handleScanned(scannedCode: string) {
+    setScanOpen(false);
+    setCode(scannedCode);
+    runLookupFor(scannedCode);
+  }
+
+  useEffect(() => {
+    if (autoLookup && initialCode && state.status === "idle") {
+      runLookupFor(initialCode);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoLookup, initialCode]);
 
   function renderResult() {
     if (state.status === "loading") {
@@ -248,8 +275,19 @@ export function FriendCodeSearch({
   if (variant === "block") {
     return (
       <div className="rounded-xl border border-border bg-card p-4 shadow-sm">
-        <div className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-foreground">
-          <Hash className="h-4 w-4 text-primary" /> Find by friend code
+        <div className="mb-2 flex items-center justify-between gap-2 text-sm font-semibold text-foreground">
+          <span className="flex items-center gap-1.5">
+            <Hash className="h-4 w-4 text-primary" /> Find by friend code
+          </span>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            onClick={() => setScanOpen(true)}
+            data-testid="button-friend-code-scan-block"
+          >
+            <Camera className="mr-1.5 h-3.5 w-3.5" /> Scan QR
+          </Button>
         </div>
         <form
           className="flex items-center gap-2"
@@ -292,6 +330,11 @@ export function FriendCodeSearch({
           )}
         </form>
         <div className="mt-3">{renderResult()}</div>
+        <FriendCodeScanDialog
+          open={scanOpen}
+          onOpenChange={setScanOpen}
+          onDetected={handleScanned}
+        />
       </div>
     );
   }
@@ -316,8 +359,20 @@ export function FriendCodeSearch({
         </Button>
       </PopoverTrigger>
       <PopoverContent align="end" className="w-80 p-3">
-        <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          Find friend by code
+        <div className="mb-2 flex items-center justify-between gap-2">
+          <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Find friend by code
+          </span>
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            className="h-7 px-2 text-xs"
+            onClick={() => setScanOpen(true)}
+            data-testid="button-friend-code-scan-header"
+          >
+            <Camera className="mr-1 h-3.5 w-3.5" /> Scan
+          </Button>
         </div>
         <form
           className="flex items-center gap-2"
@@ -351,6 +406,11 @@ export function FriendCodeSearch({
         </form>
         <div className="mt-3">{renderResult()}</div>
       </PopoverContent>
+      <FriendCodeScanDialog
+        open={scanOpen}
+        onOpenChange={setScanOpen}
+        onDetected={handleScanned}
+      />
     </Popover>
   );
 }
