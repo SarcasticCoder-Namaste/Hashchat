@@ -27,6 +27,7 @@ import { PresenceAvatar, UserNameLine } from "@/components/UserBadge";
 import { IncomingCallToast } from "@/components/IncomingCallToast";
 import { PageTransition } from "@/components/PageTransition";
 import { FriendCodeSearch } from "@/components/FriendCodeSearch";
+import { NotificationsBell } from "@/components/NotificationsBell";
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
 
@@ -287,6 +288,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
             </Link>
             <div className="flex items-center gap-1">
               <FriendCodeSearch />
+              <NotificationsBell enabled={!!me} />
               <ThemeToggle />
               <Button
                 variant="ghost"
@@ -300,6 +302,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
           </header>
           <header className="sticky top-0 z-10 hidden items-center justify-end gap-2 border-b border-border bg-card/60 px-6 py-2.5 backdrop-blur md:flex">
             <FriendCodeSearch />
+            <NotificationsBell enabled={!!me} />
           </header>
 
           <main className="flex-1 overflow-y-auto">

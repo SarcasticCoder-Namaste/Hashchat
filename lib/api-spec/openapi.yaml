@@ -21,6 +21,7 @@ tags:
   - name: posts
   - name: polls
   - name: gifs
+  - name: notifications
 paths:
   /healthz:
     get:
@@ -934,6 +935,45 @@ paths:
                 type: array
                 items: { $ref: "#/components/schemas/MatchUser" }
 
+  /me/notifications:
+    get:
+      operationId: getMyNotifications
+      tags: [notifications]
+      summary: List my recent notifications
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          schema: { type: integer, default: 30 }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Notification" }
+
+  /me/notifications/unread-count:
+    get:
+      operationId: getMyUnreadNotificationCount
+      tags: [notifications]
+      summary: Count my unread notifications
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/UnreadCount" }
+
+  /me/notifications/read:
+    post:
+      operationId: markMyNotificationsRead
+      tags: [notifications]
+      summary: Mark all of my unread notifications as read
+      responses:
+        "204": { description: No content }
+
   /me/redeem-mvp-code:
     post:
       operationId: redeemMvpCode
@@ -1525,6 +1565,24 @@ components:
           type: ["string", "null"]
         createdAt: { type: string, format: date-time }
       required: [kind, id, user, createdAt]
+
+    Notification:
+      type: object
+      properties:
+        id: { type: integer }
+        kind: { type: string, description: "e.g. follow" }
+        actor: { $ref: "#/components/schemas/MatchUser" }
+        createdAt: { type: string, format: date-time }
+        readAt:
+          type: ["string", "null"]
+          format: date-time
+      required: [id, kind, actor, createdAt]
+
+    UnreadCount:
+      type: object
+      properties:
+        count: { type: integer }
+      required: [count]
 
     FriendRequestList:
       type: object

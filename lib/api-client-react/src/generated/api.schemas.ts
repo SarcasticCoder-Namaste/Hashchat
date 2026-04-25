@@ -224,6 +224,20 @@ export interface FollowingFeedItem {
   createdAt: string;
 }
 
+export interface Notification {
+  id: number;
+  /** e.g. follow */
+  kind: string;
+  actor: MatchUser;
+  createdAt: string;
+  /** @nullable */
+  readAt?: string | null;
+}
+
+export interface UnreadCount {
+  count: number;
+}
+
 export interface FriendRequestList {
   incoming: MatchUser[];
   outgoing: MatchUser[];
@@ -661,6 +675,10 @@ export type GetFollowSuggestionsParams = {
    * If provided, suggest people similar to this user.
    */
   username?: string;
+};
+
+export type GetMyNotificationsParams = {
+  limit?: number;
 };
 
 export type GetMyFeedPostsParams = {

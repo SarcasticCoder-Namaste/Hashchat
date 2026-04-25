@@ -461,6 +461,32 @@ export const userMutesTable = pgTable(
   (t) => [primaryKey({ columns: [t.muterId, t.mutedId] })],
 );
 
+export const notificationsTable = pgTable(
+  "notifications",
+  {
+    id: serial("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => usersTable.id, { onDelete: "cascade" }),
+    kind: text("kind").notNull(),
+    actorId: text("actor_id")
+      .notNull()
+      .references(() => usersTable.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    readAt: timestamp("read_at", { withTimezone: true }),
+  },
+  (t) => [
+    index("notifications_user_idx").on(t.userId, t.createdAt),
+    uniqueIndex("notifications_user_kind_actor_unique").on(
+      t.userId,
+      t.kind,
+      t.actorId,
+    ),
+  ],
+);
+
 export const hashtagMutesTable = pgTable(
   "hashtag_mutes",
   {
@@ -487,6 +513,7 @@ export type UserFollow = typeof userFollowsTable.$inferSelect;
 export type UserBlock = typeof userBlocksTable.$inferSelect;
 export type UserMute = typeof userMutesTable.$inferSelect;
 export type HashtagMute = typeof hashtagMutesTable.$inferSelect;
+export type Notification = typeof notificationsTable.$inferSelect;
 export type MvpCode = typeof mvpCodesTable.$inferSelect;
 export type UserPhoto = typeof userPhotosTable.$inferSelect;
 export type Call = typeof callsTable.$inferSelect;

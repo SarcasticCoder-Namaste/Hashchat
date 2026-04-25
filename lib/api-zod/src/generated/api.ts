@@ -1486,6 +1486,56 @@ export const GetFollowSuggestionsResponse = zod.array(
 );
 
 /**
+ * @summary List my recent notifications
+ */
+export const getMyNotificationsQueryLimitDefault = 30;
+
+export const GetMyNotificationsQueryParams = zod.object({
+  limit: zod.coerce.number().default(getMyNotificationsQueryLimitDefault),
+});
+
+export const GetMyNotificationsResponseItem = zod.object({
+  id: zod.number(),
+  kind: zod.string().describe("e.g. follow"),
+  actor: zod.object({
+    id: zod.string(),
+    username: zod.string(),
+    displayName: zod.string(),
+    bio: zod.string().nullish(),
+    avatarUrl: zod.string().nullish(),
+    status: zod.string(),
+    featuredHashtag: zod.string().nullish(),
+    discriminator: zod.string().nullish(),
+    role: zod.string(),
+    mvpPlan: zod.boolean(),
+    lastSeenAt: zod.coerce.date(),
+    hashtags: zod.array(zod.string()),
+    sharedHashtags: zod.array(zod.string()),
+    matchScore: zod.number(),
+    friendStatus: zod
+      .string()
+      .nullish()
+      .describe("One of: friends, request_sent, request_received, none"),
+    isFollowing: zod.boolean().optional(),
+    followsMe: zod.boolean().optional(),
+    isMuted: zod.boolean().optional(),
+    isBlocked: zod.boolean().optional(),
+  }),
+  createdAt: zod.coerce.date(),
+  readAt: zod.coerce.date().nullish(),
+});
+export const GetMyNotificationsResponse = zod.array(
+  GetMyNotificationsResponseItem,
+);
+
+/**
+ * @summary Count my unread notifications
+ */
+export const GetMyUnreadNotificationCountResponse = zod.object({
+  count: zod.number(),
+});
+
+/**
  * @summary Redeem an MVP plan code
  */
 export const RedeemMvpCodeBody = zod.object({

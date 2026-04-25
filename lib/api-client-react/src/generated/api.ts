@@ -38,6 +38,7 @@ import type {
   GetFollowingFeedParams,
   GetLinkPreviewParams,
   GetMyFeedPostsParams,
+  GetMyNotificationsParams,
   GetTrendingHashtagsParams,
   GetTrendingRoomsParams,
   GetYoutubeReelsParams,
@@ -53,6 +54,7 @@ import type {
   Message,
   MvpCode,
   MyRelationships,
+  Notification,
   OkResponse,
   OpenConversationBody,
   OverviewStats,
@@ -72,6 +74,7 @@ import type {
   SetHashtagsBody,
   SetRoleBody,
   TrendingHashtag,
+  UnreadCount,
   UpdateUserBody,
   UploadUrlRequest,
   UploadUrlResponse,
@@ -5390,6 +5393,261 @@ export function useGetFollowSuggestions<
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+/**
+ * @summary List my recent notifications
+ */
+export const getGetMyNotificationsUrl = (params?: GetMyNotificationsParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/me/notifications?${stringifiedParams}`
+    : `/api/me/notifications`;
+};
+
+export const getMyNotifications = async (
+  params?: GetMyNotificationsParams,
+  options?: RequestInit,
+): Promise<Notification[]> => {
+  return customFetch<Notification[]>(getGetMyNotificationsUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetMyNotificationsQueryKey = (
+  params?: GetMyNotificationsParams,
+) => {
+  return [`/api/me/notifications`, ...(params ? [params] : [])] as const;
+};
+
+export const getGetMyNotificationsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getMyNotifications>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: GetMyNotificationsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getMyNotifications>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetMyNotificationsQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getMyNotifications>>
+  > = ({ signal }) => getMyNotifications(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getMyNotifications>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetMyNotificationsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getMyNotifications>>
+>;
+export type GetMyNotificationsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List my recent notifications
+ */
+
+export function useGetMyNotifications<
+  TData = Awaited<ReturnType<typeof getMyNotifications>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: GetMyNotificationsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getMyNotifications>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetMyNotificationsQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Count my unread notifications
+ */
+export const getGetMyUnreadNotificationCountUrl = () => {
+  return `/api/me/notifications/unread-count`;
+};
+
+export const getMyUnreadNotificationCount = async (
+  options?: RequestInit,
+): Promise<UnreadCount> => {
+  return customFetch<UnreadCount>(getGetMyUnreadNotificationCountUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetMyUnreadNotificationCountQueryKey = () => {
+  return [`/api/me/notifications/unread-count`] as const;
+};
+
+export const getGetMyUnreadNotificationCountQueryOptions = <
+  TData = Awaited<ReturnType<typeof getMyUnreadNotificationCount>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getMyUnreadNotificationCount>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetMyUnreadNotificationCountQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getMyUnreadNotificationCount>>
+  > = ({ signal }) =>
+    getMyUnreadNotificationCount({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getMyUnreadNotificationCount>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetMyUnreadNotificationCountQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getMyUnreadNotificationCount>>
+>;
+export type GetMyUnreadNotificationCountQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Count my unread notifications
+ */
+
+export function useGetMyUnreadNotificationCount<
+  TData = Awaited<ReturnType<typeof getMyUnreadNotificationCount>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getMyUnreadNotificationCount>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetMyUnreadNotificationCountQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Mark all of my unread notifications as read
+ */
+export const getMarkMyNotificationsReadUrl = () => {
+  return `/api/me/notifications/read`;
+};
+
+export const markMyNotificationsRead = async (
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getMarkMyNotificationsReadUrl(), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getMarkMyNotificationsReadMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof markMyNotificationsRead>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof markMyNotificationsRead>>,
+  TError,
+  void,
+  TContext
+> => {
+  const mutationKey = ["markMyNotificationsRead"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof markMyNotificationsRead>>,
+    void
+  > = () => {
+    return markMyNotificationsRead(requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type MarkMyNotificationsReadMutationResult = NonNullable<
+  Awaited<ReturnType<typeof markMyNotificationsRead>>
+>;
+
+export type MarkMyNotificationsReadMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Mark all of my unread notifications as read
+ */
+export const useMarkMyNotificationsRead = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof markMyNotificationsRead>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof markMyNotificationsRead>>,
+  TError,
+  void,
+  TContext
+> => {
+  return useMutation(getMarkMyNotificationsReadMutationOptions(options));
+};
 
 /**
  * @summary Redeem an MVP plan code

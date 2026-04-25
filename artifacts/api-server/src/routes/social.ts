@@ -10,6 +10,7 @@ import {
   userHashtagsTable,
   messagesTable,
   friendshipsTable,
+  notificationsTable,
 } from "@workspace/db";
 import { and, desc, eq, inArray, ne, or, sql } from "drizzle-orm";
 import { requireAuth, getUserId } from "../middlewares/requireAuth";
@@ -55,10 +56,27 @@ router.post(
       res.status(403).json({ error: "Blocked" });
       return;
     }
-    await db
+    const inserted = await db
       .insert(userFollowsTable)
       .values({ followerId: me, followeeId: otherId })
-      .onConflictDoNothing();
+      .onConflictDoNothing()
+      .returning({ followerId: userFollowsTable.followerId });
+    if (inserted.length > 0) {
+      // Record a follower notification for the followee. If one already exists
+      // from this actor, bump it back to unread and refresh the timestamp so
+      // re-follows produce a fresh signal.
+      await db
+        .insert(notificationsTable)
+        .values({ userId: otherId, kind: "follow", actorId: me })
+        .onConflictDoUpdate({
+          target: [
+            notificationsTable.userId,
+            notificationsTable.kind,
+            notificationsTable.actorId,
+          ],
+          set: { createdAt: new Date(), readAt: null },
+        });
+    }
     res.status(204).end();
   },
 );
