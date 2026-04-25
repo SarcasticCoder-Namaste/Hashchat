@@ -70,6 +70,7 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
 const MOBILE_NAV: NavItem[] = [
   { href: "/app/home", label: "Home", icon: HomeIcon },
   { href: "/app/discover", label: "Discover", icon: Compass },
+  { href: "/app/reels", label: "Reels", icon: Film },
   { href: "/app/rooms", label: "Rooms", icon: Hash },
   { href: "/app/communities", label: "Communities", icon: Users },
   { href: "/app/messages", label: "Messages", icon: MessageCircle },
@@ -112,7 +113,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
     : NAV_GROUPS;
 
   const mobileNav = isStaff
-    ? [...MOBILE_NAV.slice(0, 6), { href: "/app/admin", label: "Admin", icon: ShieldCheck }, MOBILE_NAV[6]]
+    ? [...MOBILE_NAV.slice(0, 7), { href: "/app/admin", label: "Admin", icon: ShieldCheck }, MOBILE_NAV[7]]
     : MOBILE_NAV;
 
   useEffect(() => {
@@ -317,7 +318,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
           <nav
             className={[
               "sticky bottom-0 z-10 grid border-t border-border bg-card/90 backdrop-blur md:hidden",
-              isStaff ? "grid-cols-8" : "grid-cols-7",
+              isStaff ? "grid-cols-9" : "grid-cols-8",
             ].join(" ")}
           >
             {mobileNav.map(({ href, label, icon: Icon }) => {
