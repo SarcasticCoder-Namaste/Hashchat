@@ -26,6 +26,7 @@ import { CallButton } from "@/components/CallButton";
 import { PostComposer } from "@/components/PostComposer";
 import { PostFeed } from "@/components/PostFeed";
 import { PollsPanel } from "@/components/PollsPanel";
+import { EventsPanel, LiveEventBanner } from "@/components/EventsPanel";
 import {
   ArrowLeft,
   Hash,
@@ -35,6 +36,7 @@ import {
   Loader2,
   X,
   Reply,
+  BarChart3,
 } from "lucide-react";
 
 export default function RoomChat({ tag }: { tag: string }) {
@@ -136,7 +138,9 @@ export default function RoomChat({ tag }: { tag: string }) {
   const meQ = useGetMe();
   const meId = meQ.data?.id ?? null;
   const detail = hashtagQ.data;
-  const [tab, setTab] = useState<"chat" | "posts" | "polls">("chat");
+  const [tab, setTab] = useState<"chat" | "posts" | "polls" | "events">(
+    "chat",
+  );
 
   return (
     <div className="relative flex h-full min-h-0 flex-col">
@@ -167,6 +171,17 @@ export default function RoomChat({ tag }: { tag: string }) {
         </div>
         <CallButton roomTag={cleanTag} kind="voice" testId="button-room-call-voice" />
         <CallButton roomTag={cleanTag} kind="video" testId="button-room-call-video" />
+        <Button
+          size="icon"
+          variant="ghost"
+          asChild
+          aria-label="View hashtag analytics"
+          data-testid="button-room-analytics"
+        >
+          <Link href={`/app/tag/${encodeURIComponent(cleanTag)}`}>
+            <BarChart3 className="h-4 w-4" />
+          </Link>
+        </Button>
         {detail && (
           <Button
             size="sm"
@@ -189,15 +204,20 @@ export default function RoomChat({ tag }: { tag: string }) {
         )}
       </header>
 
+      <LiveEventBanner tag={cleanTag} />
+
       <Tabs
         value={tab}
-        onValueChange={(v) => setTab(v as "chat" | "posts" | "polls")}
+        onValueChange={(v) =>
+          setTab(v as "chat" | "posts" | "polls" | "events")
+        }
         className="flex min-h-0 flex-1 flex-col"
       >
-        <TabsList className="mx-3 mt-2 grid w-auto grid-cols-3">
+        <TabsList className="mx-3 mt-2 grid w-auto grid-cols-4">
           <TabsTrigger value="chat" data-testid="tab-chat">Chat</TabsTrigger>
           <TabsTrigger value="posts" data-testid="tab-posts">Posts</TabsTrigger>
           <TabsTrigger value="polls" data-testid="tab-polls">Polls</TabsTrigger>
+          <TabsTrigger value="events" data-testid="tab-events">Events</TabsTrigger>
         </TabsList>
         <TabsContent
           value="chat"
@@ -317,6 +337,12 @@ export default function RoomChat({ tag }: { tag: string }) {
           className="m-0 flex min-h-0 flex-1 flex-col"
         >
           <PollsPanel tag={cleanTag} />
+        </TabsContent>
+        <TabsContent
+          value="events"
+          className="m-0 flex min-h-0 flex-1 flex-col"
+        >
+          <EventsPanel tag={cleanTag} />
         </TabsContent>
       </Tabs>
     </div>

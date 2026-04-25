@@ -637,6 +637,90 @@ export interface LinkPreview {
   thumbnailUrl?: string | null;
 }
 
+export interface Event {
+  id: number;
+  roomTag: string;
+  creatorId: string;
+  creatorName: string;
+  /** @nullable */
+  creatorAvatarUrl?: string | null;
+  title: string;
+  /** @nullable */
+  description?: string | null;
+  startsAt: string;
+  /** @nullable */
+  endsAt?: string | null;
+  /** @nullable */
+  canceledAt?: string | null;
+  rsvpCount: number;
+  rsvpedByMe: boolean;
+  isLive: boolean;
+  isPast: boolean;
+  canModerate: boolean;
+  createdAt: string;
+}
+
+export interface CreateEventBody {
+  /**
+   * @minLength 1
+   * @maxLength 120
+   */
+  title: string;
+  /** @nullable */
+  description?: string | null;
+  startsAt: string;
+  /** @nullable */
+  endsAt?: string | null;
+}
+
+export interface HashtagAnalyticsPoint {
+  day: string;
+  posts: number;
+  messages: number;
+  newMembers: number;
+  newFollowers: number;
+  cumulativeFollowers: number;
+}
+
+export interface HashtagContributor {
+  user: MatchUser;
+  messageCount: number;
+  postCount: number;
+}
+
+export interface HashtagAnalytics {
+  tag: string;
+  memberCount: number;
+  followerCount: number;
+  messageCount: number;
+  postCount: number;
+  recentMessages: number;
+  days: number;
+  timeline: HashtagAnalyticsPoint[];
+  topContributors: HashtagContributor[];
+  relatedHashtags: string[];
+  isFollowed: boolean;
+}
+
+export type ForYouItemKind =
+  (typeof ForYouItemKind)[keyof typeof ForYouItemKind];
+
+export const ForYouItemKind = {
+  post: "post",
+  room: "room",
+  person: "person",
+} as const;
+
+export interface ForYouItem {
+  kind: ForYouItemKind;
+  id: string;
+  score: number;
+  reason: string;
+  post?: Post | null;
+  room?: Room | null;
+  person?: MatchUser | null;
+}
+
 export type GetTrendingHashtagsParams = {
   limit?: number;
 };
@@ -646,6 +730,18 @@ export type SearchHashtagsParams = {
 };
 
 export type DiscoverPeopleParams = {
+  limit?: number;
+};
+
+export type GetForYouFeedParams = {
+  limit?: number;
+};
+
+export type GetHashtagAnalyticsParams = {
+  days?: number;
+};
+
+export type GetUpcomingEventsParams = {
   limit?: number;
 };
 

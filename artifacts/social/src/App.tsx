@@ -31,6 +31,7 @@ import Home from "@/pages/Home";
 import Trending from "@/pages/Trending";
 import Rooms from "@/pages/Rooms";
 import RoomChat from "@/pages/RoomChat";
+import HashtagAnalytics from "@/pages/HashtagAnalytics";
 import Conversations from "@/pages/Conversations";
 import ConversationChat from "@/pages/ConversationChat";
 import PublicProfile from "@/pages/PublicProfile";
@@ -235,6 +236,13 @@ function ClerkProviderWithRoutes() {
               {(params) => (
                 <ProtectedShell>
                   <RoomChat tag={params.tag} />
+                </ProtectedShell>
+              )}
+            </Route>
+            <Route path="/app/tag/:tag">
+              {(params) => (
+                <ProtectedShell>
+                  <HashtagAnalytics tag={params.tag} />
                 </ProtectedShell>
               )}
             </Route>

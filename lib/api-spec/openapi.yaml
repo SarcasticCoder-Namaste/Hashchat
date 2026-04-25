@@ -22,6 +22,7 @@ tags:
   - name: polls
   - name: gifs
   - name: notifications
+  - name: events
 paths:
   /healthz:
     get:
@@ -235,6 +236,127 @@ paths:
               schema:
                 type: array
                 items: { $ref: "#/components/schemas/MatchUser" }
+
+  /discover/foryou:
+    get:
+      operationId: getForYouFeed
+      tags: [discovery]
+      summary: Personalized "For You" mixed feed of posts, rooms and people
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          schema: { type: integer, default: 30 }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/ForYouItem" }
+
+  /hashtags/{tag}/analytics:
+    get:
+      operationId: getHashtagAnalytics
+      tags: [hashtags]
+      summary: Analytics for a hashtag (followers, contributors, related, volume)
+      parameters:
+        - { name: tag, in: path, required: true, schema: { type: string } }
+        - { name: days, in: query, required: false, schema: { type: integer, default: 14 } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/HashtagAnalytics" }
+
+  /rooms/{tag}/events:
+    get:
+      operationId: getRoomEvents
+      tags: [events]
+      summary: List events scheduled inside a hashtag room
+      parameters:
+        - { name: tag, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Event" }
+    post:
+      operationId: createRoomEvent
+      tags: [events]
+      summary: Schedule a new event in a hashtag room (moderators only)
+      parameters:
+        - { name: tag, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateEventBody" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Event" }
+        "403": { description: Not allowed to schedule in this room }
+
+  /events/upcoming:
+    get:
+      operationId: getUpcomingEvents
+      tags: [events]
+      summary: Globally upcoming and live events (most recent first)
+      parameters:
+        - { name: limit, in: query, required: false, schema: { type: integer, default: 10 } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Event" }
+
+  /events/{id}/rsvp:
+    post:
+      operationId: rsvpEvent
+      tags: [events]
+      summary: RSVP "going" to an event
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Event" }
+    delete:
+      operationId: cancelRsvpEvent
+      tags: [events]
+      summary: Cancel my RSVP for an event
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Event" }
+
+  /events/{id}:
+    delete:
+      operationId: cancelEvent
+      tags: [events]
+      summary: Cancel an event (creator or room moderator)
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      responses:
+        "204": { description: No content }
+        "403": { description: Not allowed }
 
   /conversations:
     get:
@@ -2064,3 +2186,104 @@ components:
         thumbnailUrl:
           type: ["string", "null"]
       required: [id, kind, url]
+
+    Event:
+      type: object
+      properties:
+        id: { type: integer }
+        roomTag: { type: string }
+        creatorId: { type: string }
+        creatorName: { type: string }
+        creatorAvatarUrl:
+          type: ["string", "null"]
+        title: { type: string }
+        description:
+          type: ["string", "null"]
+        startsAt: { type: string, format: date-time }
+        endsAt:
+          type: ["string", "null"]
+          format: date-time
+        canceledAt:
+          type: ["string", "null"]
+          format: date-time
+        rsvpCount: { type: integer }
+        rsvpedByMe: { type: boolean }
+        isLive: { type: boolean }
+        isPast: { type: boolean }
+        canModerate: { type: boolean }
+        createdAt: { type: string, format: date-time }
+      required: [id, roomTag, creatorId, creatorName, title, startsAt, rsvpCount, rsvpedByMe, isLive, isPast, canModerate, createdAt]
+
+    CreateEventBody:
+      type: object
+      properties:
+        title: { type: string, minLength: 1, maxLength: 120 }
+        description:
+          type: ["string", "null"]
+        startsAt: { type: string, format: date-time }
+        endsAt:
+          type: ["string", "null"]
+          format: date-time
+      required: [title, startsAt]
+
+    HashtagAnalyticsPoint:
+      type: object
+      properties:
+        day: { type: string }
+        posts: { type: integer }
+        messages: { type: integer }
+        newMembers: { type: integer }
+        newFollowers: { type: integer }
+        cumulativeFollowers: { type: integer }
+      required: [day, posts, messages, newMembers, newFollowers, cumulativeFollowers]
+
+    HashtagContributor:
+      type: object
+      properties:
+        user: { $ref: "#/components/schemas/MatchUser" }
+        messageCount: { type: integer }
+        postCount: { type: integer }
+      required: [user, messageCount, postCount]
+
+    HashtagAnalytics:
+      type: object
+      properties:
+        tag: { type: string }
+        memberCount: { type: integer }
+        followerCount: { type: integer }
+        messageCount: { type: integer }
+        postCount: { type: integer }
+        recentMessages: { type: integer }
+        days: { type: integer }
+        timeline:
+          type: array
+          items: { $ref: "#/components/schemas/HashtagAnalyticsPoint" }
+        topContributors:
+          type: array
+          items: { $ref: "#/components/schemas/HashtagContributor" }
+        relatedHashtags:
+          type: array
+          items: { type: string }
+        isFollowed: { type: boolean }
+      required: [tag, memberCount, followerCount, messageCount, postCount, recentMessages, days, timeline, topContributors, relatedHashtags, isFollowed]
+
+    ForYouItem:
+      type: object
+      properties:
+        kind: { type: string, enum: [post, room, person] }
+        id: { type: string }
+        score: { type: number }
+        reason: { type: string }
+        post:
+          oneOf:
+            - { $ref: "#/components/schemas/Post" }
+            - { type: "null" }
+        room:
+          oneOf:
+            - { $ref: "#/components/schemas/Room" }
+            - { type: "null" }
+        person:
+          oneOf:
+            - { $ref: "#/components/schemas/MatchUser" }
+            - { type: "null" }
+      required: [kind, id, score, reason]

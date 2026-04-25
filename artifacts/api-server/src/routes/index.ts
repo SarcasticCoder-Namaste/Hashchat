@@ -20,6 +20,7 @@ import linkPreviewRouter from "./linkPreview";
 import socialRouter from "./social";
 import gifsRouter from "./gifs";
 import notificationsRouter from "./notifications";
+import eventsRouter from "./events";
 
 const router: IRouter = Router();
 
@@ -44,5 +45,6 @@ router.use(linkPreviewRouter);
 router.use(socialRouter);
 router.use(gifsRouter);
 router.use(notificationsRouter);
+router.use(eventsRouter);
 
 export default router;

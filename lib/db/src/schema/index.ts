@@ -503,6 +503,68 @@ export const hashtagMutesTable = pgTable(
   (t) => [primaryKey({ columns: [t.userId, t.tag] })],
 );
 
+export const eventsTable = pgTable(
+  "events",
+  {
+    id: serial("id").primaryKey(),
+    roomTag: text("room_tag")
+      .notNull()
+      .references(() => hashtagsTable.tag, { onDelete: "cascade" }),
+    creatorId: text("creator_id")
+      .notNull()
+      .references(() => usersTable.id, { onDelete: "cascade" }),
+    title: text("title").notNull(),
+    description: text("description"),
+    startsAt: timestamp("starts_at", { withTimezone: true }).notNull(),
+    endsAt: timestamp("ends_at", { withTimezone: true }),
+    canceledAt: timestamp("canceled_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [index("events_room_idx").on(t.roomTag, t.startsAt)],
+);
+
+export const eventRsvpsTable = pgTable(
+  "event_rsvps",
+  {
+    eventId: integer("event_id")
+      .notNull()
+      .references(() => eventsTable.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => usersTable.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.eventId, t.userId] })],
+);
+
+export const hashtagMetricsDailyTable = pgTable(
+  "hashtag_metrics_daily",
+  {
+    tag: text("tag")
+      .notNull()
+      .references(() => hashtagsTable.tag, { onDelete: "cascade" }),
+    day: text("day").notNull(),
+    posts: integer("posts").notNull().default(0),
+    messages: integer("messages").notNull().default(0),
+    newMembers: integer("new_members").notNull().default(0),
+    newFollowers: integer("new_followers").notNull().default(0),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.tag, t.day] }),
+    index("hashtag_metrics_daily_day_idx").on(t.day),
+  ],
+);
+
+export type Event = typeof eventsTable.$inferSelect;
+export type EventRsvp = typeof eventRsvpsTable.$inferSelect;
+export type HashtagMetricsDaily = typeof hashtagMetricsDailyTable.$inferSelect;
 export type Post = typeof postsTable.$inferSelect;
 export type PostMedia = typeof postMediaTable.$inferSelect;
 export type Poll = typeof pollsTable.$inferSelect;

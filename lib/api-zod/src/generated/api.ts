@@ -294,6 +294,345 @@ export const DiscoverPeopleResponseItem = zod.object({
 export const DiscoverPeopleResponse = zod.array(DiscoverPeopleResponseItem);
 
 /**
+ * @summary Personalized "For You" mixed feed of posts, rooms and people
+ */
+export const getForYouFeedQueryLimitDefault = 30;
+
+export const GetForYouFeedQueryParams = zod.object({
+  limit: zod.coerce.number().default(getForYouFeedQueryLimitDefault),
+});
+
+export const GetForYouFeedResponseItem = zod.object({
+  kind: zod.enum(["post", "room", "person"]),
+  id: zod.string(),
+  score: zod.number(),
+  reason: zod.string(),
+  post: zod
+    .union([
+      zod.object({
+        id: zod.number(),
+        author: zod.object({
+          id: zod.string(),
+          username: zod.string(),
+          displayName: zod.string(),
+          avatarUrl: zod.string().nullish(),
+          discriminator: zod.string().nullish(),
+          role: zod.string(),
+          mvpPlan: zod.boolean(),
+        }),
+        content: zod.string(),
+        hashtags: zod.array(zod.string()),
+        imageUrls: zod.array(zod.string()),
+        createdAt: zod.coerce.date(),
+      }),
+      zod.null(),
+    ])
+    .optional(),
+  room: zod
+    .union([
+      zod.object({
+        tag: zod.string(),
+        memberCount: zod.number(),
+        messageCount: zod.number(),
+        followerCount: zod.number(),
+        recentMessages: zod.number(),
+        lastMessage: zod
+          .union([
+            zod.object({
+              id: zod.number(),
+              conversationId: zod.number().nullish(),
+              roomTag: zod.string().nullish(),
+              senderId: zod.string(),
+              senderName: zod.string(),
+              senderAvatarUrl: zod.string().nullish(),
+              content: zod.string(),
+              replyToId: zod.number().nullish(),
+              replyToContent: zod.string().nullish(),
+              imageUrl: zod.string().nullish(),
+              audioUrl: zod.string().nullish(),
+              reactions: zod.array(
+                zod.object({
+                  emoji: zod.string(),
+                  count: zod.number(),
+                  reactedByMe: zod.boolean(),
+                }),
+              ),
+              attachments: zod.array(
+                zod.object({
+                  id: zod.number(),
+                  kind: zod.enum(["image", "gif", "link_preview", "poll"]),
+                  url: zod.string(),
+                  title: zod.string().nullish(),
+                  description: zod.string().nullish(),
+                  thumbnailUrl: zod.string().nullish(),
+                }),
+              ),
+              poll: zod
+                .union([
+                  zod.object({
+                    id: zod.number(),
+                    roomTag: zod.string(),
+                    creatorId: zod.string(),
+                    creatorName: zod.string(),
+                    question: zod.string(),
+                    options: zod.array(
+                      zod.object({
+                        id: zod.number(),
+                        text: zod.string(),
+                        votes: zod.number(),
+                        votedByMe: zod.boolean(),
+                      }),
+                    ),
+                    totalVotes: zod.number(),
+                    myVoteOptionId: zod.number().nullish(),
+                    expiresAt: zod.coerce.date().nullish(),
+                    isExpired: zod.boolean(),
+                    createdAt: zod.coerce.date(),
+                  }),
+                  zod.null(),
+                ])
+                .optional(),
+              createdAt: zod.coerce.date(),
+            }),
+            zod.null(),
+          ])
+          .optional(),
+        isFollowed: zod.boolean(),
+      }),
+      zod.null(),
+    ])
+    .optional(),
+  person: zod
+    .union([
+      zod.object({
+        id: zod.string(),
+        username: zod.string(),
+        displayName: zod.string(),
+        bio: zod.string().nullish(),
+        avatarUrl: zod.string().nullish(),
+        status: zod.string(),
+        featuredHashtag: zod.string().nullish(),
+        discriminator: zod.string().nullish(),
+        role: zod.string(),
+        mvpPlan: zod.boolean(),
+        lastSeenAt: zod.coerce.date(),
+        hashtags: zod.array(zod.string()),
+        sharedHashtags: zod.array(zod.string()),
+        matchScore: zod.number(),
+        friendStatus: zod
+          .string()
+          .nullish()
+          .describe("One of: friends, request_sent, request_received, none"),
+        isFollowing: zod.boolean().optional(),
+        followsMe: zod.boolean().optional(),
+        isMuted: zod.boolean().optional(),
+        isBlocked: zod.boolean().optional(),
+      }),
+      zod.null(),
+    ])
+    .optional(),
+});
+export const GetForYouFeedResponse = zod.array(GetForYouFeedResponseItem);
+
+/**
+ * @summary Analytics for a hashtag (followers, contributors, related, volume)
+ */
+export const GetHashtagAnalyticsParams = zod.object({
+  tag: zod.coerce.string(),
+});
+
+export const getHashtagAnalyticsQueryDaysDefault = 14;
+
+export const GetHashtagAnalyticsQueryParams = zod.object({
+  days: zod.coerce.number().default(getHashtagAnalyticsQueryDaysDefault),
+});
+
+export const GetHashtagAnalyticsResponse = zod.object({
+  tag: zod.string(),
+  memberCount: zod.number(),
+  followerCount: zod.number(),
+  messageCount: zod.number(),
+  postCount: zod.number(),
+  recentMessages: zod.number(),
+  days: zod.number(),
+  timeline: zod.array(
+    zod.object({
+      day: zod.string(),
+      posts: zod.number(),
+      messages: zod.number(),
+      newMembers: zod.number(),
+      newFollowers: zod.number(),
+      cumulativeFollowers: zod.number(),
+    }),
+  ),
+  topContributors: zod.array(
+    zod.object({
+      user: zod.object({
+        id: zod.string(),
+        username: zod.string(),
+        displayName: zod.string(),
+        bio: zod.string().nullish(),
+        avatarUrl: zod.string().nullish(),
+        status: zod.string(),
+        featuredHashtag: zod.string().nullish(),
+        discriminator: zod.string().nullish(),
+        role: zod.string(),
+        mvpPlan: zod.boolean(),
+        lastSeenAt: zod.coerce.date(),
+        hashtags: zod.array(zod.string()),
+        sharedHashtags: zod.array(zod.string()),
+        matchScore: zod.number(),
+        friendStatus: zod
+          .string()
+          .nullish()
+          .describe("One of: friends, request_sent, request_received, none"),
+        isFollowing: zod.boolean().optional(),
+        followsMe: zod.boolean().optional(),
+        isMuted: zod.boolean().optional(),
+        isBlocked: zod.boolean().optional(),
+      }),
+      messageCount: zod.number(),
+      postCount: zod.number(),
+    }),
+  ),
+  relatedHashtags: zod.array(zod.string()),
+  isFollowed: zod.boolean(),
+});
+
+/**
+ * @summary List events scheduled inside a hashtag room
+ */
+export const GetRoomEventsParams = zod.object({
+  tag: zod.coerce.string(),
+});
+
+export const GetRoomEventsResponseItem = zod.object({
+  id: zod.number(),
+  roomTag: zod.string(),
+  creatorId: zod.string(),
+  creatorName: zod.string(),
+  creatorAvatarUrl: zod.string().nullish(),
+  title: zod.string(),
+  description: zod.string().nullish(),
+  startsAt: zod.coerce.date(),
+  endsAt: zod.coerce.date().nullish(),
+  canceledAt: zod.coerce.date().nullish(),
+  rsvpCount: zod.number(),
+  rsvpedByMe: zod.boolean(),
+  isLive: zod.boolean(),
+  isPast: zod.boolean(),
+  canModerate: zod.boolean(),
+  createdAt: zod.coerce.date(),
+});
+export const GetRoomEventsResponse = zod.array(GetRoomEventsResponseItem);
+
+/**
+ * @summary Schedule a new event in a hashtag room (moderators only)
+ */
+export const CreateRoomEventParams = zod.object({
+  tag: zod.coerce.string(),
+});
+
+export const createRoomEventBodyTitleMax = 120;
+
+export const CreateRoomEventBody = zod.object({
+  title: zod.string().min(1).max(createRoomEventBodyTitleMax),
+  description: zod.string().nullish(),
+  startsAt: zod.coerce.date(),
+  endsAt: zod.coerce.date().nullish(),
+});
+
+/**
+ * @summary Globally upcoming and live events (most recent first)
+ */
+export const getUpcomingEventsQueryLimitDefault = 10;
+
+export const GetUpcomingEventsQueryParams = zod.object({
+  limit: zod.coerce.number().default(getUpcomingEventsQueryLimitDefault),
+});
+
+export const GetUpcomingEventsResponseItem = zod.object({
+  id: zod.number(),
+  roomTag: zod.string(),
+  creatorId: zod.string(),
+  creatorName: zod.string(),
+  creatorAvatarUrl: zod.string().nullish(),
+  title: zod.string(),
+  description: zod.string().nullish(),
+  startsAt: zod.coerce.date(),
+  endsAt: zod.coerce.date().nullish(),
+  canceledAt: zod.coerce.date().nullish(),
+  rsvpCount: zod.number(),
+  rsvpedByMe: zod.boolean(),
+  isLive: zod.boolean(),
+  isPast: zod.boolean(),
+  canModerate: zod.boolean(),
+  createdAt: zod.coerce.date(),
+});
+export const GetUpcomingEventsResponse = zod.array(
+  GetUpcomingEventsResponseItem,
+);
+
+/**
+ * @summary RSVP "going" to an event
+ */
+export const RsvpEventParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const RsvpEventResponse = zod.object({
+  id: zod.number(),
+  roomTag: zod.string(),
+  creatorId: zod.string(),
+  creatorName: zod.string(),
+  creatorAvatarUrl: zod.string().nullish(),
+  title: zod.string(),
+  description: zod.string().nullish(),
+  startsAt: zod.coerce.date(),
+  endsAt: zod.coerce.date().nullish(),
+  canceledAt: zod.coerce.date().nullish(),
+  rsvpCount: zod.number(),
+  rsvpedByMe: zod.boolean(),
+  isLive: zod.boolean(),
+  isPast: zod.boolean(),
+  canModerate: zod.boolean(),
+  createdAt: zod.coerce.date(),
+});
+
+/**
+ * @summary Cancel my RSVP for an event
+ */
+export const CancelRsvpEventParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const CancelRsvpEventResponse = zod.object({
+  id: zod.number(),
+  roomTag: zod.string(),
+  creatorId: zod.string(),
+  creatorName: zod.string(),
+  creatorAvatarUrl: zod.string().nullish(),
+  title: zod.string(),
+  description: zod.string().nullish(),
+  startsAt: zod.coerce.date(),
+  endsAt: zod.coerce.date().nullish(),
+  canceledAt: zod.coerce.date().nullish(),
+  rsvpCount: zod.number(),
+  rsvpedByMe: zod.boolean(),
+  isLive: zod.boolean(),
+  isPast: zod.boolean(),
+  canModerate: zod.boolean(),
+  createdAt: zod.coerce.date(),
+});
+
+/**
+ * @summary Cancel an event (creator or room moderator)
+ */
+export const CancelEventParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+/**
  * @summary List my direct conversations
  */
 export const GetConversationsResponseItem = zod.object({

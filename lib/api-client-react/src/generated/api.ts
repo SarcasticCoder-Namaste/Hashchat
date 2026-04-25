@@ -25,26 +25,33 @@ import type {
   CallSignalBody,
   CallSignalList,
   Conversation,
+  CreateEventBody,
   CreateMvpCodeBody,
   CreatePollBody,
   CreatePostBody,
   CreatedCode,
   DiscoverPeopleParams,
+  Event,
   FollowingFeedItem,
+  ForYouItem,
   FriendCodeResponse,
   FriendRequestList,
   GetCallSignalsParams,
   GetFollowSuggestionsParams,
   GetFollowingFeedParams,
+  GetForYouFeedParams,
+  GetHashtagAnalyticsParams,
   GetLinkPreviewParams,
   GetMyFeedPostsParams,
   GetMyNotificationsParams,
   GetTrendingHashtagsParams,
   GetTrendingRoomsParams,
+  GetUpcomingEventsParams,
   GetYoutubeReelsParams,
   GifConfigError,
   GifSearchResult,
   Hashtag,
+  HashtagAnalytics,
   HashtagDetail,
   HealthStatus,
   InitiateCallBody,
@@ -1246,6 +1253,736 @@ export function useDiscoverPeople<
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+/**
+ * @summary Personalized "For You" mixed feed of posts, rooms and people
+ */
+export const getGetForYouFeedUrl = (params?: GetForYouFeedParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/discover/foryou?${stringifiedParams}`
+    : `/api/discover/foryou`;
+};
+
+export const getForYouFeed = async (
+  params?: GetForYouFeedParams,
+  options?: RequestInit,
+): Promise<ForYouItem[]> => {
+  return customFetch<ForYouItem[]>(getGetForYouFeedUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetForYouFeedQueryKey = (params?: GetForYouFeedParams) => {
+  return [`/api/discover/foryou`, ...(params ? [params] : [])] as const;
+};
+
+export const getGetForYouFeedQueryOptions = <
+  TData = Awaited<ReturnType<typeof getForYouFeed>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: GetForYouFeedParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getForYouFeed>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetForYouFeedQueryKey(params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getForYouFeed>>> = ({
+    signal,
+  }) => getForYouFeed(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getForYouFeed>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetForYouFeedQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getForYouFeed>>
+>;
+export type GetForYouFeedQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Personalized "For You" mixed feed of posts, rooms and people
+ */
+
+export function useGetForYouFeed<
+  TData = Awaited<ReturnType<typeof getForYouFeed>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: GetForYouFeedParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getForYouFeed>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetForYouFeedQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Analytics for a hashtag (followers, contributors, related, volume)
+ */
+export const getGetHashtagAnalyticsUrl = (
+  tag: string,
+  params?: GetHashtagAnalyticsParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/hashtags/${tag}/analytics?${stringifiedParams}`
+    : `/api/hashtags/${tag}/analytics`;
+};
+
+export const getHashtagAnalytics = async (
+  tag: string,
+  params?: GetHashtagAnalyticsParams,
+  options?: RequestInit,
+): Promise<HashtagAnalytics> => {
+  return customFetch<HashtagAnalytics>(getGetHashtagAnalyticsUrl(tag, params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetHashtagAnalyticsQueryKey = (
+  tag: string,
+  params?: GetHashtagAnalyticsParams,
+) => {
+  return [
+    `/api/hashtags/${tag}/analytics`,
+    ...(params ? [params] : []),
+  ] as const;
+};
+
+export const getGetHashtagAnalyticsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getHashtagAnalytics>>,
+  TError = ErrorType<unknown>,
+>(
+  tag: string,
+  params?: GetHashtagAnalyticsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getHashtagAnalytics>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetHashtagAnalyticsQueryKey(tag, params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getHashtagAnalytics>>
+  > = ({ signal }) =>
+    getHashtagAnalytics(tag, params, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!tag,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getHashtagAnalytics>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetHashtagAnalyticsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getHashtagAnalytics>>
+>;
+export type GetHashtagAnalyticsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Analytics for a hashtag (followers, contributors, related, volume)
+ */
+
+export function useGetHashtagAnalytics<
+  TData = Awaited<ReturnType<typeof getHashtagAnalytics>>,
+  TError = ErrorType<unknown>,
+>(
+  tag: string,
+  params?: GetHashtagAnalyticsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getHashtagAnalytics>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetHashtagAnalyticsQueryOptions(tag, params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary List events scheduled inside a hashtag room
+ */
+export const getGetRoomEventsUrl = (tag: string) => {
+  return `/api/rooms/${tag}/events`;
+};
+
+export const getRoomEvents = async (
+  tag: string,
+  options?: RequestInit,
+): Promise<Event[]> => {
+  return customFetch<Event[]>(getGetRoomEventsUrl(tag), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetRoomEventsQueryKey = (tag: string) => {
+  return [`/api/rooms/${tag}/events`] as const;
+};
+
+export const getGetRoomEventsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getRoomEvents>>,
+  TError = ErrorType<unknown>,
+>(
+  tag: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getRoomEvents>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetRoomEventsQueryKey(tag);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getRoomEvents>>> = ({
+    signal,
+  }) => getRoomEvents(tag, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!tag,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getRoomEvents>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetRoomEventsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getRoomEvents>>
+>;
+export type GetRoomEventsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List events scheduled inside a hashtag room
+ */
+
+export function useGetRoomEvents<
+  TData = Awaited<ReturnType<typeof getRoomEvents>>,
+  TError = ErrorType<unknown>,
+>(
+  tag: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getRoomEvents>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetRoomEventsQueryOptions(tag, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Schedule a new event in a hashtag room (moderators only)
+ */
+export const getCreateRoomEventUrl = (tag: string) => {
+  return `/api/rooms/${tag}/events`;
+};
+
+export const createRoomEvent = async (
+  tag: string,
+  createEventBody: CreateEventBody,
+  options?: RequestInit,
+): Promise<Event> => {
+  return customFetch<Event>(getCreateRoomEventUrl(tag), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createEventBody),
+  });
+};
+
+export const getCreateRoomEventMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createRoomEvent>>,
+    TError,
+    { tag: string; data: BodyType<CreateEventBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createRoomEvent>>,
+  TError,
+  { tag: string; data: BodyType<CreateEventBody> },
+  TContext
+> => {
+  const mutationKey = ["createRoomEvent"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createRoomEvent>>,
+    { tag: string; data: BodyType<CreateEventBody> }
+  > = (props) => {
+    const { tag, data } = props ?? {};
+
+    return createRoomEvent(tag, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateRoomEventMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createRoomEvent>>
+>;
+export type CreateRoomEventMutationBody = BodyType<CreateEventBody>;
+export type CreateRoomEventMutationError = ErrorType<void>;
+
+/**
+ * @summary Schedule a new event in a hashtag room (moderators only)
+ */
+export const useCreateRoomEvent = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createRoomEvent>>,
+    TError,
+    { tag: string; data: BodyType<CreateEventBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createRoomEvent>>,
+  TError,
+  { tag: string; data: BodyType<CreateEventBody> },
+  TContext
+> => {
+  return useMutation(getCreateRoomEventMutationOptions(options));
+};
+
+/**
+ * @summary Globally upcoming and live events (most recent first)
+ */
+export const getGetUpcomingEventsUrl = (params?: GetUpcomingEventsParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/events/upcoming?${stringifiedParams}`
+    : `/api/events/upcoming`;
+};
+
+export const getUpcomingEvents = async (
+  params?: GetUpcomingEventsParams,
+  options?: RequestInit,
+): Promise<Event[]> => {
+  return customFetch<Event[]>(getGetUpcomingEventsUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetUpcomingEventsQueryKey = (
+  params?: GetUpcomingEventsParams,
+) => {
+  return [`/api/events/upcoming`, ...(params ? [params] : [])] as const;
+};
+
+export const getGetUpcomingEventsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getUpcomingEvents>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: GetUpcomingEventsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getUpcomingEvents>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetUpcomingEventsQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getUpcomingEvents>>
+  > = ({ signal }) => getUpcomingEvents(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getUpcomingEvents>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetUpcomingEventsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getUpcomingEvents>>
+>;
+export type GetUpcomingEventsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Globally upcoming and live events (most recent first)
+ */
+
+export function useGetUpcomingEvents<
+  TData = Awaited<ReturnType<typeof getUpcomingEvents>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: GetUpcomingEventsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getUpcomingEvents>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetUpcomingEventsQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary RSVP "going" to an event
+ */
+export const getRsvpEventUrl = (id: number) => {
+  return `/api/events/${id}/rsvp`;
+};
+
+export const rsvpEvent = async (
+  id: number,
+  options?: RequestInit,
+): Promise<Event> => {
+  return customFetch<Event>(getRsvpEventUrl(id), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getRsvpEventMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof rsvpEvent>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof rsvpEvent>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["rsvpEvent"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof rsvpEvent>>,
+    { id: number }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return rsvpEvent(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RsvpEventMutationResult = NonNullable<
+  Awaited<ReturnType<typeof rsvpEvent>>
+>;
+
+export type RsvpEventMutationError = ErrorType<unknown>;
+
+/**
+ * @summary RSVP "going" to an event
+ */
+export const useRsvpEvent = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof rsvpEvent>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof rsvpEvent>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  return useMutation(getRsvpEventMutationOptions(options));
+};
+
+/**
+ * @summary Cancel my RSVP for an event
+ */
+export const getCancelRsvpEventUrl = (id: number) => {
+  return `/api/events/${id}/rsvp`;
+};
+
+export const cancelRsvpEvent = async (
+  id: number,
+  options?: RequestInit,
+): Promise<Event> => {
+  return customFetch<Event>(getCancelRsvpEventUrl(id), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getCancelRsvpEventMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof cancelRsvpEvent>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof cancelRsvpEvent>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["cancelRsvpEvent"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof cancelRsvpEvent>>,
+    { id: number }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return cancelRsvpEvent(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CancelRsvpEventMutationResult = NonNullable<
+  Awaited<ReturnType<typeof cancelRsvpEvent>>
+>;
+
+export type CancelRsvpEventMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Cancel my RSVP for an event
+ */
+export const useCancelRsvpEvent = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof cancelRsvpEvent>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof cancelRsvpEvent>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  return useMutation(getCancelRsvpEventMutationOptions(options));
+};
+
+/**
+ * @summary Cancel an event (creator or room moderator)
+ */
+export const getCancelEventUrl = (id: number) => {
+  return `/api/events/${id}`;
+};
+
+export const cancelEvent = async (
+  id: number,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getCancelEventUrl(id), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getCancelEventMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof cancelEvent>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof cancelEvent>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["cancelEvent"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof cancelEvent>>,
+    { id: number }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return cancelEvent(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CancelEventMutationResult = NonNullable<
+  Awaited<ReturnType<typeof cancelEvent>>
+>;
+
+export type CancelEventMutationError = ErrorType<void>;
+
+/**
+ * @summary Cancel an event (creator or room moderator)
+ */
+export const useCancelEvent = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof cancelEvent>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof cancelEvent>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  return useMutation(getCancelEventMutationOptions(options));
+};
 
 /**
  * @summary List my direct conversations

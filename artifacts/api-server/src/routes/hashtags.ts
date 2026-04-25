@@ -6,8 +6,11 @@ import {
   userFollowedHashtagsTable,
   messagesTable,
   usersTable,
+  hashtagMetricsDailyTable,
+  postsTable,
+  postHashtagsTable,
 } from "@workspace/db";
-import { eq, sql, and, desc, inArray, ilike } from "drizzle-orm";
+import { eq, sql, and, desc, inArray, ilike, gte } from "drizzle-orm";
 import { requireAuth, getUserId } from "../middlewares/requireAuth";
 import { normalizeTag } from "../lib/hashtags";
 
@@ -159,6 +162,258 @@ router.get("/hashtags/search", async (req, res): Promise<void> => {
   const rows = await Promise.all(tags.map((t) => buildHashtagRow(t.tag)));
   res.json(rows);
 });
+
+router.get(
+  "/hashtags/:tag/analytics",
+  requireAuth,
+  async (req, res): Promise<void> => {
+    const raw = Array.isArray(req.params.tag)
+      ? req.params.tag[0]
+      : req.params.tag;
+    const tag = normalizeTag(raw);
+    if (!tag) {
+      res.status(404).json({ error: "Not found" });
+      return;
+    }
+    const days = Math.min(
+      Math.max(parseInt(String(req.query.days ?? "14"), 10) || 14, 7),
+      90,
+    );
+    const me = getUserId(req);
+
+    const [base, rawTotalFollowers] = await Promise.all([
+      buildHashtagRow(tag),
+      db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(userFollowedHashtagsTable)
+        .where(eq(userFollowedHashtagsTable.tag, tag)),
+    ]);
+
+    const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const [recent] = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(messagesTable)
+      .where(
+        and(
+          eq(messagesTable.roomTag, tag),
+          sql`${messagesTable.createdAt} >= ${since}`,
+        ),
+      );
+    const [followed] = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(userFollowedHashtagsTable)
+      .where(
+        and(
+          eq(userFollowedHashtagsTable.tag, tag),
+          eq(userFollowedHashtagsTable.userId, me),
+        ),
+      );
+    const [postCountRow] = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(postHashtagsTable)
+      .where(eq(postHashtagsTable.tag, tag));
+
+    const metrics = await db
+      .select()
+      .from(hashtagMetricsDailyTable)
+      .where(eq(hashtagMetricsDailyTable.tag, tag))
+      .orderBy(hashtagMetricsDailyTable.day);
+    const byDay = new Map(metrics.map((m) => [m.day, m]));
+
+    const today = new Date();
+    const todayKey = today.toISOString().slice(0, 10);
+    const dayKeys: string[] = [];
+    for (let i = days - 1; i >= 0; i--) {
+      const d = new Date(today);
+      d.setUTCDate(d.getUTCDate() - i);
+      dayKeys.push(d.toISOString().slice(0, 10));
+    }
+
+    let cumFollowersBefore = 0;
+    for (const m of metrics) {
+      if (m.day < dayKeys[0]) cumFollowersBefore += m.newFollowers ?? 0;
+    }
+    const timeline = dayKeys.map((day) => {
+      const m = byDay.get(day);
+      const newFollowers = m?.newFollowers ?? 0;
+      cumFollowersBefore += newFollowers;
+      return {
+        day,
+        posts: m?.posts ?? 0,
+        messages: m?.messages ?? 0,
+        newMembers: m?.newMembers ?? 0,
+        newFollowers,
+        cumulativeFollowers: cumFollowersBefore,
+      };
+    });
+
+    if (timeline.length > 0) {
+      const last = timeline[timeline.length - 1];
+      if (last.day === todayKey) {
+        const todaySince = new Date(`${todayKey}T00:00:00Z`);
+        const [todayMsgs] = await db
+          .select({ count: sql<number>`count(*)::int` })
+          .from(messagesTable)
+          .where(
+            and(
+              eq(messagesTable.roomTag, tag),
+              sql`${messagesTable.createdAt} >= ${todaySince}`,
+              sql`${messagesTable.deletedAt} IS NULL`,
+            ),
+          );
+        last.messages = Math.max(last.messages, todayMsgs?.count ?? 0);
+      }
+    }
+
+    const sinceWindow = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+    const contribMsgs = await db
+      .select({
+        userId: messagesTable.senderId,
+        n: sql<number>`count(*)::int`,
+      })
+      .from(messagesTable)
+      .where(
+        and(
+          eq(messagesTable.roomTag, tag),
+          sql`${messagesTable.deletedAt} IS NULL`,
+          sql`${messagesTable.createdAt} >= ${sinceWindow}`,
+        ),
+      )
+      .groupBy(messagesTable.senderId)
+      .orderBy(desc(sql`count(*)`))
+      .limit(10);
+    const contribPosts = await db
+      .select({
+        userId: postsTable.authorId,
+        n: sql<number>`count(*)::int`,
+      })
+      .from(postsTable)
+      .innerJoin(postHashtagsTable, eq(postHashtagsTable.postId, postsTable.id))
+      .where(
+        and(
+          eq(postHashtagsTable.tag, tag),
+          sql`${postsTable.deletedAt} IS NULL`,
+          sql`${postsTable.createdAt} >= ${sinceWindow}`,
+        ),
+      )
+      .groupBy(postsTable.authorId)
+      .orderBy(desc(sql`count(*)`))
+      .limit(10);
+    const contribMap = new Map<string, { messages: number; posts: number }>();
+    for (const c of contribMsgs) {
+      contribMap.set(c.userId, {
+        messages: c.n,
+        posts: contribMap.get(c.userId)?.posts ?? 0,
+      });
+    }
+    for (const c of contribPosts) {
+      const cur = contribMap.get(c.userId) ?? { messages: 0, posts: 0 };
+      contribMap.set(c.userId, { messages: cur.messages, posts: c.n });
+    }
+    const contribIds = Array.from(contribMap.keys());
+
+    let topContributors: Array<{
+      user: Record<string, unknown>;
+      messageCount: number;
+      postCount: number;
+    }> = [];
+    if (contribIds.length > 0) {
+      const users = await db
+        .select()
+        .from(usersTable)
+        .where(inArray(usersTable.id, contribIds));
+      const userMap = new Map(users.map((u) => [u.id, u]));
+      const allTagsRows = await db
+        .select({ userId: userHashtagsTable.userId, tag: userHashtagsTable.tag })
+        .from(userHashtagsTable)
+        .where(inArray(userHashtagsTable.userId, contribIds));
+      const tagMap = new Map<string, string[]>();
+      for (const r of allTagsRows) {
+        if (!tagMap.has(r.userId)) tagMap.set(r.userId, []);
+        tagMap.get(r.userId)!.push(r.tag);
+      }
+      const myTagsRows = await db
+        .select({ tag: userHashtagsTable.tag })
+        .from(userHashtagsTable)
+        .where(eq(userHashtagsTable.userId, me));
+      const myTagSet = new Set(myTagsRows.map((r) => r.tag));
+      topContributors = contribIds
+        .map((id) => {
+          const u = userMap.get(id);
+          if (!u) return null;
+          const stats = contribMap.get(id)!;
+          const tags = tagMap.get(id) ?? [];
+          const shared = tags.filter((t) => myTagSet.has(t));
+          return {
+            user: {
+              id: u.id,
+              username: u.username,
+              displayName: u.displayName,
+              bio: u.bio,
+              avatarUrl: u.avatarUrl,
+              status: u.status,
+              featuredHashtag: u.featuredHashtag,
+              discriminator: u.discriminator,
+              role: u.role,
+              mvpPlan: u.mvpPlan,
+              lastSeenAt: (u.lastSeenAt ?? new Date(0)).toISOString(),
+              hashtags: tags,
+              sharedHashtags: shared,
+              matchScore: shared.length,
+            },
+            messageCount: stats.messages,
+            postCount: stats.posts,
+          };
+        })
+        .filter((x): x is NonNullable<typeof x> => x !== null)
+        .sort(
+          (a, b) =>
+            b.messageCount + b.postCount * 2 - (a.messageCount + a.postCount * 2),
+        )
+        .slice(0, 8);
+    }
+
+    let related: string[] = [];
+    const memberIds = await db
+      .select({ userId: userHashtagsTable.userId })
+      .from(userHashtagsTable)
+      .where(eq(userHashtagsTable.tag, tag))
+      .limit(200);
+    const ids = memberIds.map((m) => m.userId);
+    if (ids.length > 0) {
+      const relatedRows = await db
+        .select({
+          tag: userHashtagsTable.tag,
+          count: sql<number>`count(*)::int`,
+        })
+        .from(userHashtagsTable)
+        .where(
+          and(
+            inArray(userHashtagsTable.userId, ids),
+            sql`${userHashtagsTable.tag} <> ${tag}`,
+          ),
+        )
+        .groupBy(userHashtagsTable.tag)
+        .orderBy(desc(sql`count(*)`))
+        .limit(8);
+      related = relatedRows.map((r) => r.tag);
+    }
+
+    res.json({
+      tag,
+      memberCount: base.memberCount,
+      followerCount: rawTotalFollowers[0]?.count ?? 0,
+      messageCount: base.messageCount,
+      postCount: postCountRow?.count ?? 0,
+      recentMessages: recent?.count ?? 0,
+      days,
+      timeline,
+      topContributors,
+      relatedHashtags: related,
+      isFollowed: (followed?.count ?? 0) > 0,
+    });
+  },
+);
 
 router.get("/hashtags/:tag", requireAuth, async (req, res): Promise<void> => {
   const raw = Array.isArray(req.params.tag) ? req.params.tag[0] : req.params.tag;
