@@ -8,11 +8,14 @@ import {
   userHashtagsTable,
   userFollowedHashtagsTable,
   usersTable,
+  roomMembersTable,
 } from "@workspace/db";
 import { and, desc, eq, gt, inArray, or, sql } from "drizzle-orm";
 import { requireAuth, getUserId } from "../middlewares/requireAuth";
 import { InitiateCallBody, SendCallSignalBody } from "@workspace/api-zod";
 import { normalizeTag } from "../lib/hashtags";
+import { getRoomAccess } from "../lib/roomVisibility";
+import { isBlockedEitherWay } from "../lib/relationships";
 
 const router: IRouter = Router();
 
@@ -61,23 +64,30 @@ async function authorizedFor(callId: number, userId: string): Promise<boolean> {
   const [call] = await db.select().from(callsTable).where(eq(callsTable.id, callId)).limit(1);
   if (!call) return false;
   if (call.roomTag) {
-    const [follow] = await db
-      .select()
-      .from(userFollowedHashtagsTable)
-      .where(and(eq(userFollowedHashtagsTable.userId, userId), eq(userFollowedHashtagsTable.tag, call.roomTag)))
-      .limit(1);
-    const [interest] = await db
-      .select()
-      .from(userHashtagsTable)
-      .where(and(eq(userHashtagsTable.userId, userId), eq(userHashtagsTable.tag, call.roomTag)))
-      .limit(1);
-    if (follow || interest) {
-      await db
-        .insert(callParticipantsTable)
-        .values({ callId, userId, state: "invited" })
-        .onConflictDoNothing();
-      return true;
+    const access = await getRoomAccess(call.roomTag, userId);
+    if (access.isPrivate) {
+      // Private rooms: only actual members/owner can join the call.
+      if (!access.isMember) return false;
+    } else {
+      // Public rooms: must at least follow or have interest in the tag
+      // (matches the prior "interested party" model for public rooms).
+      const [follow] = await db
+        .select()
+        .from(userFollowedHashtagsTable)
+        .where(and(eq(userFollowedHashtagsTable.userId, userId), eq(userFollowedHashtagsTable.tag, call.roomTag)))
+        .limit(1);
+      const [interest] = await db
+        .select()
+        .from(userHashtagsTable)
+        .where(and(eq(userHashtagsTable.userId, userId), eq(userHashtagsTable.tag, call.roomTag)))
+        .limit(1);
+      if (!follow && !interest) return false;
     }
+    await db
+      .insert(callParticipantsTable)
+      .values({ callId, userId, state: "invited" })
+      .onConflictDoNothing();
+    return true;
   }
   return false;
 }
@@ -103,19 +113,40 @@ router.post("/calls", requireAuth, async (req, res): Promise<void> => {
       res.status(404).json({ error: "Conversation not found" });
       return;
     }
+    const otherId = convo.userAId === me ? convo.userBId : convo.userAId;
+    if (await isBlockedEitherWay(me, otherId)) {
+      res.status(403).json({ error: "Cannot start a call with this user" });
+      return;
+    }
     invitees.add(convo.userAId);
     invitees.add(convo.userBId);
   } else if (tag) {
-    const followers = await db
-      .select({ userId: userFollowedHashtagsTable.userId })
-      .from(userFollowedHashtagsTable)
-      .where(eq(userFollowedHashtagsTable.tag, tag));
-    const interested = await db
-      .select({ userId: userHashtagsTable.userId })
-      .from(userHashtagsTable)
-      .where(eq(userHashtagsTable.tag, tag));
-    for (const r of followers) invitees.add(r.userId);
-    for (const r of interested) invitees.add(r.userId);
+    const access = await getRoomAccess(tag, me);
+    if (access.isPrivate) {
+      // Private room: caller must be a member, and we only invite real members.
+      if (!access.isMember) {
+        res.status(403).json({ error: "Not a member of this room" });
+        return;
+      }
+      const members = await db
+        .select({ userId: roomMembersTable.userId })
+        .from(roomMembersTable)
+        .where(eq(roomMembersTable.tag, tag));
+      for (const r of members) invitees.add(r.userId);
+      if (access.ownerId) invitees.add(access.ownerId);
+    } else {
+      // Public room: invite followers + interested users (existing behavior).
+      const followers = await db
+        .select({ userId: userFollowedHashtagsTable.userId })
+        .from(userFollowedHashtagsTable)
+        .where(eq(userFollowedHashtagsTable.tag, tag));
+      const interested = await db
+        .select({ userId: userHashtagsTable.userId })
+        .from(userHashtagsTable)
+        .where(eq(userHashtagsTable.tag, tag));
+      for (const r of followers) invitees.add(r.userId);
+      for (const r of interested) invitees.add(r.userId);
+    }
   }
 
   const [call] = await db

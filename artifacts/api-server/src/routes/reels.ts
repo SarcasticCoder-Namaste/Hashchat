@@ -35,15 +35,26 @@ router.get("/reels/youtube", requireAuth, async (req, res): Promise<void> => {
     });
     return;
   }
-  const q = String(req.query.q ?? "").trim() || "shorts";
+  const q = String(req.query.q ?? "").trim() || "trending";
   const max = Math.min(Math.max(parseInt(String(req.query.max ?? "20"), 10) || 20, 1), 50);
   const pageToken = String(req.query.pageToken ?? "").trim();
+  const kindRaw = String(req.query.kind ?? "short").toLowerCase();
+  const kind: "short" | "long" | "any" =
+    kindRaw === "long" ? "long" : kindRaw === "any" ? "any" : "short";
+
   const searchUrl = new URL("https://www.googleapis.com/youtube/v3/search");
   searchUrl.searchParams.set("part", "snippet");
   searchUrl.searchParams.set("type", "video");
-  searchUrl.searchParams.set("videoDuration", "short");
   searchUrl.searchParams.set("maxResults", String(max));
-  searchUrl.searchParams.set("q", `${q} #shorts`);
+  if (kind === "short") {
+    searchUrl.searchParams.set("videoDuration", "short");
+    searchUrl.searchParams.set("q", `${q} #shorts`);
+  } else if (kind === "long") {
+    searchUrl.searchParams.set("videoDuration", "long");
+    searchUrl.searchParams.set("q", q);
+  } else {
+    searchUrl.searchParams.set("q", q);
+  }
   searchUrl.searchParams.set("key", apiKey);
   if (pageToken) searchUrl.searchParams.set("pageToken", pageToken);
 
