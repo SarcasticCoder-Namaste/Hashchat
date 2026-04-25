@@ -564,6 +564,7 @@ export interface ReelItem {
 
 export interface ReelsList {
   items: ReelItem[];
+  nextPageToken?: string | null;
 }
 
 export interface ReelsConfigError {
@@ -966,6 +967,7 @@ export type SearchGifsParams = {
 export type GetYoutubeReelsParams = {
   q?: string;
   max?: number;
+  pageToken?: string;
 };
 
 export type ListCommunitiesParams = {

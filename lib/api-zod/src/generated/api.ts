@@ -2212,6 +2212,7 @@ export const SearchGifsResponse = zod.object({
 export const GetYoutubeReelsQueryParams = zod.object({
   q: zod.coerce.string().optional(),
   max: zod.coerce.number().optional(),
+  pageToken: zod.coerce.string().optional(),
 });
 
 export const GetYoutubeReelsResponse = zod.object({
@@ -2224,6 +2225,7 @@ export const GetYoutubeReelsResponse = zod.object({
       publishedAt: zod.coerce.date(),
     }),
   ),
+  nextPageToken: zod.string().nullish(),
 });
 
 /**

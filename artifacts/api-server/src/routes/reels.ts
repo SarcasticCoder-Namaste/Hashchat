@@ -24,6 +24,7 @@ router.get("/reels/youtube", requireAuth, async (req, res): Promise<void> => {
   }
   const q = String(req.query.q ?? "").trim() || "shorts";
   const max = Math.min(Math.max(parseInt(String(req.query.max ?? "20"), 10) || 20, 1), 50);
+  const pageToken = String(req.query.pageToken ?? "").trim();
   const url = new URL("https://www.googleapis.com/youtube/v3/search");
   url.searchParams.set("part", "snippet");
   url.searchParams.set("type", "video");
@@ -31,6 +32,7 @@ router.get("/reels/youtube", requireAuth, async (req, res): Promise<void> => {
   url.searchParams.set("maxResults", String(max));
   url.searchParams.set("q", `${q} #shorts`);
   url.searchParams.set("key", apiKey);
+  if (pageToken) url.searchParams.set("pageToken", pageToken);
   try {
     const r = await fetch(url.toString());
     if (!r.ok) {
@@ -38,7 +40,10 @@ router.get("/reels/youtube", requireAuth, async (req, res): Promise<void> => {
       res.status(502).json({ error: "youtube_error", message: body.slice(0, 500) });
       return;
     }
-    const data = (await r.json()) as { items?: YtItem[] };
+    const data = (await r.json()) as {
+      items?: YtItem[];
+      nextPageToken?: string;
+    };
     const items = (data.items ?? [])
       .filter((it) => it.id.videoId)
       .map((it) => ({
@@ -49,7 +54,7 @@ router.get("/reels/youtube", requireAuth, async (req, res): Promise<void> => {
           it.snippet.thumbnails.high?.url ?? it.snippet.thumbnails.medium?.url ?? "",
         publishedAt: it.snippet.publishedAt,
       }));
-    res.json({ items });
+    res.json({ items, nextPageToken: data.nextPageToken ?? null });
   } catch (err) {
     req.log.warn({ err }, "YouTube fetch failed");
     res.status(502).json({ error: "youtube_fetch_failed" });

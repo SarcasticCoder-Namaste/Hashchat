@@ -77,3 +77,9 @@ V4 additions:
 - Incoming call toast lives in `AppShell`, polling `/api/calls/incoming` (calls remain "incoming" until I accept/decline, even if the initiator's status flipped to active).
 - Storage: upload URL endpoint requires auth; persisted image/background URLs are validated to point at our `/objects/<id>` namespace; private object reads are unauthenticated by design (UUID unguessability) so `<img>` tags work without bearer headers.
 - GIF picker in DMs and rooms backed by Giphy v1 API (`GIPHY_API_KEY` secret). Server-side `/api/gifs/search` endpoint proxies trending + search; key is never sent to the browser. `SendMessageBody.gifUrl` is validated against an allowlist of Giphy CDN hostnames, mirrored into `messages.imageUrl` for legacy renderers, and stored as a `kind="gif"` row in `message_attachments`. Picker degrades gracefully (503 → "GIFs aren't set up" panel) when the key is missing.
+
+Reels v2 (full Shorts experience):
+- Tabbed Feed/Saved view (Saved persists in `localStorage` under `hashchat:saved-reels`, capped at 200).
+- Tap-to-play fullscreen modal with autoplaying YouTube embed iframe, prev/next buttons, share (uses `navigator.share` with clipboard fallback), and "Open in YouTube" link. Keyboard nav: ↑/k = prev, ↓/j = next, Esc = close, s = save.
+- Real pagination: `/api/reels/youtube` accepts `pageToken` and returns `{items, nextPageToken}`; client uses `useInfiniteQuery` to append pages with id-dedup so load-more never refetches the existing list. `ReelsList` schema includes `nextPageToken: string | null`.
+- 12 category chips (trending/viral/funny/dance/tech/diy/gaming/food/music/sports/travel/anime).

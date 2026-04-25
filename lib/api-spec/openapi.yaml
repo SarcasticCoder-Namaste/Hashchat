@@ -1405,6 +1405,10 @@ paths:
           in: query
           required: false
           schema: { type: integer }
+        - name: pageToken
+          in: query
+          required: false
+          schema: { type: string }
       responses:
         "200":
           description: OK
@@ -2283,6 +2287,7 @@ components:
         items:
           type: array
           items: { $ref: "#/components/schemas/ReelItem" }
+        nextPageToken: { type: string, nullable: true }
       required: [items]
 
     ReelsConfigError:
