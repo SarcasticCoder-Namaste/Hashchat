@@ -2,6 +2,7 @@ import { Link, useLocation } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   useGetUserByUsername,
+  useGetFollowSuggestions,
   useFollowUser,
   useUnfollowUser,
   useBlockUser,
@@ -17,6 +18,9 @@ import {
   getGetMyRelationshipsQueryKey,
   getGetMyFriendsQueryKey,
   getGetFriendRequestsQueryKey,
+  getGetFollowSuggestionsQueryKey,
+  getGetFollowingFeedQueryKey,
+  type MatchUser,
 } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -60,6 +64,8 @@ export default function PublicProfile({ username }: { username: string }) {
     qc.invalidateQueries({ queryKey: getDiscoverPeopleQueryKey() });
     qc.invalidateQueries({ queryKey: getGetMyFriendsQueryKey() });
     qc.invalidateQueries({ queryKey: getGetFriendRequestsQueryKey() });
+    qc.invalidateQueries({ queryKey: getGetFollowSuggestionsQueryKey() });
+    qc.invalidateQueries({ queryKey: getGetFollowingFeedQueryKey() });
   };
 
   const follow = useFollowUser({ mutation: { onSuccess: invalidate } });
@@ -335,6 +341,130 @@ export default function PublicProfile({ username }: { username: string }) {
           </div>
         )}
       </section>
+
+      <SimilarPeople username={user.username} onChanged={invalidate} />
     </div>
+  );
+}
+
+function SimilarPeople({
+  username,
+  onChanged,
+}: {
+  username: string;
+  onChanged: () => void;
+}) {
+  const { data, isLoading } = useGetFollowSuggestions(
+    { username, limit: 6 },
+    {
+      query: {
+        queryKey: getGetFollowSuggestionsQueryKey({ username, limit: 6 }),
+        refetchOnWindowFocus: false,
+      },
+    },
+  );
+
+  if (isLoading) {
+    return (
+      <section className="mt-6 rounded-2xl border border-border bg-card p-5">
+        <h2 className="mb-3 text-sm font-semibold text-foreground">
+          Similar people
+        </h2>
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          Finding people who share hashtags…
+        </div>
+      </section>
+    );
+  }
+
+  if (!data || data.length === 0) {
+    return null;
+  }
+
+  return (
+    <section
+      className="mt-6 rounded-2xl border border-border bg-card p-5"
+      data-testid="similar-people"
+    >
+      <h2 className="mb-1 text-sm font-semibold text-foreground">
+        Similar people
+      </h2>
+      <p className="mb-4 text-xs text-muted-foreground">
+        Based on shared hashtags with @{username}.
+      </p>
+      <ul className="space-y-3">
+        {data.map((m) => (
+          <SimilarPersonRow key={m.id} m={m} onChanged={onChanged} />
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+function SimilarPersonRow({
+  m,
+  onChanged,
+}: {
+  m: MatchUser;
+  onChanged: () => void;
+}) {
+  const follow = useFollowUser({ mutation: { onSuccess: onChanged } });
+  const unfollow = useUnfollowUser({ mutation: { onSuccess: onChanged } });
+  return (
+    <li
+      className="flex items-center gap-3"
+      data-testid={`similar-person-${m.username}`}
+    >
+      <Link href={`/app/u/${m.username}`} className="shrink-0">
+        <PresenceAvatar
+          displayName={m.displayName}
+          avatarUrl={m.avatarUrl}
+          lastSeenAt={m.lastSeenAt}
+          size="md"
+        />
+      </Link>
+      <div className="min-w-0 flex-1">
+        <Link
+          href={`/app/u/${m.username}`}
+          className="block truncate font-medium text-foreground hover:underline"
+        >
+          {m.displayName}
+        </Link>
+        <p className="truncate text-xs text-muted-foreground">
+          @{m.username}
+          {m.sharedHashtags.length > 0 && (
+            <>
+              {" · "}
+              <span>
+                {m.sharedHashtags.length} shared{" "}
+                {m.sharedHashtags.length === 1 ? "hashtag" : "hashtags"}
+              </span>
+            </>
+          )}
+        </p>
+      </div>
+      {m.isFollowing ? (
+        <Button
+          size="sm"
+          variant="secondary"
+          onClick={() => unfollow.mutate({ id: m.id })}
+          disabled={unfollow.isPending}
+          data-testid={`button-unfollow-similar-${m.username}`}
+        >
+          <UserCheck className="mr-1 h-3.5 w-3.5" /> Following
+        </Button>
+      ) : (
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => follow.mutate({ id: m.id })}
+          disabled={follow.isPending}
+          data-testid={`button-follow-similar-${m.username}`}
+        >
+          <UserPlus className="mr-1 h-3.5 w-3.5" /> Follow
+        </Button>
+      )}
+    </li>
   );
 }

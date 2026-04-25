@@ -34,6 +34,7 @@ import type {
   FriendCodeResponse,
   FriendRequestList,
   GetCallSignalsParams,
+  GetFollowSuggestionsParams,
   GetFollowingFeedParams,
   GetLinkPreviewParams,
   GetTrendingHashtagsParams,
@@ -5280,6 +5281,107 @@ export function useGetFollowingFeed<
   },
 ): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getGetFollowingFeedQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * When `username` is omitted, returns users who share hashtags with the current user (used to bootstrap the Following tab). When `username` is provided, returns users similar to that profile (Similar people on a public profile). Already-followed, blocked and muted users are excluded.
+ * @summary Suggested users to follow based on shared hashtags
+ */
+export const getGetFollowSuggestionsUrl = (
+  params?: GetFollowSuggestionsParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/discover/suggestions?${stringifiedParams}`
+    : `/api/discover/suggestions`;
+};
+
+export const getFollowSuggestions = async (
+  params?: GetFollowSuggestionsParams,
+  options?: RequestInit,
+): Promise<MatchUser[]> => {
+  return customFetch<MatchUser[]>(getGetFollowSuggestionsUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetFollowSuggestionsQueryKey = (
+  params?: GetFollowSuggestionsParams,
+) => {
+  return [`/api/discover/suggestions`, ...(params ? [params] : [])] as const;
+};
+
+export const getGetFollowSuggestionsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getFollowSuggestions>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: GetFollowSuggestionsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getFollowSuggestions>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetFollowSuggestionsQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getFollowSuggestions>>
+  > = ({ signal }) =>
+    getFollowSuggestions(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getFollowSuggestions>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetFollowSuggestionsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getFollowSuggestions>>
+>;
+export type GetFollowSuggestionsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Suggested users to follow based on shared hashtags
+ */
+
+export function useGetFollowSuggestions<
+  TData = Awaited<ReturnType<typeof getFollowSuggestions>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: GetFollowSuggestionsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getFollowSuggestions>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetFollowSuggestionsQueryOptions(params, options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;

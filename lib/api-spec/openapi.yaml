@@ -905,6 +905,35 @@ paths:
                 type: array
                 items: { $ref: "#/components/schemas/FollowingFeedItem" }
 
+  /discover/suggestions:
+    get:
+      operationId: getFollowSuggestions
+      tags: [discovery]
+      summary: Suggested users to follow based on shared hashtags
+      description: >-
+        When `username` is omitted, returns users who share hashtags with the
+        current user (used to bootstrap the Following tab). When `username` is
+        provided, returns users similar to that profile (Similar people on a
+        public profile). Already-followed, blocked and muted users are excluded.
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          schema: { type: integer, default: 8 }
+        - name: username
+          in: query
+          required: false
+          description: If provided, suggest people similar to this user.
+          schema: { type: string }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/MatchUser" }
+
   /me/redeem-mvp-code:
     post:
       operationId: redeemMvpCode

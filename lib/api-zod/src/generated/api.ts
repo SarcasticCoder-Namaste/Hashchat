@@ -1444,6 +1444,48 @@ export const GetFollowingFeedResponseItem = zod.object({
 export const GetFollowingFeedResponse = zod.array(GetFollowingFeedResponseItem);
 
 /**
+ * When `username` is omitted, returns users who share hashtags with the current user (used to bootstrap the Following tab). When `username` is provided, returns users similar to that profile (Similar people on a public profile). Already-followed, blocked and muted users are excluded.
+ * @summary Suggested users to follow based on shared hashtags
+ */
+export const getFollowSuggestionsQueryLimitDefault = 8;
+
+export const GetFollowSuggestionsQueryParams = zod.object({
+  limit: zod.coerce.number().default(getFollowSuggestionsQueryLimitDefault),
+  username: zod.coerce
+    .string()
+    .optional()
+    .describe("If provided, suggest people similar to this user."),
+});
+
+export const GetFollowSuggestionsResponseItem = zod.object({
+  id: zod.string(),
+  username: zod.string(),
+  displayName: zod.string(),
+  bio: zod.string().nullish(),
+  avatarUrl: zod.string().nullish(),
+  status: zod.string(),
+  featuredHashtag: zod.string().nullish(),
+  discriminator: zod.string().nullish(),
+  role: zod.string(),
+  mvpPlan: zod.boolean(),
+  lastSeenAt: zod.coerce.date(),
+  hashtags: zod.array(zod.string()),
+  sharedHashtags: zod.array(zod.string()),
+  matchScore: zod.number(),
+  friendStatus: zod
+    .string()
+    .nullish()
+    .describe("One of: friends, request_sent, request_received, none"),
+  isFollowing: zod.boolean().optional(),
+  followsMe: zod.boolean().optional(),
+  isMuted: zod.boolean().optional(),
+  isBlocked: zod.boolean().optional(),
+});
+export const GetFollowSuggestionsResponse = zod.array(
+  GetFollowSuggestionsResponseItem,
+);
+
+/**
  * @summary Redeem an MVP plan code
  */
 export const RedeemMvpCodeBody = zod.object({

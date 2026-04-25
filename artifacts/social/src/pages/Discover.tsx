@@ -5,6 +5,7 @@ import {
   useGetMe,
   useGetMyFriends,
   useGetFollowingFeed,
+  useGetFollowSuggestions,
   useOpenConversation,
   useSendFriendRequest,
   useCancelFriendRequest,
@@ -17,6 +18,7 @@ import {
   getGetMyFriendsQueryKey,
   getGetFriendRequestsQueryKey,
   getGetFollowingFeedQueryKey,
+  getGetFollowSuggestionsQueryKey,
   getGetMyRelationshipsQueryKey,
   type MatchUser,
   type FollowingFeedItem,
@@ -227,6 +229,7 @@ function MatchCard({ m }: { m: MatchUser }) {
     qc.invalidateQueries({ queryKey: getGetFriendRequestsQueryKey() });
     qc.invalidateQueries({ queryKey: getGetMyRelationshipsQueryKey() });
     qc.invalidateQueries({ queryKey: getGetFollowingFeedQueryKey() });
+    qc.invalidateQueries({ queryKey: getGetFollowSuggestionsQueryKey() });
   };
   const open = useOpenConversation({
     mutation: {
@@ -481,6 +484,40 @@ function FollowingFeed() {
   }
 
   if (!data || data.length === 0) {
+    return <FollowSuggestions />;
+  }
+
+  return (
+    <div className="space-y-3">
+      {data.map((item) => (
+        <FollowingFeedRow key={item.id} item={item} />
+      ))}
+    </div>
+  );
+}
+
+function FollowSuggestions() {
+  const { data, isLoading } = useGetFollowSuggestions(
+    { limit: 8 },
+    {
+      query: {
+        queryKey: getGetFollowSuggestionsQueryKey({ limit: 8 }),
+        refetchOnWindowFocus: false,
+      },
+    },
+  );
+
+  if (isLoading) {
+    return (
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <CardSkeleton key={i} />
+        ))}
+      </div>
+    );
+  }
+
+  if (!data || data.length === 0) {
     return (
       <EmptyState
         icon={Rss}
@@ -491,10 +528,27 @@ function FollowingFeed() {
   }
 
   return (
-    <div className="space-y-3">
-      {data.map((item) => (
-        <FollowingFeedRow key={item.id} item={item} />
-      ))}
+    <div className="space-y-4" data-testid="follow-suggestions">
+      <div>
+        <h3 className="text-base font-semibold text-foreground">
+          Suggested for you
+        </h3>
+        <p className="text-sm text-muted-foreground">
+          People who share your hashtags. Follow a few to fill this feed.
+        </p>
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {data.map((m, idx) => (
+          <motion.div
+            key={m.id}
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: idx * 0.04, duration: 0.25 }}
+          >
+            <MatchCard m={m} />
+          </motion.div>
+        ))}
+      </div>
     </div>
   );
 }

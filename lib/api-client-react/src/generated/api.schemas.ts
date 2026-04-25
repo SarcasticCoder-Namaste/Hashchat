@@ -655,6 +655,14 @@ export type GetFollowingFeedParams = {
   limit?: number;
 };
 
+export type GetFollowSuggestionsParams = {
+  limit?: number;
+  /**
+   * If provided, suggest people similar to this user.
+   */
+  username?: string;
+};
+
 export type GetLinkPreviewParams = {
   url: string;
 };
