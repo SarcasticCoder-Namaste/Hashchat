@@ -37,6 +37,7 @@ import type {
   GetFollowSuggestionsParams,
   GetFollowingFeedParams,
   GetLinkPreviewParams,
+  GetMyFeedPostsParams,
   GetTrendingHashtagsParams,
   GetTrendingRoomsParams,
   GetYoutubeReelsParams,
@@ -6255,41 +6256,57 @@ export const useDeletePost = <
 /**
  * @summary List recent posts from hashtags I follow (most recent first)
  */
-export const getGetMyFeedPostsUrl = () => {
-  return `/api/me/feed/posts`;
+export const getGetMyFeedPostsUrl = (params?: GetMyFeedPostsParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/me/feed/posts?${stringifiedParams}`
+    : `/api/me/feed/posts`;
 };
 
 export const getMyFeedPosts = async (
+  params?: GetMyFeedPostsParams,
   options?: RequestInit,
 ): Promise<Post[]> => {
-  return customFetch<Post[]>(getGetMyFeedPostsUrl(), {
+  return customFetch<Post[]>(getGetMyFeedPostsUrl(params), {
     ...options,
     method: "GET",
   });
 };
 
-export const getGetMyFeedPostsQueryKey = () => {
-  return [`/api/me/feed/posts`] as const;
+export const getGetMyFeedPostsQueryKey = (params?: GetMyFeedPostsParams) => {
+  return [`/api/me/feed/posts`, ...(params ? [params] : [])] as const;
 };
 
 export const getGetMyFeedPostsQueryOptions = <
   TData = Awaited<ReturnType<typeof getMyFeedPosts>>,
   TError = ErrorType<unknown>,
->(options?: {
-  query?: UseQueryOptions<
-    Awaited<ReturnType<typeof getMyFeedPosts>>,
-    TError,
-    TData
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}) => {
+>(
+  params?: GetMyFeedPostsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getMyFeedPosts>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
   const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getGetMyFeedPostsQueryKey();
+  const queryKey = queryOptions?.queryKey ?? getGetMyFeedPostsQueryKey(params);
 
   const queryFn: QueryFunction<Awaited<ReturnType<typeof getMyFeedPosts>>> = ({
     signal,
-  }) => getMyFeedPosts({ signal, ...requestOptions });
+  }) => getMyFeedPosts(params, { signal, ...requestOptions });
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof getMyFeedPosts>>,
@@ -6310,15 +6327,18 @@ export type GetMyFeedPostsQueryError = ErrorType<unknown>;
 export function useGetMyFeedPosts<
   TData = Awaited<ReturnType<typeof getMyFeedPosts>>,
   TError = ErrorType<unknown>,
->(options?: {
-  query?: UseQueryOptions<
-    Awaited<ReturnType<typeof getMyFeedPosts>>,
-    TError,
-    TData
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
-  const queryOptions = getGetMyFeedPostsQueryOptions(options);
+>(
+  params?: GetMyFeedPostsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getMyFeedPosts>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetMyFeedPostsQueryOptions(params, options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;

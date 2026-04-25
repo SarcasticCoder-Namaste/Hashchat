@@ -1580,6 +1580,18 @@ export const DeletePostParams = zod.object({
 /**
  * @summary List recent posts from hashtags I follow (most recent first)
  */
+export const getMyFeedPostsQueryLimitDefault = 30;
+export const getMyFeedPostsQueryLimitMax = 100;
+
+export const GetMyFeedPostsQueryParams = zod.object({
+  before: zod.date().optional(),
+  limit: zod.coerce
+    .number()
+    .min(1)
+    .max(getMyFeedPostsQueryLimitMax)
+    .default(getMyFeedPostsQueryLimitDefault),
+});
+
 export const GetMyFeedPostsResponseItem = zod.object({
   id: zod.number(),
   author: zod.object({

@@ -8,7 +8,7 @@ import {
   usersTable,
   userFollowedHashtagsTable,
 } from "@workspace/db";
-import { and, desc, eq, inArray, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, lt, sql } from "drizzle-orm";
 import { requireAuth, getUserId } from "../middlewares/requireAuth";
 import { isValidStorageUrl } from "../lib/storageUrls";
 import { normalizeTag } from "../lib/hashtags";
@@ -164,6 +164,41 @@ router.delete("/posts/:id", requireAuth, async (req, res): Promise<void> => {
 
 router.get("/me/feed/posts", requireAuth, async (req, res): Promise<void> => {
   const me = getUserId(req);
+
+  const rawBefore = Array.isArray(req.query.before)
+    ? req.query.before[0]
+    : req.query.before;
+  let before: Date | null = null;
+  if (typeof rawBefore === "string" && rawBefore.length > 0) {
+    const parsed = new Date(rawBefore);
+    if (Number.isNaN(parsed.getTime())) {
+      res.status(400).json({ error: "Invalid 'before' timestamp" });
+      return;
+    }
+    before = parsed;
+  }
+
+  const rawLimit = Array.isArray(req.query.limit)
+    ? req.query.limit[0]
+    : req.query.limit;
+  let limit = 30;
+  if (typeof rawLimit === "string" && rawLimit.length > 0) {
+    const parsed = parseInt(rawLimit, 10);
+    if (Number.isNaN(parsed) || parsed < 1) {
+      res.status(400).json({ error: "Invalid 'limit'" });
+      return;
+    }
+    limit = Math.min(parsed, 100);
+  }
+
+  const conditions = [
+    eq(userFollowedHashtagsTable.userId, me),
+    sql`${postsTable.deletedAt} IS NULL`,
+  ];
+  if (before) {
+    conditions.push(lt(postsTable.createdAt, before));
+  }
+
   const rows = await db
     .selectDistinct({
       id: postsTable.id,
@@ -178,14 +213,9 @@ router.get("/me/feed/posts", requireAuth, async (req, res): Promise<void> => {
       userFollowedHashtagsTable,
       eq(userFollowedHashtagsTable.tag, postHashtagsTable.tag),
     )
-    .where(
-      and(
-        eq(userFollowedHashtagsTable.userId, me),
-        sql`${postsTable.deletedAt} IS NULL`,
-      ),
-    )
+    .where(and(...conditions))
     .orderBy(desc(postsTable.createdAt))
-    .limit(100);
+    .limit(limit);
   res.json(await buildPosts(rows));
 });
 

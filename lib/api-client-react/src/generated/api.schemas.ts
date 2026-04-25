@@ -663,6 +663,15 @@ export type GetFollowSuggestionsParams = {
   username?: string;
 };
 
+export type GetMyFeedPostsParams = {
+  before?: string;
+  /**
+   * @minimum 1
+   * @maximum 100
+   */
+  limit?: number;
+};
+
 export type GetLinkPreviewParams = {
   url: string;
 };

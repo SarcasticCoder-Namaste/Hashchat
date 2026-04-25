@@ -1088,6 +1088,9 @@ paths:
       operationId: getMyFeedPosts
       tags: [posts]
       summary: List recent posts from hashtags I follow (most recent first)
+      parameters:
+        - { name: before, in: query, required: false, schema: { type: string, format: date-time } }
+        - { name: limit, in: query, required: false, schema: { type: integer, minimum: 1, maximum: 100, default: 30 } }
       responses:
         "200":
           description: OK
