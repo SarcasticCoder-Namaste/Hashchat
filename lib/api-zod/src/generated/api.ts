@@ -2213,6 +2213,10 @@ export const GetYoutubeReelsQueryParams = zod.object({
   q: zod.coerce.string().optional(),
   max: zod.coerce.number().optional(),
   pageToken: zod.coerce.string().optional(),
+  kind: zod
+    .enum(["short", "long", "any"])
+    .optional()
+    .describe("short | long | any"),
 });
 
 export const GetYoutubeReelsResponse = zod.object({

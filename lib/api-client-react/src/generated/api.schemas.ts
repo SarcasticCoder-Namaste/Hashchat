@@ -974,7 +974,20 @@ export type GetYoutubeReelsParams = {
   q?: string;
   max?: number;
   pageToken?: string;
+  /**
+   * short | long | any
+   */
+  kind?: GetYoutubeReelsKind;
 };
+
+export type GetYoutubeReelsKind =
+  (typeof GetYoutubeReelsKind)[keyof typeof GetYoutubeReelsKind];
+
+export const GetYoutubeReelsKind = {
+  short: "short",
+  long: "long",
+  any: "any",
+} as const;
 
 export type ListCommunitiesParams = {
   mine?: boolean;

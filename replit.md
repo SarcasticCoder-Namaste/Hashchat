@@ -79,6 +79,20 @@ V4 additions:
 - Calls authorization (V4 hardening): DM call init checks `isBlockedEitherWay` (blocked users can't ring through). Room calls consult `getRoomAccess(tag, me)` — private rooms require actual membership (only members + owner are invited and authorized to join/signal/poll), public rooms still allow followers + interested users.
 - GIF picker in DMs and rooms backed by Giphy v1 API (`GIPHY_API_KEY` secret). Server-side `/api/gifs/search` endpoint proxies trending + search; key is never sent to the browser. `SendMessageBody.gifUrl` is validated against an allowlist of Giphy CDN hostnames, mirrored into `messages.imageUrl` for legacy renderers, and stored as a `kind="gif"` row in `message_attachments`. Picker degrades gracefully (503 → "GIFs aren't set up" panel) when the key is missing.
 
+V4 batch — verification + hardening (this session):
+- Wiring confirmed: ProfileGallery + per-target ImageUploadButton (avatar, cover, DM chat, room chat) live on Profile / ConversationChat / RoomChat. CallButton (voice + video) mounted on both ConversationChat (`button-conv-call-*`) and RoomChat (`button-room-call-*`). IncomingCallToast mounted in AppShell. Per-conversation `backgroundUrl` rendered with a backdrop-blur overlay; set/clear menu items in ConversationChat.
+- Call modal render-loop fix (`useGroupCall.ts`): the polling effect previously listed every callback (including the inline `onClose` from CallModal → `onEnd`) in its deps array, so each parent render tore the effect down and `cleanup()` ran `setLocalStream(null)` / `setRemotePeers([])`, which re-rendered → "Maximum update depth exceeded". Stabilized via `onEndRef` + `getTokenRef`; effect deps shrunk to `[enabled, callId, withVideo]`.
+- Call modal Esc support (`CallModal.tsx`): added a window keydown listener that calls `hangup()` so the user can dismiss with the keyboard.
+- `hangup()` now uses `try/finally`: even if `/calls/{id}/leave` fails (network/token), local media tracks are stopped and `onEndRef.current()` fires so the modal closes and the mic/camera turn off.
+
+Reels v4 ("Watch" — Shorts + long-form videos):
+- Page renamed "Watch" with three top tabs: **Shorts** | **Videos** | **Saved** (animated underline via framer-motion `layoutId`).
+- Backend `/api/reels/youtube` accepts `kind=short|long|any`. Short appends "#shorts" to query and sets `videoDuration=short`; long uses `videoDuration=long`; any omits the duration filter.
+- Grid adapts per kind: 5-col portrait `aspect-[9/16]` for shorts; 3-col landscape `aspect-video` for videos.
+- Modal player uses the same vertical snap-scroll, but the iframe container width adapts: `min(100vw, 100dvh*9/16)` for shorts, `aspect-video` constrained by viewport for videos.
+- Suggested category pills change with the tab (12 base topics for shorts, 12 long-form topics for videos like "music videos", "documentaries", "tech reviews", "podcasts").
+- "Sign in to YouTube" button (top-right) opens `accounts.google.com/ServiceLogin?service=youtube` in a new tab and remembers state in `localStorage`. Where the browser allows third-party cookies, signing in there means the embedded YouTube iframes recognize the session for like/subscribe/comment. The flag is best-effort UI only — we don't have a server-side OAuth integration.
+
 Reels v3 (true YouTube Shorts feel):
 - Tabbed Feed/Saved view (Saved persists in `localStorage` under `hashchat:saved-reels`, capped at 200).
 - Player is a **vertical snap-scroll modal** (not single-video prev/next): each short occupies a full `100dvh` page; `snap-y snap-mandatory` advances on swipe up / scroll wheel / arrow keys. Only the actively-visible page mounts a YouTube iframe (autoplay + loop + `playlist=<id>` for replay), other pages show the thumbnail with a play overlay that scrolls into view on tap. Iframes default `mute=1` for cross-browser autoplay; mute pill at top-right toggles (re-keyed iframe applies the new mute param).

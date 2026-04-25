@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { useAuth, useUser } from "@clerk/react";
 import { useGroupCall } from "@/hooks/useGroupCall";
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,8 @@ export function CallModal({ callId, withVideo, onClose }: CallModalProps) {
   const { user } = useUser();
   const localVideoRef = useRef<HTMLVideoElement>(null);
 
+  const fetchToken = useCallback(() => getToken(), [getToken]);
+
   const {
     localStream,
     remotePeers,
@@ -30,7 +32,7 @@ export function CallModal({ callId, withVideo, onClose }: CallModalProps) {
     myUserId: user?.id ?? "",
     enabled: !!user?.id,
     withVideo,
-    getToken: () => getToken(),
+    getToken: fetchToken,
     onEnd: onClose,
   });
 
@@ -39,6 +41,21 @@ export function CallModal({ callId, withVideo, onClose }: CallModalProps) {
       localVideoRef.current.srcObject = localStream;
     }
   }, [localStream]);
+
+  // Esc dismisses the modal — hang up cleanly so we leave the call on the
+  // server, stop local tracks, and notify the parent (which clears the
+  // active callId). Without this the only way to leave is the on-screen
+  // hangup/X buttons, which is a poor accessibility outcome.
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        void hangup();
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [hangup]);
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-black/95 text-white" data-testid="call-modal">

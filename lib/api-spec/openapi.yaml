@@ -1409,6 +1409,11 @@ paths:
           in: query
           required: false
           schema: { type: string }
+        - name: kind
+          in: query
+          required: false
+          description: "short | long | any"
+          schema: { type: string, enum: [short, long, any] }
       responses:
         "200":
           description: OK

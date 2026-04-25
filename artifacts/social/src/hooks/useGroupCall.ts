@@ -58,6 +58,16 @@ export function useGroupCall(opts: {
   const cursorRef = useRef(0);
   const myIdRef = useRef(myUserId);
   myIdRef.current = myUserId;
+  // Stabilize callbacks via refs so the polling effect below isn't torn down
+  // and re-created on every parent render. Without this, an inline `onClose`
+  // (or any new getToken closure) churns through cleanup → setLocalStream(null)
+  // → re-render → cleanup → ... and React reports "Maximum update depth
+  // exceeded". The effect only reads the *current* values, never closes over
+  // them, so refs are safe here.
+  const onEndRef = useRef(onEnd);
+  onEndRef.current = onEnd;
+  const getTokenRef = useRef(getToken);
+  getTokenRef.current = getToken;
 
   const refreshRemote = useCallback(() => {
     const list: RemotePeer[] = [];
@@ -70,7 +80,7 @@ export function useGroupCall(opts: {
 
   const apiCall = useCallback(
     async (path: string, init: RequestInit = {}) => {
-      const token = await getToken();
+      const token = await getTokenRef.current();
       const headers: Record<string, string> = {
         "Content-Type": "application/json",
         ...(init.headers as Record<string, string> | undefined),
@@ -78,7 +88,7 @@ export function useGroupCall(opts: {
       if (token) headers.Authorization = `Bearer ${token}`;
       return fetch(`${apiBase}${path}`, { ...init, headers });
     },
-    [getToken],
+    [],
   );
 
   const sendSignal = useCallback(
@@ -245,7 +255,7 @@ export function useGroupCall(opts: {
         }
 
         if (cdata.status === "ended" && !cancelled) {
-          onEnd();
+          onEndRef.current();
         }
       } catch {
         /* polling errors are non-fatal */
@@ -260,7 +270,14 @@ export function useGroupCall(opts: {
       window.clearInterval(interval);
       cleanup();
     };
-  }, [enabled, callId, withVideo, apiCall, ensurePeer, sendSignal, refreshRemote, cleanup, onEnd]);
+    // NOTE: apiCall / ensurePeer / sendSignal / refreshRemote / cleanup are
+    // already stable (empty or stable-input useCallback). onEnd is read via
+    // onEndRef so it doesn't need to be a dep here. Keeping these out of the
+    // deps array prevents the polling effect from being torn down + re-set up
+    // every render, which previously caused a render loop ("Maximum update
+    // depth exceeded") whenever the parent re-rendered.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [enabled, callId, withVideo]);
 
   const toggleMute = useCallback(() => {
     const stream = localStreamRef.current;
@@ -279,12 +296,21 @@ export function useGroupCall(opts: {
   }, [videoOff]);
 
   const hangup = useCallback(async () => {
-    if (callId != null) {
-      await apiCall(`/calls/${callId}/leave`, { method: "POST" });
+    // Always tear down local state and notify the parent, even if the /leave
+    // POST throws (network down, expired token, etc.). Otherwise a flaky
+    // network would leave the user stuck inside a modal with their mic/camera
+    // still active.
+    try {
+      if (callId != null) {
+        await apiCall(`/calls/${callId}/leave`, { method: "POST" });
+      }
+    } catch {
+      /* swallow — we still need to clean up locally */
+    } finally {
+      cleanup();
+      onEndRef.current();
     }
-    cleanup();
-    onEnd();
-  }, [apiCall, callId, cleanup, onEnd]);
+  }, [apiCall, callId, cleanup]);
 
   return {
     localStream,

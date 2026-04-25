@@ -19,22 +19,45 @@ import {
   Eye,
   ThumbsUp,
   MessageCircle,
+  Play,
+  LogIn,
 } from "lucide-react";
 
-const SUGGESTED_QUERIES = [
-  "trending shorts",
-  "viral shorts",
-  "funny shorts",
-  "dance shorts",
-  "tech shorts",
-  "diy shorts",
-  "gaming shorts",
-  "food shorts",
-  "music shorts",
-  "sports shorts",
-  "travel shorts",
-  "anime shorts",
+type Kind = "short" | "long";
+
+const SHORTS_QUERIES = [
+  "trending",
+  "viral",
+  "funny",
+  "dance",
+  "tech",
+  "diy",
+  "gaming",
+  "food",
+  "music",
+  "sports",
+  "travel",
+  "anime",
 ];
+
+const VIDEOS_QUERIES = [
+  "trending",
+  "music videos",
+  "documentaries",
+  "tech reviews",
+  "news",
+  "podcasts",
+  "tutorials",
+  "comedy",
+  "movie trailers",
+  "live performances",
+  "gaming",
+  "vlogs",
+];
+
+const YT_SIGNIN_KEY = "hashchat:yt-signed-in";
+const YT_SIGNIN_URL =
+  "https://accounts.google.com/ServiceLogin?service=youtube&continue=https%3A%2F%2Fwww.youtube.com%2F";
 
 type Reel = {
   id: string;
@@ -48,7 +71,16 @@ type Reel = {
   viewCount?: number | null;
   likeCount?: number | null;
   commentCount?: number | null;
+  /** "short" or "long" — stamped on save so Saved entries remember their format. */
+  kind?: Kind;
 };
+
+function ytWatchUrl(reel: Reel, fallbackKind: Kind): string {
+  const k = reel.kind ?? fallbackKind;
+  return k === "short"
+    ? `https://www.youtube.com/shorts/${reel.id}`
+    : `https://www.youtube.com/watch?v=${reel.id}`;
+}
 
 function formatCount(n: number | null | undefined): string {
   if (n == null) return "";
@@ -96,11 +128,21 @@ function persistSaved(items: Reel[]) {
 const PAGE_SIZE = 12;
 
 export default function Reels() {
-  const [query, setQuery] = useState("trending shorts");
-  const [active, setActive] = useState("trending shorts");
+  const [kind, setKind] = useState<Kind>("short");
+  const [query, setQuery] = useState("trending");
+  const [active, setActive] = useState("trending");
   const [view, setView] = useState<"feed" | "saved">("feed");
   const [playerIndex, setPlayerIndex] = useState<number | null>(null);
   const [saved, setSaved] = useState<Reel[]>(() => loadSaved());
+  const [ytSignedIn, setYtSignedIn] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem(YT_SIGNIN_KEY) === "1";
+    } catch {
+      return false;
+    }
+  });
+
+  const suggestions = kind === "short" ? SHORTS_QUERIES : VIDEOS_QUERIES;
 
   const {
     data,
@@ -111,11 +153,12 @@ export default function Reels() {
     hasNextPage,
     isFetchingNextPage,
   } = useInfiniteQuery({
-    queryKey: ["youtube-reels", active],
+    queryKey: ["youtube-reels", kind, active],
     queryFn: ({ pageParam }) =>
       getYoutubeReels({
         q: active,
         max: PAGE_SIZE,
+        kind,
         pageToken: pageParam || undefined,
       }),
     initialPageParam: "",
@@ -148,7 +191,7 @@ export default function Reels() {
     setSaved((prev) =>
       prev.some((s) => s.id === reel.id)
         ? prev.filter((s) => s.id !== reel.id)
-        : [reel, ...prev].slice(0, 200),
+        : [{ ...reel, kind: reel.kind ?? kind }, ...prev].slice(0, 200),
     );
   };
 
@@ -158,55 +201,109 @@ export default function Reels() {
     setView("feed");
   };
 
+  const switchKind = (next: Kind) => {
+    if (next === kind) return;
+    setKind(next);
+    setQuery("trending");
+    setActive("trending");
+    setView("feed");
+    setPlayerIndex(null);
+  };
+
+  const openYouTubeSignIn = () => {
+    try {
+      localStorage.setItem(YT_SIGNIN_KEY, "1");
+    } catch {
+      /* ignore quota */
+    }
+    setYtSignedIn(true);
+    window.open(YT_SIGNIN_URL, "_blank", "noopener,noreferrer");
+  };
+
+  const signOutYouTube = () => {
+    try {
+      localStorage.removeItem(YT_SIGNIN_KEY);
+    } catch {
+      /* ignore */
+    }
+    setYtSignedIn(false);
+  };
+
   return (
     <div className="mx-auto max-w-6xl px-4 py-6 md:px-8 md:py-10">
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div className="flex items-center gap-3">
           <div className="rounded-xl bg-gradient-to-br from-pink-500 to-violet-500 p-2 text-white shadow-lg shadow-pink-500/30">
             <Film className="h-6 w-6" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Reels</h1>
+            <h1 className="text-3xl font-bold text-foreground">Watch</h1>
             <p className="text-sm text-muted-foreground">
-              Bite-size videos from YouTube Shorts.
+              YouTube Shorts and full-length videos in one place.
             </p>
           </div>
         </div>
-        <div className="flex rounded-full border border-border bg-card p-1 text-sm">
-          <button
-            type="button"
-            onClick={() => setView("feed")}
-            data-testid="tab-reels-feed"
-            className={[
-              "rounded-full px-3 py-1.5 font-medium transition-colors",
-              view === "feed"
-                ? "bg-primary text-primary-foreground"
-                : "text-muted-foreground hover:text-foreground",
-            ].join(" ")}
-          >
-            <Sparkles className="-mt-0.5 mr-1 inline h-3.5 w-3.5" />
-            Feed
-          </button>
-          <button
-            type="button"
-            onClick={() => setView("saved")}
-            data-testid="tab-reels-saved"
-            className={[
-              "rounded-full px-3 py-1.5 font-medium transition-colors",
-              view === "saved"
-                ? "bg-primary text-primary-foreground"
-                : "text-muted-foreground hover:text-foreground",
-            ].join(" ")}
-          >
-            <Bookmark className="-mt-0.5 mr-1 inline h-3.5 w-3.5" />
-            Saved {saved.length > 0 ? `(${saved.length})` : ""}
-          </button>
+        <div className="flex flex-wrap items-center gap-2">
+          {ytSignedIn ? (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={signOutYouTube}
+              data-testid="button-yt-signout"
+              className="rounded-full border-red-200 text-red-600 hover:bg-red-50"
+            >
+              <Youtube className="mr-1.5 h-4 w-4 text-red-500" />
+              YouTube · Signed in
+            </Button>
+          ) : (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={openYouTubeSignIn}
+              data-testid="button-yt-signin"
+              className="rounded-full border-red-200 text-red-600 hover:bg-red-50"
+            >
+              <LogIn className="mr-1.5 h-4 w-4" />
+              Sign in to YouTube
+            </Button>
+          )}
         </div>
+      </div>
+
+      {/* YouTube-style top tab bar: Shorts | Videos | Saved */}
+      <div className="mt-6 flex items-center gap-1 overflow-x-auto border-b border-border pb-0">
+        <TabButton
+          active={view === "feed" && kind === "short"}
+          onClick={() => {
+            switchKind("short");
+            setView("feed");
+          }}
+          icon={<Sparkles className="h-4 w-4" />}
+          label="Shorts"
+          testId="tab-reels-shorts"
+        />
+        <TabButton
+          active={view === "feed" && kind === "long"}
+          onClick={() => {
+            switchKind("long");
+            setView("feed");
+          }}
+          icon={<Play className="h-4 w-4" />}
+          label="Videos"
+          testId="tab-reels-videos"
+        />
+        <TabButton
+          active={view === "saved"}
+          onClick={() => setView("saved")}
+          icon={<Bookmark className="h-4 w-4" />}
+          label={`Saved${saved.length > 0 ? ` (${saved.length})` : ""}`}
+          testId="tab-reels-saved"
+        />
       </div>
 
       {view === "feed" && (
         <>
-          <div className="mt-6 flex flex-col gap-3 rounded-xl border border-border bg-card p-4 md:flex-row md:items-center">
+          <div className="mt-4 flex flex-col gap-3 rounded-xl border border-border bg-card p-4 md:flex-row md:items-center">
             <div className="flex flex-1 items-center gap-2">
               <Search className="h-4 w-4 text-muted-foreground" />
               <Input
@@ -215,7 +312,11 @@ export default function Reels() {
                 onKeyDown={(e) => {
                   if (e.key === "Enter") runSearch(query);
                 }}
-                placeholder="Search YouTube Shorts..."
+                placeholder={
+                  kind === "short"
+                    ? "Search YouTube Shorts..."
+                    : "Search YouTube videos..."
+                }
                 data-testid="input-reels-search"
               />
             </div>
@@ -228,7 +329,7 @@ export default function Reels() {
           </div>
 
           <div className="mt-3 flex flex-wrap gap-1.5">
-            {SUGGESTED_QUERIES.map((q) => (
+            {suggestions.map((q) => (
               <button
                 key={q}
                 type="button"
@@ -252,7 +353,11 @@ export default function Reels() {
         <div className="mb-3 flex items-center gap-2">
           <Youtube className="h-5 w-5 text-red-500" />
           <h2 className="text-lg font-semibold text-foreground">
-            {view === "feed" ? "YouTube Shorts" : "Your Saved Reels"}
+            {view === "saved"
+              ? "Your Saved"
+              : kind === "short"
+                ? "YouTube Shorts"
+                : "YouTube Videos"}
           </h2>
           {view === "feed" && isFetching && !isLoading && (
             <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
@@ -260,18 +365,25 @@ export default function Reels() {
         </div>
 
         {view === "feed" && isLoading ? (
-          <ReelGridSkeleton />
+          <ReelGridSkeleton kind={kind} />
         ) : view === "feed" && error ? (
           <ConfigCard />
         ) : items.length > 0 ? (
           <>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 md:gap-4 lg:grid-cols-5">
+            <div
+              className={
+                kind === "short"
+                  ? "grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 md:gap-4 lg:grid-cols-5"
+                  : "grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"
+              }
+            >
               {items.map((item, idx) => (
                 <ReelThumb
                   key={item.id}
                   reel={item}
                   index={idx}
                   saved={isSaved(item.id)}
+                  kind={kind}
                   onPlay={() => setPlayerIndex(idx)}
                   onToggleSave={() => toggleSave(item)}
                 />
@@ -302,12 +414,12 @@ export default function Reels() {
             <Bookmark className="mx-auto h-8 w-8 text-muted-foreground/50" />
             <p className="mt-3 font-medium text-foreground">No saved reels yet</p>
             <p className="mt-1">
-              Tap the heart on any short to save it for later.
+              Tap the heart on any short or video to save it for later.
             </p>
           </div>
         ) : (
           <p className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
-            No shorts found. Try another search.
+            No {kind === "short" ? "shorts" : "videos"} found. Try another search.
           </p>
         )}
       </section>
@@ -318,6 +430,12 @@ export default function Reels() {
             items={items}
             startIndex={playerIndex}
             isSaved={isSaved}
+            // In Saved view, items can be a mix of shorts and long-form videos.
+            // The modal already adapts each page's aspect, badge, links, and
+            // share URL from the per-item `reel.kind`, so we just pass the
+            // current tab kind as a fallback for legacy saved entries that
+            // were stored before we started stamping `kind` onto them.
+            kind={kind}
             onClose={() => setPlayerIndex(null)}
             onToggleSave={toggleSave}
             fetchMore={() => fetchNextPage()}
@@ -330,16 +448,56 @@ export default function Reels() {
   );
 }
 
+function TabButton({
+  active,
+  onClick,
+  icon,
+  label,
+  testId,
+}: {
+  active: boolean;
+  onClick: () => void;
+  icon: ReactNode;
+  label: string;
+  testId: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      data-testid={testId}
+      className={[
+        "relative flex items-center gap-1.5 whitespace-nowrap px-4 py-2.5 text-sm font-medium transition-colors",
+        active
+          ? "text-foreground"
+          : "text-muted-foreground hover:text-foreground",
+      ].join(" ")}
+    >
+      {icon}
+      {label}
+      {active && (
+        <motion.span
+          layoutId="reels-tab-underline"
+          className="absolute inset-x-2 -bottom-px h-0.5 rounded-full bg-foreground"
+          transition={{ type: "spring", stiffness: 500, damping: 36 }}
+        />
+      )}
+    </button>
+  );
+}
+
 function ReelThumb({
   reel,
   index,
   saved,
+  kind,
   onPlay,
   onToggleSave,
 }: {
   reel: Reel;
   index: number;
   saved: boolean;
+  kind: Kind;
   onPlay: () => void;
   onToggleSave: () => void;
 }) {
@@ -356,7 +514,12 @@ function ReelThumb({
         data-testid={`reel-${reel.id}`}
         className="block w-full text-left"
       >
-        <div className="relative aspect-[9/16] overflow-hidden bg-muted">
+        <div
+          className={[
+            "relative overflow-hidden bg-muted",
+            (reel.kind ?? kind) === "short" ? "aspect-[9/16]" : "aspect-video",
+          ].join(" ")}
+        >
           <img
             src={reel.thumbnail}
             alt={reel.title}
@@ -405,6 +568,7 @@ function ReelPlayerModal({
   items,
   startIndex,
   isSaved,
+  kind,
   onClose,
   onToggleSave,
   fetchMore,
@@ -414,6 +578,7 @@ function ReelPlayerModal({
   items: Reel[];
   startIndex: number;
   isSaved: (id: string) => boolean;
+  kind: Kind;
   onClose: () => void;
   onToggleSave: (reel: Reel) => void;
   fetchMore: () => void;
@@ -545,7 +710,7 @@ function ReelPlayerModal({
   }, [activeIndex, items, onClose, onToggleSave]);
 
   const share = async (reel: Reel) => {
-    const url = `https://www.youtube.com/shorts/${reel.id}`;
+    const url = ytWatchUrl(reel, kind);
     const navWithShare = navigator as Navigator & {
       share?: (data: { title?: string; url?: string }) => Promise<void>;
     };
@@ -576,12 +741,12 @@ function ReelPlayerModal({
       data-testid="reel-player-modal"
       role="dialog"
       aria-modal="true"
-      aria-label="Shorts player"
+      aria-label={kind === "short" ? "Shorts player" : "Videos player"}
     >
       <div className="pointer-events-none absolute inset-x-0 top-0 z-30 flex items-center justify-between p-4">
         <div className="pointer-events-auto flex items-center gap-2">
           <span className="rounded bg-red-600 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide text-white shadow-md">
-            Shorts
+            {kind === "short" ? "Shorts" : "Videos"}
           </span>
           <div
             className="rounded-full bg-black/55 px-3 py-1 text-xs font-medium text-white backdrop-blur"
@@ -631,7 +796,14 @@ function ReelPlayerModal({
                 />
               </div>
 
-              <div className="relative h-full w-full max-w-[min(100vw,calc(100dvh*9/16))] overflow-hidden bg-black">
+              <div
+                className={[
+                  "relative overflow-hidden bg-black",
+                  (reel.kind ?? kind) === "short"
+                    ? "h-full w-full max-w-[min(100vw,calc(100dvh*9/16))]"
+                    : "aspect-video w-full max-h-[100dvh] max-w-[min(100vw,calc(100dvh*16/9))]",
+                ].join(" ")}
+              >
                 {isActive ? (
                   <iframe
                     key={`iframe-${reel.id}-${muted ? "m" : "u"}`}
@@ -759,7 +931,7 @@ function ReelPlayerModal({
                 </ActionButton>
                 {reel.commentCount != null && (
                   <a
-                    href={`https://www.youtube.com/shorts/${reel.id}`}
+                    href={ytWatchUrl(reel, kind)}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex flex-col items-center gap-1 text-white/90 hover:text-white"
@@ -794,7 +966,7 @@ function ReelPlayerModal({
                   />
                 </ActionButton>
                 <a
-                  href={`https://www.youtube.com/shorts/${reel.id}`}
+                  href={ytWatchUrl(reel, kind)}
                   target="_blank"
                   rel="noopener noreferrer"
                   data-testid="link-reel-youtube"
@@ -816,7 +988,7 @@ function ReelPlayerModal({
           <div className="flex h-20 items-center justify-center text-white/70">
             {isFetchingMore ? (
               <span className="flex items-center gap-2 text-xs">
-                <Loader2 className="h-4 w-4 animate-spin" /> Loading more shorts…
+                <Loader2 className="h-4 w-4 animate-spin" /> Loading more {kind === "short" ? "shorts" : "videos"}…
               </span>
             ) : (
               <span className="text-xs">Keep scrolling for more</span>
@@ -834,7 +1006,7 @@ function ReelPlayerModal({
           onClick={() => scrollToIndex(Math.max(activeIndex - 1, 0))}
           disabled={!canScrollPrev}
           data-testid="button-reel-scroll-prev"
-          aria-label="Previous short"
+          aria-label={kind === "short" ? "Previous short" : "Previous video"}
           className="rounded-full bg-white/15 p-3 text-white backdrop-blur transition hover:bg-white/30 disabled:cursor-not-allowed disabled:opacity-30"
         >
           <svg
@@ -857,7 +1029,7 @@ function ReelPlayerModal({
           }
           disabled={!canScrollNext}
           data-testid="button-reel-scroll-next"
-          aria-label="Next short"
+          aria-label={kind === "short" ? "Next short" : "Next video"}
           className="rounded-full bg-white/15 p-3 text-white backdrop-blur transition hover:bg-white/30 disabled:cursor-not-allowed disabled:opacity-30"
         >
           <svg
@@ -934,13 +1106,18 @@ function ActionButton({
   );
 }
 
-function ReelGridSkeleton() {
+function ReelGridSkeleton({ kind }: { kind: Kind }) {
+  const tileAspect = kind === "short" ? "aspect-[9/16]" : "aspect-video";
+  const gridCls =
+    kind === "short"
+      ? "grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 md:gap-4 lg:grid-cols-5"
+      : "grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3";
   return (
-    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 md:gap-4 lg:grid-cols-5">
-      {Array.from({ length: 10 }).map((_, i) => (
+    <div className={gridCls}>
+      {Array.from({ length: 9 }).map((_, i) => (
         <div
           key={i}
-          className="aspect-[9/16] animate-pulse rounded-xl bg-card"
+          className={`${tileAspect} animate-pulse rounded-xl bg-card`}
         />
       ))}
     </div>
