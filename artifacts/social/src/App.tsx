@@ -94,30 +94,22 @@ const baseClerkAppearance = {
   },
   elements: {
     rootBox: "w-full",
-    card:
-      "bg-transparent shadow-none border-0 p-0 w-full max-w-none",
+    card: "w-full max-w-none",
     headerTitle:
-      "text-2xl font-bold tracking-tight bg-gradient-to-r from-violet-600 to-pink-600 bg-clip-text text-transparent",
-    headerSubtitle: "text-sm text-muted-foreground",
+      "text-2xl font-bold tracking-tight",
+    headerSubtitle: "text-sm",
     socialButtonsBlockButton:
-      "border border-border bg-card hover:bg-muted/60 transition-colors",
+      "border transition-colors",
     socialButtonsBlockButtonText: "font-medium",
-    dividerLine: "bg-border",
-    dividerText: "text-xs uppercase tracking-wider text-muted-foreground",
-    formFieldLabel: "text-sm font-medium text-foreground",
+    dividerText: "text-xs uppercase tracking-wider",
+    formFieldLabel: "text-sm font-medium",
     formFieldInput:
-      "bg-card border border-border focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 transition-all",
+      "border focus:ring-2 focus:ring-violet-500/30 transition-all",
     formButtonPrimary:
       "bg-gradient-to-r from-violet-600 to-pink-600 hover:from-violet-700 hover:to-pink-700 text-white font-semibold shadow-lg shadow-violet-500/25 transition-all hover:shadow-xl hover:shadow-violet-500/30 normal-case",
-    footerActionText: "text-sm text-muted-foreground",
+    footerActionText: "text-sm",
     footerActionLink:
       "text-sm font-semibold text-violet-600 hover:text-pink-600 transition-colors",
-    identityPreview: "bg-card border border-border",
-    formFieldInputShowPasswordButton:
-      "text-muted-foreground hover:text-foreground",
-    footer: "bg-transparent",
-    footerAction: "bg-transparent",
-    footerPages: "bg-transparent",
   },
   options: {
     logoPlacement: "none" as const,
@@ -249,9 +241,7 @@ function ClerkAuthCard({
             <p className="mt-2 text-sm text-muted-foreground">{tagline}</p>
           </div>
 
-          <div className="rounded-2xl border border-border/60 bg-card/80 p-6 shadow-2xl shadow-primary/10 backdrop-blur md:p-8">
-            {children}
-          </div>
+          <div className="auth-clerk-wrap">{children}</div>
 
           <p className="mt-6 text-center text-xs text-muted-foreground">
             <Link

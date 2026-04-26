@@ -741,22 +741,106 @@
     }
   }
 }
-/* Clerk auth widget overrides — keep footer & dev badge consistent with our card. */
-.cl-rootBox,
-.cl-card,
-.cl-cardBox,
-.cl-footer,
-.cl-footerAction,
-.cl-footerActionText,
-.cl-footerPages,
-.cl-internal-1hp5nqm,
-.cl-internal-b3fm6y {
+/* Clerk auth widget — make every internal surface use our theme tokens
+   so light/dark/custom themes render cleanly with no nested cards. */
+.auth-clerk-wrap .cl-rootBox,
+.auth-clerk-wrap .cl-card,
+.auth-clerk-wrap .cl-cardBox,
+.auth-clerk-wrap .cl-main,
+.auth-clerk-wrap .cl-header,
+.auth-clerk-wrap .cl-footer,
+.auth-clerk-wrap .cl-footerAction,
+.auth-clerk-wrap .cl-footerPages,
+.auth-clerk-wrap .cl-form,
+.auth-clerk-wrap [class*="cl-internal-"] {
   background: transparent !important;
   background-color: transparent !important;
 }
-.cl-card { box-shadow: none !important; }
-/* Hide Clerk's "Development mode" badge on auth screens — looks unpolished. */
-.cl-badge,
-.cl-internal-1rpdi70 {
+
+/* Single themed card around the whole Clerk widget (no double-card). */
+.auth-clerk-wrap .cl-card {
+  background-color: hsl(var(--card)) !important;
+  color: hsl(var(--card-foreground)) !important;
+  border: 1px solid hsl(var(--border)) !important;
+  border-radius: 1rem !important;
+  box-shadow:
+    0 25px 50px -12px hsl(var(--primary) / 0.18),
+    0 0 0 1px hsl(var(--border) / 0.4) !important;
+  padding: 1.75rem !important;
+}
+
+/* Headings/text inside the Clerk widget must use foreground tokens. */
+.auth-clerk-wrap .cl-headerTitle,
+.auth-clerk-wrap .cl-formFieldLabel,
+.auth-clerk-wrap .cl-identityPreviewText,
+.auth-clerk-wrap .cl-formHeaderTitle,
+.auth-clerk-wrap .cl-otpCodeFieldInput {
+  color: hsl(var(--foreground)) !important;
+}
+.auth-clerk-wrap .cl-headerSubtitle,
+.auth-clerk-wrap .cl-footerActionText,
+.auth-clerk-wrap .cl-dividerText,
+.auth-clerk-wrap .cl-formHeaderSubtitle {
+  color: hsl(var(--muted-foreground)) !important;
+}
+
+/* Inputs: clearly contrasted in any theme. */
+.auth-clerk-wrap .cl-formFieldInput,
+.auth-clerk-wrap .cl-otpCodeFieldInput {
+  background-color: hsl(var(--background)) !important;
+  color: hsl(var(--foreground)) !important;
+  border: 1px solid hsl(var(--border)) !important;
+}
+.auth-clerk-wrap .cl-formFieldInput:focus,
+.auth-clerk-wrap .cl-otpCodeFieldInput:focus {
+  border-color: hsl(var(--ring, 262 83% 58%)) !important;
+  box-shadow: 0 0 0 3px hsl(var(--ring, 262 83% 58%) / 0.25) !important;
+}
+
+/* Social/OAuth buttons readable on any background. */
+.auth-clerk-wrap .cl-socialButtonsBlockButton {
+  background-color: hsl(var(--background)) !important;
+  color: hsl(var(--foreground)) !important;
+  border: 1px solid hsl(var(--border)) !important;
+}
+.auth-clerk-wrap .cl-socialButtonsBlockButton:hover {
+  background-color: hsl(var(--muted)) !important;
+}
+
+/* Divider line uses our border token (not stark black). */
+.auth-clerk-wrap .cl-dividerLine {
+  background-color: hsl(var(--border)) !important;
+}
+
+/* Force gradient on primary submit button (overrides Clerk inline colorPrimary). */
+.auth-clerk-wrap .cl-formButtonPrimary {
+  background: linear-gradient(to right, #7c3aed, #db2777) !important;
+  background-image: linear-gradient(to right, #7c3aed, #db2777) !important;
+  color: #ffffff !important;
+  border: none !important;
+  box-shadow: 0 10px 25px -5px rgb(124 58 237 / 0.45) !important;
+  font-weight: 600 !important;
+}
+.auth-clerk-wrap .cl-formButtonPrimary:hover {
+  background: linear-gradient(to right, #6d28d9, #be185d) !important;
+  background-image: linear-gradient(to right, #6d28d9, #be185d) !important;
+  box-shadow: 0 14px 30px -5px rgb(124 58 237 / 0.55) !important;
+}
+.auth-clerk-wrap .cl-formButtonPrimary,
+.auth-clerk-wrap .cl-formButtonPrimary * {
+  color: #ffffff !important;
+}
+
+/* Hide Clerk's dev-mode badge in dev (vanishes automatically in prod). */
+.auth-clerk-wrap .cl-badge,
+.auth-clerk-wrap [data-localization-key*="developmentMode"],
+.auth-clerk-wrap [data-localization-key*="DevelopmentMode"],
+.auth-clerk-wrap .cl-cardBox > .cl-internal-1rpdi70,
+.auth-clerk-wrap .cl-cardBox > a:last-child[href*="clerk"],
+.auth-clerk-wrap .cl-cardBox > div:last-child:has(a[href*="clerk"]) {
+  display: none !important;
+}
+/* Belt-and-suspenders: any direct child of cardBox that contains a clerk link. */
+.auth-clerk-wrap .cl-cardBox > :has(a[href*="clerk"]) {
   display: none !important;
 }
