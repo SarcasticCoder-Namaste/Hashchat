@@ -1,7 +1,9 @@
 import { useEffect, useRef } from "react";
 import { applyRootPreferences } from "@/lib/preferences";
+import { applyStoredAccent } from "@/lib/serverPreferences";
 
 applyRootPreferences();
+applyStoredAccent();
 import {
   ClerkProvider,
   SignIn,
@@ -43,6 +45,8 @@ import CommunityDetail from "@/pages/CommunityDetail";
 import Premium from "@/pages/Premium";
 import InviteRedeem from "@/pages/InviteRedeem";
 import AdminPanel from "@/pages/AdminPanel";
+import SearchResults from "@/pages/SearchResults";
+import Saved from "@/pages/Saved";
 import NotFound from "@/pages/not-found";
 import AppShell from "@/components/AppShell";
 
@@ -299,6 +303,16 @@ function ClerkProviderWithRoutes() {
             <Route path="/app/admin">
               <ProtectedShell>
                 <AdminPanel />
+              </ProtectedShell>
+            </Route>
+            <Route path="/app/search">
+              <ProtectedShell>
+                <SearchResults />
+              </ProtectedShell>
+            </Route>
+            <Route path="/app/saved">
+              <ProtectedShell>
+                <Saved />
               </ProtectedShell>
             </Route>
             <Route path="/app/settings">

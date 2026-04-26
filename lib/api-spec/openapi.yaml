@@ -25,6 +25,10 @@ tags:
   - name: events
   - name: communities
   - name: premium
+  - name: search
+  - name: bookmarks
+  - name: preferences
+  - name: push
 paths:
   /healthz:
     get:
@@ -1760,6 +1764,180 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/PremiumStatus" }
 
+  /search:
+    get:
+      operationId: globalSearch
+      tags: [search]
+      summary: Global search across users, hashtags, rooms, posts, and messages
+      parameters:
+        - { name: q, in: query, required: true, schema: { type: string } }
+        - name: kind
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [all, users, hashtags, rooms, posts, messages]
+        - { name: limit, in: query, required: false, schema: { type: integer } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SearchResults" }
+
+  /me/bookmarks:
+    get:
+      operationId: getMyBookmarks
+      tags: [bookmarks]
+      summary: List my bookmarks (saved messages and posts)
+      parameters:
+        - name: kind
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [all, message, post]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Bookmark" }
+    post:
+      operationId: createBookmark
+      tags: [bookmarks]
+      summary: Save a message or post (with an optional private note)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateBookmarkBody" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Bookmark" }
+
+  /me/bookmarks/check:
+    get:
+      operationId: checkBookmark
+      tags: [bookmarks]
+      summary: Check if a target is bookmarked
+      parameters:
+        - name: kind
+          in: query
+          required: true
+          schema: { type: string, enum: [message, post] }
+        - name: targetId
+          in: query
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/BookmarkCheck" }
+
+  /me/bookmarks/{id}:
+    patch:
+      operationId: updateBookmark
+      tags: [bookmarks]
+      summary: Update a bookmark's private note
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/UpdateBookmarkBody" }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Bookmark" }
+    delete:
+      operationId: deleteBookmark
+      tags: [bookmarks]
+      summary: Remove a bookmark
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      responses:
+        "204": { description: No content }
+
+  /me/preferences:
+    get:
+      operationId: getMyPreferences
+      tags: [preferences]
+      summary: Get my server-side preferences (theme, accent, notification channels)
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/UserPreferences" }
+    put:
+      operationId: updateMyPreferences
+      tags: [preferences]
+      summary: Update my server-side preferences
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/UpdatePreferencesBody" }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/UserPreferences" }
+
+  /push/vapid-public-key:
+    get:
+      operationId: getVapidPublicKey
+      tags: [push]
+      summary: Get the server's VAPID public key for browser push subscriptions
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/VapidKeyResponse" }
+
+  /push/subscribe:
+    post:
+      operationId: subscribePush
+      tags: [push]
+      summary: Register a browser Web Push subscription
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PushSubscribeBody" }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/OkResponse" }
+
+  /push/unsubscribe:
+    post:
+      operationId: unsubscribePush
+      tags: [push]
+      summary: Remove a browser Web Push subscription
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PushUnsubscribeBody" }
+      responses:
+        "204": { description: No content }
+
 components:
   schemas:
     HealthStatus:
@@ -2327,6 +2505,227 @@ components:
       properties:
         ok: { type: boolean }
       required: [ok]
+
+    SearchUserHit:
+      type: object
+      properties:
+        id: { type: string }
+        username: { type: string }
+        displayName: { type: string }
+        avatarUrl:
+          type: ["string", "null"]
+        bio:
+          type: ["string", "null"]
+        discriminator:
+          type: ["string", "null"]
+        verified: { type: boolean }
+        mvpPlan: { type: boolean }
+      required: [id, username, displayName, verified, mvpPlan]
+
+    SearchHashtagHit:
+      type: object
+      properties:
+        tag: { type: string }
+        memberCount: { type: integer }
+        messageCount: { type: integer }
+        followerCount: { type: integer }
+      required: [tag, memberCount, messageCount, followerCount]
+
+    SearchRoomHit:
+      type: object
+      properties:
+        tag: { type: string }
+        memberCount: { type: integer }
+        messageCount: { type: integer }
+        followerCount: { type: integer }
+        recentMessages: { type: integer }
+        isPrivate: { type: boolean }
+        isMember: { type: boolean }
+      required: [tag, memberCount, messageCount, followerCount, recentMessages, isPrivate, isMember]
+
+    SearchPostHit:
+      type: object
+      properties:
+        id: { type: integer }
+        author: { $ref: "#/components/schemas/PostAuthor" }
+        content: { type: string }
+        snippet: { type: string }
+        createdAt: { type: string, format: date-time }
+      required: [id, author, content, snippet, createdAt]
+
+    SearchMessageHit:
+      type: object
+      properties:
+        id: { type: integer }
+        senderName: { type: string }
+        senderUsername: { type: string }
+        senderAvatarUrl:
+          type: ["string", "null"]
+        content: { type: string }
+        snippet: { type: string }
+        roomTag:
+          type: ["string", "null"]
+        conversationId:
+          type: ["integer", "null"]
+        href:
+          type: ["string", "null"]
+        createdAt: { type: string, format: date-time }
+      required: [id, senderName, senderUsername, content, snippet, createdAt]
+
+    SearchResults:
+      type: object
+      properties:
+        q: { type: string }
+        users:
+          type: array
+          items: { $ref: "#/components/schemas/SearchUserHit" }
+        hashtags:
+          type: array
+          items: { $ref: "#/components/schemas/SearchHashtagHit" }
+        rooms:
+          type: array
+          items: { $ref: "#/components/schemas/SearchRoomHit" }
+        posts:
+          type: array
+          items: { $ref: "#/components/schemas/SearchPostHit" }
+        messages:
+          type: array
+          items: { $ref: "#/components/schemas/SearchMessageHit" }
+      required: [q, users, hashtags, rooms, posts, messages]
+
+    BookmarkTarget:
+      type: object
+      properties:
+        kind: { type: string, enum: [message, post] }
+        id: { type: integer }
+        snippet:
+          type: ["string", "null"]
+        author:
+          oneOf:
+            - { $ref: "#/components/schemas/PostAuthor" }
+            - { type: "null" }
+        roomTag:
+          type: ["string", "null"]
+        conversationId:
+          type: ["integer", "null"]
+        href:
+          type: ["string", "null"]
+        createdAt:
+          type: ["string", "null"]
+          format: date-time
+        deleted: { type: boolean }
+      required: [kind, id, deleted]
+
+    Bookmark:
+      type: object
+      properties:
+        id: { type: integer }
+        kind: { type: string, enum: [message, post] }
+        targetId: { type: integer }
+        note:
+          type: ["string", "null"]
+        target:
+          oneOf:
+            - { $ref: "#/components/schemas/BookmarkTarget" }
+            - { type: "null" }
+        createdAt: { type: string, format: date-time }
+      required: [id, kind, targetId, createdAt]
+
+    CreateBookmarkBody:
+      type: object
+      properties:
+        kind: { type: string, enum: [message, post] }
+        targetId: { type: integer }
+        note:
+          type: ["string", "null"]
+      required: [kind, targetId]
+
+    UpdateBookmarkBody:
+      type: object
+      properties:
+        note:
+          type: ["string", "null"]
+
+    BookmarkCheck:
+      type: object
+      properties:
+        bookmarked: { type: boolean }
+        bookmarkId:
+          type: ["integer", "null"]
+        note:
+          type: ["string", "null"]
+      required: [bookmarked]
+
+    UserPreferences:
+      type: object
+      properties:
+        theme: { type: string }
+        accent: { type: string }
+        emailMentions: { type: boolean }
+        emailReplies: { type: boolean }
+        emailDms: { type: boolean }
+        emailFollows: { type: boolean }
+        emailReactions: { type: boolean }
+        pushMentions: { type: boolean }
+        pushReplies: { type: boolean }
+        pushDms: { type: boolean }
+        pushFollows: { type: boolean }
+        pushReactions: { type: boolean }
+        emailAddress:
+          type: ["string", "null"]
+        emailEnabled: { type: boolean }
+        pushEnabled: { type: boolean }
+        pushSubscriptionCount: { type: integer }
+      required:
+        [theme, accent, emailMentions, emailReplies, emailDms, emailFollows,
+         emailReactions, pushMentions, pushReplies, pushDms, pushFollows,
+         pushReactions, emailEnabled, pushEnabled, pushSubscriptionCount]
+
+    UpdatePreferencesBody:
+      type: object
+      properties:
+        theme: { type: string }
+        accent: { type: string }
+        emailMentions: { type: boolean }
+        emailReplies: { type: boolean }
+        emailDms: { type: boolean }
+        emailFollows: { type: boolean }
+        emailReactions: { type: boolean }
+        pushMentions: { type: boolean }
+        pushReplies: { type: boolean }
+        pushDms: { type: boolean }
+        pushFollows: { type: boolean }
+        pushReactions: { type: boolean }
+        emailAddress:
+          type: ["string", "null"]
+
+    VapidKeyResponse:
+      type: object
+      properties:
+        publicKey:
+          type: ["string", "null"]
+        configured: { type: boolean }
+      required: [configured]
+
+    PushSubscribeBody:
+      type: object
+      properties:
+        endpoint: { type: string }
+        keys:
+          type: object
+          properties:
+            p256dh: { type: string }
+            auth: { type: string }
+          required: [p256dh, auth]
+        userAgent:
+          type: ["string", "null"]
+      required: [endpoint, keys]
+
+    PushUnsubscribeBody:
+      type: object
+      properties:
+        endpoint: { type: string }
+      required: [endpoint]
 
     MvpCode:
       type: object

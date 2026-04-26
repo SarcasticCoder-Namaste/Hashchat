@@ -21,12 +21,16 @@ import type {
   AdminStats,
   AdminUser,
   BlocksAndMutes,
+  Bookmark,
+  BookmarkCheck,
   Call,
   CallSignalBody,
   CallSignalList,
+  CheckBookmarkParams,
   Community,
   CommunityDetail,
   Conversation,
+  CreateBookmarkBody,
   CreateCommunityBody,
   CreateEventBody,
   CreateMvpCodeBody,
@@ -48,6 +52,7 @@ import type {
   GetHashtagAnalyticsParams,
   GetLinkPreviewParams,
   GetMentionSuggestionsParams,
+  GetMyBookmarksParams,
   GetMyFeedPostsParams,
   GetNotificationsParams,
   GetTrendingHashtagsParams,
@@ -56,6 +61,7 @@ import type {
   GetYoutubeReelsParams,
   GifConfigError,
   GifSearchResult,
+  GlobalSearchParams,
   Hashtag,
   HashtagAnalytics,
   HashtagDetail,
@@ -80,6 +86,8 @@ import type {
   PremiumCheckoutResponse,
   PremiumStatus,
   PublicProfile,
+  PushSubscribeBody,
+  PushUnsubscribeBody,
   ReactionBody,
   RedeemCodeBody,
   ReelsConfigError,
@@ -93,6 +101,7 @@ import type {
   RoomVisibility,
   SearchGifsParams,
   SearchHashtagsParams,
+  SearchResults,
   SendMessageBody,
   SetBackgroundBody,
   SetHashtagsBody,
@@ -101,11 +110,15 @@ import type {
   TrendingHashtag,
   TypingResponse,
   UnreadCountResponse,
+  UpdateBookmarkBody,
+  UpdatePreferencesBody,
   UpdateUserBody,
   UploadUrlRequest,
   UploadUrlResponse,
   User,
   UserPhoto,
+  UserPreferences,
+  VapidKeyResponse,
   VotePollBody,
 } from "./api.schemas";
 
@@ -10150,4 +10163,951 @@ export const useDevConfirmPremium = <
   TContext
 > => {
   return useMutation(getDevConfirmPremiumMutationOptions(options));
+};
+
+/**
+ * @summary Global search across users, hashtags, rooms, posts, and messages
+ */
+export const getGlobalSearchUrl = (params: GlobalSearchParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/search?${stringifiedParams}`
+    : `/api/search`;
+};
+
+export const globalSearch = async (
+  params: GlobalSearchParams,
+  options?: RequestInit,
+): Promise<SearchResults> => {
+  return customFetch<SearchResults>(getGlobalSearchUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGlobalSearchQueryKey = (params?: GlobalSearchParams) => {
+  return [`/api/search`, ...(params ? [params] : [])] as const;
+};
+
+export const getGlobalSearchQueryOptions = <
+  TData = Awaited<ReturnType<typeof globalSearch>>,
+  TError = ErrorType<unknown>,
+>(
+  params: GlobalSearchParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof globalSearch>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGlobalSearchQueryKey(params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof globalSearch>>> = ({
+    signal,
+  }) => globalSearch(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof globalSearch>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GlobalSearchQueryResult = NonNullable<
+  Awaited<ReturnType<typeof globalSearch>>
+>;
+export type GlobalSearchQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Global search across users, hashtags, rooms, posts, and messages
+ */
+
+export function useGlobalSearch<
+  TData = Awaited<ReturnType<typeof globalSearch>>,
+  TError = ErrorType<unknown>,
+>(
+  params: GlobalSearchParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof globalSearch>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGlobalSearchQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary List my bookmarks (saved messages and posts)
+ */
+export const getGetMyBookmarksUrl = (params?: GetMyBookmarksParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/me/bookmarks?${stringifiedParams}`
+    : `/api/me/bookmarks`;
+};
+
+export const getMyBookmarks = async (
+  params?: GetMyBookmarksParams,
+  options?: RequestInit,
+): Promise<Bookmark[]> => {
+  return customFetch<Bookmark[]>(getGetMyBookmarksUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetMyBookmarksQueryKey = (params?: GetMyBookmarksParams) => {
+  return [`/api/me/bookmarks`, ...(params ? [params] : [])] as const;
+};
+
+export const getGetMyBookmarksQueryOptions = <
+  TData = Awaited<ReturnType<typeof getMyBookmarks>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: GetMyBookmarksParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getMyBookmarks>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetMyBookmarksQueryKey(params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getMyBookmarks>>> = ({
+    signal,
+  }) => getMyBookmarks(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getMyBookmarks>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetMyBookmarksQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getMyBookmarks>>
+>;
+export type GetMyBookmarksQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List my bookmarks (saved messages and posts)
+ */
+
+export function useGetMyBookmarks<
+  TData = Awaited<ReturnType<typeof getMyBookmarks>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: GetMyBookmarksParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getMyBookmarks>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetMyBookmarksQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Save a message or post (with an optional private note)
+ */
+export const getCreateBookmarkUrl = () => {
+  return `/api/me/bookmarks`;
+};
+
+export const createBookmark = async (
+  createBookmarkBody: CreateBookmarkBody,
+  options?: RequestInit,
+): Promise<Bookmark> => {
+  return customFetch<Bookmark>(getCreateBookmarkUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createBookmarkBody),
+  });
+};
+
+export const getCreateBookmarkMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createBookmark>>,
+    TError,
+    { data: BodyType<CreateBookmarkBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createBookmark>>,
+  TError,
+  { data: BodyType<CreateBookmarkBody> },
+  TContext
+> => {
+  const mutationKey = ["createBookmark"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createBookmark>>,
+    { data: BodyType<CreateBookmarkBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return createBookmark(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateBookmarkMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createBookmark>>
+>;
+export type CreateBookmarkMutationBody = BodyType<CreateBookmarkBody>;
+export type CreateBookmarkMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Save a message or post (with an optional private note)
+ */
+export const useCreateBookmark = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createBookmark>>,
+    TError,
+    { data: BodyType<CreateBookmarkBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createBookmark>>,
+  TError,
+  { data: BodyType<CreateBookmarkBody> },
+  TContext
+> => {
+  return useMutation(getCreateBookmarkMutationOptions(options));
+};
+
+/**
+ * @summary Check if a target is bookmarked
+ */
+export const getCheckBookmarkUrl = (params: CheckBookmarkParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/me/bookmarks/check?${stringifiedParams}`
+    : `/api/me/bookmarks/check`;
+};
+
+export const checkBookmark = async (
+  params: CheckBookmarkParams,
+  options?: RequestInit,
+): Promise<BookmarkCheck> => {
+  return customFetch<BookmarkCheck>(getCheckBookmarkUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getCheckBookmarkQueryKey = (params?: CheckBookmarkParams) => {
+  return [`/api/me/bookmarks/check`, ...(params ? [params] : [])] as const;
+};
+
+export const getCheckBookmarkQueryOptions = <
+  TData = Awaited<ReturnType<typeof checkBookmark>>,
+  TError = ErrorType<unknown>,
+>(
+  params: CheckBookmarkParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof checkBookmark>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getCheckBookmarkQueryKey(params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof checkBookmark>>> = ({
+    signal,
+  }) => checkBookmark(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof checkBookmark>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type CheckBookmarkQueryResult = NonNullable<
+  Awaited<ReturnType<typeof checkBookmark>>
+>;
+export type CheckBookmarkQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Check if a target is bookmarked
+ */
+
+export function useCheckBookmark<
+  TData = Awaited<ReturnType<typeof checkBookmark>>,
+  TError = ErrorType<unknown>,
+>(
+  params: CheckBookmarkParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof checkBookmark>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getCheckBookmarkQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Update a bookmark's private note
+ */
+export const getUpdateBookmarkUrl = (id: number) => {
+  return `/api/me/bookmarks/${id}`;
+};
+
+export const updateBookmark = async (
+  id: number,
+  updateBookmarkBody: UpdateBookmarkBody,
+  options?: RequestInit,
+): Promise<Bookmark> => {
+  return customFetch<Bookmark>(getUpdateBookmarkUrl(id), {
+    ...options,
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(updateBookmarkBody),
+  });
+};
+
+export const getUpdateBookmarkMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateBookmark>>,
+    TError,
+    { id: number; data: BodyType<UpdateBookmarkBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateBookmark>>,
+  TError,
+  { id: number; data: BodyType<UpdateBookmarkBody> },
+  TContext
+> => {
+  const mutationKey = ["updateBookmark"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateBookmark>>,
+    { id: number; data: BodyType<UpdateBookmarkBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return updateBookmark(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateBookmarkMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateBookmark>>
+>;
+export type UpdateBookmarkMutationBody = BodyType<UpdateBookmarkBody>;
+export type UpdateBookmarkMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Update a bookmark's private note
+ */
+export const useUpdateBookmark = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateBookmark>>,
+    TError,
+    { id: number; data: BodyType<UpdateBookmarkBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateBookmark>>,
+  TError,
+  { id: number; data: BodyType<UpdateBookmarkBody> },
+  TContext
+> => {
+  return useMutation(getUpdateBookmarkMutationOptions(options));
+};
+
+/**
+ * @summary Remove a bookmark
+ */
+export const getDeleteBookmarkUrl = (id: number) => {
+  return `/api/me/bookmarks/${id}`;
+};
+
+export const deleteBookmark = async (
+  id: number,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getDeleteBookmarkUrl(id), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getDeleteBookmarkMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteBookmark>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteBookmark>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["deleteBookmark"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteBookmark>>,
+    { id: number }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return deleteBookmark(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteBookmarkMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteBookmark>>
+>;
+
+export type DeleteBookmarkMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Remove a bookmark
+ */
+export const useDeleteBookmark = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteBookmark>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteBookmark>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  return useMutation(getDeleteBookmarkMutationOptions(options));
+};
+
+/**
+ * @summary Get my server-side preferences (theme, accent, notification channels)
+ */
+export const getGetMyPreferencesUrl = () => {
+  return `/api/me/preferences`;
+};
+
+export const getMyPreferences = async (
+  options?: RequestInit,
+): Promise<UserPreferences> => {
+  return customFetch<UserPreferences>(getGetMyPreferencesUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetMyPreferencesQueryKey = () => {
+  return [`/api/me/preferences`] as const;
+};
+
+export const getGetMyPreferencesQueryOptions = <
+  TData = Awaited<ReturnType<typeof getMyPreferences>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getMyPreferences>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetMyPreferencesQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getMyPreferences>>
+  > = ({ signal }) => getMyPreferences({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getMyPreferences>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetMyPreferencesQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getMyPreferences>>
+>;
+export type GetMyPreferencesQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get my server-side preferences (theme, accent, notification channels)
+ */
+
+export function useGetMyPreferences<
+  TData = Awaited<ReturnType<typeof getMyPreferences>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getMyPreferences>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetMyPreferencesQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Update my server-side preferences
+ */
+export const getUpdateMyPreferencesUrl = () => {
+  return `/api/me/preferences`;
+};
+
+export const updateMyPreferences = async (
+  updatePreferencesBody: UpdatePreferencesBody,
+  options?: RequestInit,
+): Promise<UserPreferences> => {
+  return customFetch<UserPreferences>(getUpdateMyPreferencesUrl(), {
+    ...options,
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(updatePreferencesBody),
+  });
+};
+
+export const getUpdateMyPreferencesMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateMyPreferences>>,
+    TError,
+    { data: BodyType<UpdatePreferencesBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateMyPreferences>>,
+  TError,
+  { data: BodyType<UpdatePreferencesBody> },
+  TContext
+> => {
+  const mutationKey = ["updateMyPreferences"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateMyPreferences>>,
+    { data: BodyType<UpdatePreferencesBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return updateMyPreferences(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateMyPreferencesMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateMyPreferences>>
+>;
+export type UpdateMyPreferencesMutationBody = BodyType<UpdatePreferencesBody>;
+export type UpdateMyPreferencesMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Update my server-side preferences
+ */
+export const useUpdateMyPreferences = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateMyPreferences>>,
+    TError,
+    { data: BodyType<UpdatePreferencesBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateMyPreferences>>,
+  TError,
+  { data: BodyType<UpdatePreferencesBody> },
+  TContext
+> => {
+  return useMutation(getUpdateMyPreferencesMutationOptions(options));
+};
+
+/**
+ * @summary Get the server's VAPID public key for browser push subscriptions
+ */
+export const getGetVapidPublicKeyUrl = () => {
+  return `/api/push/vapid-public-key`;
+};
+
+export const getVapidPublicKey = async (
+  options?: RequestInit,
+): Promise<VapidKeyResponse> => {
+  return customFetch<VapidKeyResponse>(getGetVapidPublicKeyUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetVapidPublicKeyQueryKey = () => {
+  return [`/api/push/vapid-public-key`] as const;
+};
+
+export const getGetVapidPublicKeyQueryOptions = <
+  TData = Awaited<ReturnType<typeof getVapidPublicKey>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getVapidPublicKey>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetVapidPublicKeyQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getVapidPublicKey>>
+  > = ({ signal }) => getVapidPublicKey({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getVapidPublicKey>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetVapidPublicKeyQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getVapidPublicKey>>
+>;
+export type GetVapidPublicKeyQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get the server's VAPID public key for browser push subscriptions
+ */
+
+export function useGetVapidPublicKey<
+  TData = Awaited<ReturnType<typeof getVapidPublicKey>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getVapidPublicKey>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetVapidPublicKeyQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Register a browser Web Push subscription
+ */
+export const getSubscribePushUrl = () => {
+  return `/api/push/subscribe`;
+};
+
+export const subscribePush = async (
+  pushSubscribeBody: PushSubscribeBody,
+  options?: RequestInit,
+): Promise<OkResponse> => {
+  return customFetch<OkResponse>(getSubscribePushUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(pushSubscribeBody),
+  });
+};
+
+export const getSubscribePushMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof subscribePush>>,
+    TError,
+    { data: BodyType<PushSubscribeBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof subscribePush>>,
+  TError,
+  { data: BodyType<PushSubscribeBody> },
+  TContext
+> => {
+  const mutationKey = ["subscribePush"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof subscribePush>>,
+    { data: BodyType<PushSubscribeBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return subscribePush(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SubscribePushMutationResult = NonNullable<
+  Awaited<ReturnType<typeof subscribePush>>
+>;
+export type SubscribePushMutationBody = BodyType<PushSubscribeBody>;
+export type SubscribePushMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Register a browser Web Push subscription
+ */
+export const useSubscribePush = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof subscribePush>>,
+    TError,
+    { data: BodyType<PushSubscribeBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof subscribePush>>,
+  TError,
+  { data: BodyType<PushSubscribeBody> },
+  TContext
+> => {
+  return useMutation(getSubscribePushMutationOptions(options));
+};
+
+/**
+ * @summary Remove a browser Web Push subscription
+ */
+export const getUnsubscribePushUrl = () => {
+  return `/api/push/unsubscribe`;
+};
+
+export const unsubscribePush = async (
+  pushUnsubscribeBody: PushUnsubscribeBody,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getUnsubscribePushUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(pushUnsubscribeBody),
+  });
+};
+
+export const getUnsubscribePushMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof unsubscribePush>>,
+    TError,
+    { data: BodyType<PushUnsubscribeBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof unsubscribePush>>,
+  TError,
+  { data: BodyType<PushUnsubscribeBody> },
+  TContext
+> => {
+  const mutationKey = ["unsubscribePush"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof unsubscribePush>>,
+    { data: BodyType<PushUnsubscribeBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return unsubscribePush(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UnsubscribePushMutationResult = NonNullable<
+  Awaited<ReturnType<typeof unsubscribePush>>
+>;
+export type UnsubscribePushMutationBody = BodyType<PushUnsubscribeBody>;
+export type UnsubscribePushMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Remove a browser Web Push subscription
+ */
+export const useUnsubscribePush = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof unsubscribePush>>,
+    TError,
+    { data: BodyType<PushUnsubscribeBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof unsubscribePush>>,
+  TError,
+  { data: BodyType<PushUnsubscribeBody> },
+  TContext
+> => {
+  return useMutation(getUnsubscribePushMutationOptions(options));
 };

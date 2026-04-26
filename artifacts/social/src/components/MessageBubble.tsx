@@ -15,6 +15,7 @@ import {
 import { Reply, Smile, CornerDownRight, MessageSquare, Check, CheckCheck } from "lucide-react";
 import { LinkPreviewCard } from "./LinkPreviewCard";
 import { PollCard } from "./PollCard";
+import { BookmarkButton } from "./BookmarkButton";
 import { renderRichContent } from "@/lib/mentions";
 
 const QUICK_REACTIONS = ["👍", "❤️", "😂", "😮", "😢", "🔥", "🎉", "🙌"];
@@ -231,6 +232,7 @@ export function MessageBubble({
           )}
         </div>
         <MessageActions
+          messageId={message.id}
           pickerOpen={pickerOpen}
           setPickerOpen={setPickerOpen}
           onReply={() => onReply(message)}
@@ -333,6 +335,7 @@ export function MessageBubble({
         )}
       </div>
       <MessageActions
+        messageId={message.id}
         pickerOpen={pickerOpen}
         setPickerOpen={setPickerOpen}
         onReply={() => onReply(message)}
@@ -380,11 +383,13 @@ function ReactionRow({
 }
 
 function MessageActions({
+  messageId,
   pickerOpen,
   setPickerOpen,
   onReply,
   onPick,
 }: {
+  messageId: number;
   pickerOpen: boolean;
   setPickerOpen: (v: boolean) => void;
   onReply: () => void;
@@ -434,6 +439,7 @@ function MessageActions({
       >
         <Reply className="h-3.5 w-3.5" />
       </Button>
+      <BookmarkButton kind="message" targetId={messageId} />
     </div>
   );
 }

@@ -3302,3 +3302,297 @@ export const DevConfirmPremiumResponse = zod.object({
   cancelAtPeriodEnd: zod.boolean(),
   provider: zod.enum(["stripe", "dev"]),
 });
+
+/**
+ * @summary Global search across users, hashtags, rooms, posts, and messages
+ */
+export const GlobalSearchQueryParams = zod.object({
+  q: zod.coerce.string(),
+  kind: zod
+    .enum(["all", "users", "hashtags", "rooms", "posts", "messages"])
+    .optional(),
+  limit: zod.coerce.number().optional(),
+});
+
+export const GlobalSearchResponse = zod.object({
+  q: zod.string(),
+  users: zod.array(
+    zod.object({
+      id: zod.string(),
+      username: zod.string(),
+      displayName: zod.string(),
+      avatarUrl: zod.string().nullish(),
+      bio: zod.string().nullish(),
+      discriminator: zod.string().nullish(),
+      verified: zod.boolean(),
+      mvpPlan: zod.boolean(),
+    }),
+  ),
+  hashtags: zod.array(
+    zod.object({
+      tag: zod.string(),
+      memberCount: zod.number(),
+      messageCount: zod.number(),
+      followerCount: zod.number(),
+    }),
+  ),
+  rooms: zod.array(
+    zod.object({
+      tag: zod.string(),
+      memberCount: zod.number(),
+      messageCount: zod.number(),
+      followerCount: zod.number(),
+      recentMessages: zod.number(),
+      isPrivate: zod.boolean(),
+      isMember: zod.boolean(),
+    }),
+  ),
+  posts: zod.array(
+    zod.object({
+      id: zod.number(),
+      author: zod.object({
+        id: zod.string(),
+        username: zod.string(),
+        displayName: zod.string(),
+        avatarUrl: zod.string().nullish(),
+        discriminator: zod.string().nullish(),
+        role: zod.string(),
+        mvpPlan: zod.boolean(),
+        verified: zod.boolean(),
+      }),
+      content: zod.string(),
+      snippet: zod.string(),
+      createdAt: zod.coerce.date(),
+    }),
+  ),
+  messages: zod.array(
+    zod.object({
+      id: zod.number(),
+      senderName: zod.string(),
+      senderUsername: zod.string(),
+      senderAvatarUrl: zod.string().nullish(),
+      content: zod.string(),
+      snippet: zod.string(),
+      roomTag: zod.string().nullish(),
+      conversationId: zod.number().nullish(),
+      href: zod.string().nullish(),
+      createdAt: zod.coerce.date(),
+    }),
+  ),
+});
+
+/**
+ * @summary List my bookmarks (saved messages and posts)
+ */
+export const GetMyBookmarksQueryParams = zod.object({
+  kind: zod.enum(["all", "message", "post"]).optional(),
+});
+
+export const GetMyBookmarksResponseItem = zod.object({
+  id: zod.number(),
+  kind: zod.enum(["message", "post"]),
+  targetId: zod.number(),
+  note: zod.string().nullish(),
+  target: zod
+    .union([
+      zod.object({
+        kind: zod.enum(["message", "post"]),
+        id: zod.number(),
+        snippet: zod.string().nullish(),
+        author: zod
+          .union([
+            zod.object({
+              id: zod.string(),
+              username: zod.string(),
+              displayName: zod.string(),
+              avatarUrl: zod.string().nullish(),
+              discriminator: zod.string().nullish(),
+              role: zod.string(),
+              mvpPlan: zod.boolean(),
+              verified: zod.boolean(),
+            }),
+            zod.null(),
+          ])
+          .optional(),
+        roomTag: zod.string().nullish(),
+        conversationId: zod.number().nullish(),
+        href: zod.string().nullish(),
+        createdAt: zod.coerce.date().nullish(),
+        deleted: zod.boolean(),
+      }),
+      zod.null(),
+    ])
+    .optional(),
+  createdAt: zod.coerce.date(),
+});
+export const GetMyBookmarksResponse = zod.array(GetMyBookmarksResponseItem);
+
+/**
+ * @summary Save a message or post (with an optional private note)
+ */
+export const CreateBookmarkBody = zod.object({
+  kind: zod.enum(["message", "post"]),
+  targetId: zod.number(),
+  note: zod.string().nullish(),
+});
+
+/**
+ * @summary Check if a target is bookmarked
+ */
+export const CheckBookmarkQueryParams = zod.object({
+  kind: zod.enum(["message", "post"]),
+  targetId: zod.coerce.number(),
+});
+
+export const CheckBookmarkResponse = zod.object({
+  bookmarked: zod.boolean(),
+  bookmarkId: zod.number().nullish(),
+  note: zod.string().nullish(),
+});
+
+/**
+ * @summary Update a bookmark's private note
+ */
+export const UpdateBookmarkParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const UpdateBookmarkBody = zod.object({
+  note: zod.string().nullish(),
+});
+
+export const UpdateBookmarkResponse = zod.object({
+  id: zod.number(),
+  kind: zod.enum(["message", "post"]),
+  targetId: zod.number(),
+  note: zod.string().nullish(),
+  target: zod
+    .union([
+      zod.object({
+        kind: zod.enum(["message", "post"]),
+        id: zod.number(),
+        snippet: zod.string().nullish(),
+        author: zod
+          .union([
+            zod.object({
+              id: zod.string(),
+              username: zod.string(),
+              displayName: zod.string(),
+              avatarUrl: zod.string().nullish(),
+              discriminator: zod.string().nullish(),
+              role: zod.string(),
+              mvpPlan: zod.boolean(),
+              verified: zod.boolean(),
+            }),
+            zod.null(),
+          ])
+          .optional(),
+        roomTag: zod.string().nullish(),
+        conversationId: zod.number().nullish(),
+        href: zod.string().nullish(),
+        createdAt: zod.coerce.date().nullish(),
+        deleted: zod.boolean(),
+      }),
+      zod.null(),
+    ])
+    .optional(),
+  createdAt: zod.coerce.date(),
+});
+
+/**
+ * @summary Remove a bookmark
+ */
+export const DeleteBookmarkParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+/**
+ * @summary Get my server-side preferences (theme, accent, notification channels)
+ */
+export const GetMyPreferencesResponse = zod.object({
+  theme: zod.string(),
+  accent: zod.string(),
+  emailMentions: zod.boolean(),
+  emailReplies: zod.boolean(),
+  emailDms: zod.boolean(),
+  emailFollows: zod.boolean(),
+  emailReactions: zod.boolean(),
+  pushMentions: zod.boolean(),
+  pushReplies: zod.boolean(),
+  pushDms: zod.boolean(),
+  pushFollows: zod.boolean(),
+  pushReactions: zod.boolean(),
+  emailAddress: zod.string().nullish(),
+  emailEnabled: zod.boolean(),
+  pushEnabled: zod.boolean(),
+  pushSubscriptionCount: zod.number(),
+});
+
+/**
+ * @summary Update my server-side preferences
+ */
+export const UpdateMyPreferencesBody = zod.object({
+  theme: zod.string().optional(),
+  accent: zod.string().optional(),
+  emailMentions: zod.boolean().optional(),
+  emailReplies: zod.boolean().optional(),
+  emailDms: zod.boolean().optional(),
+  emailFollows: zod.boolean().optional(),
+  emailReactions: zod.boolean().optional(),
+  pushMentions: zod.boolean().optional(),
+  pushReplies: zod.boolean().optional(),
+  pushDms: zod.boolean().optional(),
+  pushFollows: zod.boolean().optional(),
+  pushReactions: zod.boolean().optional(),
+  emailAddress: zod.string().nullish(),
+});
+
+export const UpdateMyPreferencesResponse = zod.object({
+  theme: zod.string(),
+  accent: zod.string(),
+  emailMentions: zod.boolean(),
+  emailReplies: zod.boolean(),
+  emailDms: zod.boolean(),
+  emailFollows: zod.boolean(),
+  emailReactions: zod.boolean(),
+  pushMentions: zod.boolean(),
+  pushReplies: zod.boolean(),
+  pushDms: zod.boolean(),
+  pushFollows: zod.boolean(),
+  pushReactions: zod.boolean(),
+  emailAddress: zod.string().nullish(),
+  emailEnabled: zod.boolean(),
+  pushEnabled: zod.boolean(),
+  pushSubscriptionCount: zod.number(),
+});
+
+/**
+ * @summary Get the server's VAPID public key for browser push subscriptions
+ */
+export const GetVapidPublicKeyResponse = zod.object({
+  publicKey: zod.string().nullish(),
+  configured: zod.boolean(),
+});
+
+/**
+ * @summary Register a browser Web Push subscription
+ */
+export const SubscribePushBody = zod.object({
+  endpoint: zod.string(),
+  keys: zod.object({
+    p256dh: zod.string(),
+    auth: zod.string(),
+  }),
+  userAgent: zod.string().nullish(),
+});
+
+export const SubscribePushResponse = zod.object({
+  ok: zod.boolean(),
+});
+
+/**
+ * @summary Remove a browser Web Push subscription
+ */
+export const UnsubscribePushBody = zod.object({
+  endpoint: zod.string(),
+});

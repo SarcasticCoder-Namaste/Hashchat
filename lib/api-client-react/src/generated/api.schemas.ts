@@ -524,6 +524,213 @@ export interface OkResponse {
   ok: boolean;
 }
 
+export interface SearchUserHit {
+  id: string;
+  username: string;
+  displayName: string;
+  /** @nullable */
+  avatarUrl?: string | null;
+  /** @nullable */
+  bio?: string | null;
+  /** @nullable */
+  discriminator?: string | null;
+  verified: boolean;
+  mvpPlan: boolean;
+}
+
+export interface SearchHashtagHit {
+  tag: string;
+  memberCount: number;
+  messageCount: number;
+  followerCount: number;
+}
+
+export interface SearchRoomHit {
+  tag: string;
+  memberCount: number;
+  messageCount: number;
+  followerCount: number;
+  recentMessages: number;
+  isPrivate: boolean;
+  isMember: boolean;
+}
+
+export interface PostAuthor {
+  id: string;
+  username: string;
+  displayName: string;
+  /** @nullable */
+  avatarUrl?: string | null;
+  /** @nullable */
+  discriminator?: string | null;
+  role: string;
+  mvpPlan: boolean;
+  verified: boolean;
+}
+
+export interface SearchPostHit {
+  id: number;
+  author: PostAuthor;
+  content: string;
+  snippet: string;
+  createdAt: string;
+}
+
+export interface SearchMessageHit {
+  id: number;
+  senderName: string;
+  senderUsername: string;
+  /** @nullable */
+  senderAvatarUrl?: string | null;
+  content: string;
+  snippet: string;
+  /** @nullable */
+  roomTag?: string | null;
+  /** @nullable */
+  conversationId?: number | null;
+  /** @nullable */
+  href?: string | null;
+  createdAt: string;
+}
+
+export interface SearchResults {
+  q: string;
+  users: SearchUserHit[];
+  hashtags: SearchHashtagHit[];
+  rooms: SearchRoomHit[];
+  posts: SearchPostHit[];
+  messages: SearchMessageHit[];
+}
+
+export type BookmarkTargetKind =
+  (typeof BookmarkTargetKind)[keyof typeof BookmarkTargetKind];
+
+export const BookmarkTargetKind = {
+  message: "message",
+  post: "post",
+} as const;
+
+export interface BookmarkTarget {
+  kind: BookmarkTargetKind;
+  id: number;
+  /** @nullable */
+  snippet?: string | null;
+  author?: PostAuthor | null;
+  /** @nullable */
+  roomTag?: string | null;
+  /** @nullable */
+  conversationId?: number | null;
+  /** @nullable */
+  href?: string | null;
+  /** @nullable */
+  createdAt?: string | null;
+  deleted: boolean;
+}
+
+export type BookmarkKind = (typeof BookmarkKind)[keyof typeof BookmarkKind];
+
+export const BookmarkKind = {
+  message: "message",
+  post: "post",
+} as const;
+
+export interface Bookmark {
+  id: number;
+  kind: BookmarkKind;
+  targetId: number;
+  /** @nullable */
+  note?: string | null;
+  target?: BookmarkTarget | null;
+  createdAt: string;
+}
+
+export type CreateBookmarkBodyKind =
+  (typeof CreateBookmarkBodyKind)[keyof typeof CreateBookmarkBodyKind];
+
+export const CreateBookmarkBodyKind = {
+  message: "message",
+  post: "post",
+} as const;
+
+export interface CreateBookmarkBody {
+  kind: CreateBookmarkBodyKind;
+  targetId: number;
+  /** @nullable */
+  note?: string | null;
+}
+
+export interface UpdateBookmarkBody {
+  /** @nullable */
+  note?: string | null;
+}
+
+export interface BookmarkCheck {
+  bookmarked: boolean;
+  /** @nullable */
+  bookmarkId?: number | null;
+  /** @nullable */
+  note?: string | null;
+}
+
+export interface UserPreferences {
+  theme: string;
+  accent: string;
+  emailMentions: boolean;
+  emailReplies: boolean;
+  emailDms: boolean;
+  emailFollows: boolean;
+  emailReactions: boolean;
+  pushMentions: boolean;
+  pushReplies: boolean;
+  pushDms: boolean;
+  pushFollows: boolean;
+  pushReactions: boolean;
+  /** @nullable */
+  emailAddress?: string | null;
+  emailEnabled: boolean;
+  pushEnabled: boolean;
+  pushSubscriptionCount: number;
+}
+
+export interface UpdatePreferencesBody {
+  theme?: string;
+  accent?: string;
+  emailMentions?: boolean;
+  emailReplies?: boolean;
+  emailDms?: boolean;
+  emailFollows?: boolean;
+  emailReactions?: boolean;
+  pushMentions?: boolean;
+  pushReplies?: boolean;
+  pushDms?: boolean;
+  pushFollows?: boolean;
+  pushReactions?: boolean;
+  /** @nullable */
+  emailAddress?: string | null;
+}
+
+export interface VapidKeyResponse {
+  /** @nullable */
+  publicKey?: string | null;
+  configured: boolean;
+}
+
+export type PushSubscribeBodyKeys = {
+  p256dh: string;
+  auth: string;
+};
+
+export interface PushSubscribeBody {
+  endpoint: string;
+  keys: PushSubscribeBodyKeys;
+  /** @nullable */
+  userAgent?: string | null;
+}
+
+export interface PushUnsubscribeBody {
+  endpoint: string;
+}
+
 export interface MvpCode {
   code: string;
   createdBy: string;
@@ -595,19 +802,6 @@ export interface GifSearchResult {
 export interface GifConfigError {
   error: string;
   message: string;
-}
-
-export interface PostAuthor {
-  id: string;
-  username: string;
-  displayName: string;
-  /** @nullable */
-  avatarUrl?: string | null;
-  /** @nullable */
-  discriminator?: string | null;
-  role: string;
-  mvpPlan: boolean;
-  verified: boolean;
 }
 
 export interface Post {
@@ -1095,3 +1289,47 @@ export const GetYoutubeReelsKind = {
 export type ListCommunitiesParams = {
   mine?: boolean;
 };
+
+export type GlobalSearchParams = {
+  q: string;
+  kind?: GlobalSearchKind;
+  limit?: number;
+};
+
+export type GlobalSearchKind =
+  (typeof GlobalSearchKind)[keyof typeof GlobalSearchKind];
+
+export const GlobalSearchKind = {
+  all: "all",
+  users: "users",
+  hashtags: "hashtags",
+  rooms: "rooms",
+  posts: "posts",
+  messages: "messages",
+} as const;
+
+export type GetMyBookmarksParams = {
+  kind?: GetMyBookmarksKind;
+};
+
+export type GetMyBookmarksKind =
+  (typeof GetMyBookmarksKind)[keyof typeof GetMyBookmarksKind];
+
+export const GetMyBookmarksKind = {
+  all: "all",
+  message: "message",
+  post: "post",
+} as const;
+
+export type CheckBookmarkParams = {
+  kind: CheckBookmarkKind;
+  targetId: number;
+};
+
+export type CheckBookmarkKind =
+  (typeof CheckBookmarkKind)[keyof typeof CheckBookmarkKind];
+
+export const CheckBookmarkKind = {
+  message: "message",
+  post: "post",
+} as const;

@@ -14,6 +14,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Trash2, BadgeCheck, Smile } from "lucide-react";
+import { BookmarkButton } from "./BookmarkButton";
 import { renderRichContent } from "@/lib/mentions";
 
 const QUICK_REACTIONS = ["👍", "❤️", "😂", "😮", "😢", "🔥", "🎉", "🙌"];
@@ -98,21 +99,24 @@ export function PostCard({ post, meId, onDeleted, onChanged }: PostCardProps) {
           <span className="text-xs text-muted-foreground/70">
             {timeAgo(post.createdAt)}
           </span>
-          {isMine && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="ml-auto h-7 w-7 text-muted-foreground hover:text-destructive"
-              onClick={() => {
-                if (confirm("Delete this post?")) del.mutate({ id: post.id });
-              }}
-              disabled={del.isPending}
-              data-testid={`button-delete-post-${post.id}`}
-              aria-label="Delete post"
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-            </Button>
-          )}
+          <div className="ml-auto flex items-center gap-0.5">
+            <BookmarkButton kind="post" targetId={post.id} />
+            {isMine && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                onClick={() => {
+                  if (confirm("Delete this post?")) del.mutate({ id: post.id });
+                }}
+                disabled={del.isPending}
+                data-testid={`button-delete-post-${post.id}`}
+                aria-label="Delete post"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </Button>
+            )}
+          </div>
         </div>
         {post.content && (
           <p className="mt-1 whitespace-pre-wrap break-words text-sm text-foreground">

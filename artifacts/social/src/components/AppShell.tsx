@@ -30,6 +30,9 @@ import { IncomingCallToast } from "@/components/IncomingCallToast";
 import { PageTransition } from "@/components/PageTransition";
 import { FriendCodeSearch } from "@/components/FriendCodeSearch";
 import { NotificationsBell } from "@/components/NotificationsBell";
+import { GlobalSearchBar } from "@/components/GlobalSearchBar";
+import { useSyncedPreferences } from "@/lib/serverPreferences";
+import { Bookmark as BookmarkIcon } from "lucide-react";
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
 
@@ -61,6 +64,7 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
     label: "You",
     items: [
       { href: "/app/friends", label: "Friends", icon: UserPlus },
+      { href: "/app/saved", label: "Saved", icon: BookmarkIcon },
       { href: "/app/premium", label: "Premium", icon: Sparkles },
       { href: "/app/settings", label: "Settings", icon: SettingsIcon },
     ],
@@ -70,10 +74,9 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
 const MOBILE_NAV: NavItem[] = [
   { href: "/app/home", label: "Home", icon: HomeIcon },
   { href: "/app/discover", label: "Discover", icon: Compass },
-  { href: "/app/reels", label: "Reels", icon: Film },
   { href: "/app/rooms", label: "Rooms", icon: Hash },
-  { href: "/app/communities", label: "Communities", icon: Users },
   { href: "/app/messages", label: "Messages", icon: MessageCircle },
+  { href: "/app/saved", label: "Saved", icon: BookmarkIcon },
   { href: "/app/friends", label: "Friends", icon: UserPlus },
   { href: "/app/settings", label: "Settings", icon: SettingsIcon },
 ];
@@ -100,6 +103,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
   });
   const incomingCount = friendReqs?.incoming.length ?? 0;
   const isStaff = me?.role === "admin" || me?.role === "moderator";
+  useSyncedPreferences();
 
   const groups = isStaff
     ? [
@@ -113,7 +117,11 @@ export default function AppShell({ children }: { children: ReactNode }) {
     : NAV_GROUPS;
 
   const mobileNav = isStaff
-    ? [...MOBILE_NAV.slice(0, 7), { href: "/app/admin", label: "Admin", icon: ShieldCheck }, MOBILE_NAV[7]]
+    ? [
+        ...MOBILE_NAV.slice(0, MOBILE_NAV.length - 1),
+        { href: "/app/admin", label: "Admin", icon: ShieldCheck },
+        MOBILE_NAV[MOBILE_NAV.length - 1],
+      ]
     : MOBILE_NAV;
 
   useEffect(() => {
@@ -306,9 +314,12 @@ export default function AppShell({ children }: { children: ReactNode }) {
               </Button>
             </div>
           </header>
-          <header className="sticky top-0 z-10 hidden items-center justify-end gap-2 border-b border-border bg-card/60 px-6 py-2.5 backdrop-blur md:flex">
-            <FriendCodeSearch />
-            <NotificationsBell enabled={!!me} />
+          <header className="sticky top-0 z-10 hidden items-center justify-between gap-3 border-b border-border bg-card/60 px-6 py-2.5 backdrop-blur md:flex">
+            <GlobalSearchBar widthClass="w-80" />
+            <div className="flex items-center gap-2">
+              <FriendCodeSearch />
+              <NotificationsBell enabled={!!me} />
+            </div>
           </header>
 
           <main className="flex-1 overflow-y-auto">
@@ -316,10 +327,8 @@ export default function AppShell({ children }: { children: ReactNode }) {
           </main>
 
           <nav
-            className={[
-              "sticky bottom-0 z-10 grid border-t border-border bg-card/90 backdrop-blur md:hidden",
-              isStaff ? "grid-cols-9" : "grid-cols-8",
-            ].join(" ")}
+            className="sticky bottom-0 z-10 grid border-t border-border bg-card/90 backdrop-blur md:hidden"
+            style={{ gridTemplateColumns: `repeat(${mobileNav.length}, minmax(0, 1fr))` }}
           >
             {mobileNav.map(({ href, label, icon: Icon }) => {
               const active = isActive(location, href);

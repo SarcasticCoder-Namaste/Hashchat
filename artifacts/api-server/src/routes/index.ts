@@ -23,6 +23,10 @@ import notificationsRouter from "./notifications";
 import eventsRouter from "./events";
 import communitiesRouter from "./communities";
 import premiumRouter from "./premium";
+import searchRouter from "./search";
+import bookmarksRouter from "./bookmarks";
+import preferencesRouter from "./preferences";
+import pushRouter from "./push";
 
 const router: IRouter = Router();
 
@@ -50,5 +54,9 @@ router.use(notificationsRouter);
 router.use(eventsRouter);
 router.use(communitiesRouter);
 router.use(premiumRouter);
+router.use(searchRouter);
+router.use(bookmarksRouter);
+router.use(preferencesRouter);
+router.use(pushRouter);
 
 export default router;

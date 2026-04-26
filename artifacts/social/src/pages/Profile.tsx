@@ -71,6 +71,20 @@ import {
 import { ImageUploadButton } from "@/components/ImageUploadButton";
 import { FriendCodeQRDialog } from "@/components/FriendCodeQRDialog";
 import {
+  ACCENTS,
+  applyAccentToDocument,
+  readStoredAccent,
+} from "@/lib/serverPreferences";
+import {
+  subscribeToPush,
+  unsubscribeFromPush,
+  isPushSupported,
+} from "@/lib/pushSubscription";
+import {
+  useGetMyPreferences,
+  useUpdateMyPreferences,
+} from "@workspace/api-client-react";
+import {
   BANNER_PRESETS,
   AVATAR_EMOJIS,
   bannerPresetToUrl,
@@ -961,19 +975,69 @@ function MvpRedeemSection({ isMvp }: { isMvp: boolean }) {
 
 function AppearanceTab() {
   const { theme, setTheme, themes } = useTheme();
+  const [accent, setAccent] = useState<string>(() => readStoredAccent());
+  const updatePrefs = useUpdateMyPreferences();
+
+  function chooseAccent(id: string) {
+    setAccent(id);
+    applyAccentToDocument(id);
+    updatePrefs.mutate({ data: { accent: id } });
+  }
+
+  function chooseTheme(id: typeof theme) {
+    setTheme(id);
+    updatePrefs.mutate({ data: { theme: id } });
+  }
+
   return (
-    <div className="space-y-4 rounded-xl border border-border bg-card p-5 shadow-sm">
+    <div className="space-y-6 rounded-xl border border-border bg-card p-5 shadow-sm">
       <div className="flex items-start justify-between gap-3">
         <div>
           <h2 className="text-lg font-semibold text-foreground">Appearance</h2>
           <p className="mt-0.5 text-sm text-muted-foreground">
-            Pick a theme — six light palettes and four dark ones. Saved on this device.
+            Pick a theme and an accent color. Synced across your devices.
           </p>
         </div>
         <span className="hidden rounded-full bg-accent px-2 py-0.5 text-[10px] font-semibold text-accent-foreground sm:inline-block">
           {themes.length} themes
         </span>
       </div>
+
+      <section>
+        <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          Accent color
+        </h3>
+        <div className="flex flex-wrap gap-2" data-testid="accent-grid">
+          {ACCENTS.map((a) => {
+            const active = accent === a.id;
+            return (
+              <button
+                key={a.id}
+                type="button"
+                onClick={() => chooseAccent(a.id)}
+                data-testid={`accent-${a.id}`}
+                aria-label={a.label}
+                title={a.label}
+                className={[
+                  "relative h-9 w-9 overflow-hidden rounded-full border-2 transition-all",
+                  active
+                    ? "border-foreground ring-2 ring-primary/40"
+                    : "border-border hover:scale-105",
+                ].join(" ")}
+                style={{ background: a.swatch }}
+              >
+                {active && (
+                  <Check className="absolute inset-0 m-auto h-4 w-4 text-white drop-shadow" />
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </section>
+
+      <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+        Theme
+      </h3>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {themes.map((t) => {
           const active = theme === t.id;
@@ -1086,52 +1150,74 @@ function PrefRow({
 
 function NotificationsTab() {
   const { toast } = useToast();
+  const qc = useQueryClient();
   const [sound, setSound] = usePref<boolean>(PREF_KEYS.notifSound, true);
-  const [mentions, setMentions] = usePref<boolean>(
-    PREF_KEYS.notifMentions,
-    true,
-  );
-  const [friendReqs, setFriendReqs] = usePref<boolean>(
-    PREF_KEYS.notifFriendRequests,
-    true,
-  );
-  const [marketing, setMarketing] = usePref<boolean>(
-    PREF_KEYS.notifMarketing,
-    false,
-  );
+  const { data: prefs, isLoading } = useGetMyPreferences();
+  const updatePrefs = useUpdateMyPreferences({
+    mutation: {
+      onSuccess: () => qc.invalidateQueries({ queryKey: ["/api/me/preferences"] }),
+    },
+  });
+  const [busy, setBusy] = useState(false);
   const [perm, setPerm] = useState<NotificationPermission | "unsupported">(
     typeof Notification !== "undefined" ? Notification.permission : "unsupported",
   );
+  const pushSupported = isPushSupported();
 
-  async function requestBrowserPerm() {
-    if (typeof Notification === "undefined") return;
-    const result = await Notification.requestPermission();
-    setPerm(result);
-    if (result === "granted") {
-      new Notification("HashChat notifications enabled", {
-        body: "We'll let you know when something needs your attention.",
-        icon: `${basePath}/logo.png`,
-      });
-      toast({ title: "Notifications on", description: "You're all set." });
-    } else if (result === "denied") {
-      toast({
-        title: "Notifications blocked",
-        description:
-          "Update your browser site settings to allow notifications.",
-        variant: "destructive",
-      });
+  function setPref(field: string, value: boolean) {
+    updatePrefs.mutate({ data: { [field]: value } as any });
+  }
+
+  async function enablePush() {
+    setBusy(true);
+    try {
+      const result = await subscribeToPush();
+      if (!result.ok) {
+        toast({
+          title: "Couldn't enable push",
+          description: result.message ?? "Unknown error",
+          variant: "destructive",
+        });
+        return;
+      }
+      setPerm("granted");
+      qc.invalidateQueries({ queryKey: ["/api/me/preferences"] });
+      toast({ title: "Push notifications on", description: "We'll ping this device." });
+    } finally {
+      setBusy(false);
     }
   }
 
-  return (
-    <div className="space-y-4 rounded-xl border border-border bg-card p-5 shadow-sm">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <h2 className="text-lg font-semibold text-foreground">Notifications</h2>
-          <p className="text-sm text-muted-foreground">
-            Choose what nudges you and how. Saved on this device.
-          </p>
+  async function disablePush() {
+    setBusy(true);
+    try {
+      await unsubscribeFromPush();
+      qc.invalidateQueries({ queryKey: ["/api/me/preferences"] });
+      toast({ title: "Push notifications off" });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (isLoading || !prefs) {
+    return (
+      <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <Loader2 className="h-4 w-4 animate-spin" /> Loading notification settings…
         </div>
+      </div>
+    );
+  }
+
+  const pushOn = prefs.pushEnabled && perm === "granted";
+
+  return (
+    <div className="space-y-5 rounded-xl border border-border bg-card p-5 shadow-sm">
+      <div>
+        <h2 className="text-lg font-semibold text-foreground">Notifications</h2>
+        <p className="text-sm text-muted-foreground">
+          Choose what nudges you and how. Synced across your devices.
+        </p>
       </div>
 
       <div className="rounded-lg border border-primary/30 bg-gradient-to-r from-violet-500/10 to-pink-500/10 p-4">
@@ -1140,62 +1226,152 @@ function NotificationsTab() {
             <Bell className="h-4 w-4" />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-semibold text-foreground">
-              Browser notifications
-            </p>
+            <p className="text-sm font-semibold text-foreground">Browser push</p>
             <p className="mt-0.5 text-xs text-muted-foreground">
-              Status:{" "}
-              <span className="font-medium text-foreground">
-                {perm === "granted"
-                  ? "Allowed"
+              {!pushSupported
+                ? "Not supported in this browser."
+                : pushOn
+                  ? `Enabled on ${prefs.pushSubscriptionCount} device${prefs.pushSubscriptionCount === 1 ? "" : "s"}.`
                   : perm === "denied"
-                    ? "Blocked"
-                    : perm === "unsupported"
-                      ? "Not supported in this browser"
-                      : "Not asked yet"}
-              </span>
+                    ? "Blocked — update your browser site settings to allow."
+                    : "Off on this device."}
             </p>
           </div>
-          {perm !== "granted" && perm !== "unsupported" && (
-            <Button
-              size="sm"
-              onClick={requestBrowserPerm}
-              data-testid="button-request-notif-perm"
-            >
-              Enable
-            </Button>
-          )}
+          {pushSupported &&
+            (pushOn ? (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={disablePush}
+                disabled={busy}
+                data-testid="button-push-disable"
+              >
+                {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Disable"}
+              </Button>
+            ) : (
+              <Button
+                size="sm"
+                onClick={enablePush}
+                disabled={busy || perm === "denied"}
+                data-testid="button-push-enable"
+              >
+                {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Enable"}
+              </Button>
+            ))}
         </div>
       </div>
 
-      <div className="space-y-2">
+      <div>
+        <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          Email
+          {!prefs.emailEnabled && (
+            <span className="ml-2 rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-normal normal-case text-muted-foreground">
+              Add an email in your account to enable
+            </span>
+          )}
+        </h3>
+        <div className="space-y-2">
+          <PrefRow
+            title="Mentions"
+            description="Email me when someone @mentions me."
+            checked={prefs.emailMentions}
+            onCheckedChange={(v) => setPref("emailMentions", v)}
+            disabled={!prefs.emailEnabled}
+            testId="switch-email-mentions"
+          />
+          <PrefRow
+            title="Replies"
+            description="Email me when someone replies to my messages or threads."
+            checked={prefs.emailReplies}
+            onCheckedChange={(v) => setPref("emailReplies", v)}
+            disabled={!prefs.emailEnabled}
+            testId="switch-email-replies"
+          />
+          <PrefRow
+            title="Direct messages"
+            description="Email me when I get a new DM."
+            checked={prefs.emailDms}
+            onCheckedChange={(v) => setPref("emailDms", v)}
+            disabled={!prefs.emailEnabled}
+            testId="switch-email-dms"
+          />
+          <PrefRow
+            title="Follows & friend requests"
+            description="Email me when someone follows me or sends a friend request."
+            checked={prefs.emailFollows}
+            onCheckedChange={(v) => setPref("emailFollows", v)}
+            disabled={!prefs.emailEnabled}
+            testId="switch-email-follows"
+          />
+          <PrefRow
+            title="Reactions"
+            description="Email me when someone reacts to my message or post."
+            checked={prefs.emailReactions}
+            onCheckedChange={(v) => setPref("emailReactions", v)}
+            disabled={!prefs.emailEnabled}
+            testId="switch-email-reactions"
+          />
+        </div>
+      </div>
+
+      <div>
+        <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          Browser push
+        </h3>
+        <div className="space-y-2">
+          <PrefRow
+            title="Mentions"
+            description="Push me when someone @mentions me."
+            checked={prefs.pushMentions}
+            onCheckedChange={(v) => setPref("pushMentions", v)}
+            disabled={!pushOn}
+            testId="switch-push-mentions"
+          />
+          <PrefRow
+            title="Replies"
+            description="Push me when someone replies."
+            checked={prefs.pushReplies}
+            onCheckedChange={(v) => setPref("pushReplies", v)}
+            disabled={!pushOn}
+            testId="switch-push-replies"
+          />
+          <PrefRow
+            title="Direct messages"
+            description="Push me when I get a new DM."
+            checked={prefs.pushDms}
+            onCheckedChange={(v) => setPref("pushDms", v)}
+            disabled={!pushOn}
+            testId="switch-push-dms"
+          />
+          <PrefRow
+            title="Follows & friend requests"
+            description="Push me when someone follows me or sends a friend request."
+            checked={prefs.pushFollows}
+            onCheckedChange={(v) => setPref("pushFollows", v)}
+            disabled={!pushOn}
+            testId="switch-push-follows"
+          />
+          <PrefRow
+            title="Reactions"
+            description="Push me when someone reacts."
+            checked={prefs.pushReactions}
+            onCheckedChange={(v) => setPref("pushReactions", v)}
+            disabled={!pushOn}
+            testId="switch-push-reactions"
+          />
+        </div>
+      </div>
+
+      <div>
+        <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          In-app
+        </h3>
         <PrefRow
           title="Sound on new message"
           description="Play a soft chime when a new message arrives in an open chat."
           checked={sound}
           onCheckedChange={setSound}
           testId="switch-notif-sound"
-        />
-        <PrefRow
-          title="@mentions"
-          description="Highlight messages and rooms where someone @-mentions you."
-          checked={mentions}
-          onCheckedChange={setMentions}
-          testId="switch-notif-mentions"
-        />
-        <PrefRow
-          title="Friend requests"
-          description="Surface incoming friend requests in your inbox."
-          checked={friendReqs}
-          onCheckedChange={setFriendReqs}
-          testId="switch-notif-friends"
-        />
-        <PrefRow
-          title="Product updates"
-          description="Occasional emails about new HashChat features."
-          checked={marketing}
-          onCheckedChange={setMarketing}
-          testId="switch-notif-marketing"
         />
       </div>
     </div>

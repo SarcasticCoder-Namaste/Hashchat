@@ -786,6 +786,102 @@ export type RoomInvite = typeof roomInvitesTable.$inferSelect;
 export type RoomJoinRequest = typeof roomJoinRequestsTable.$inferSelect;
 export type Subscription = typeof subscriptionsTable.$inferSelect;
 
+export const bookmarksTable = pgTable(
+  "bookmarks",
+  {
+    id: serial("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => usersTable.id, { onDelete: "cascade" }),
+    kind: text("kind").notNull(),
+    targetId: integer("target_id").notNull(),
+    note: text("note"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("bookmarks_user_target_unique").on(
+      t.userId,
+      t.kind,
+      t.targetId,
+    ),
+    index("bookmarks_user_idx").on(t.userId, t.createdAt),
+  ],
+);
+
+export const userPreferencesTable = pgTable("user_preferences", {
+  userId: text("user_id")
+    .primaryKey()
+    .references(() => usersTable.id, { onDelete: "cascade" }),
+  theme: text("theme").notNull().default("light"),
+  accent: text("accent").notNull().default("default"),
+  emailMentions: boolean("email_mentions").notNull().default(true),
+  emailReplies: boolean("email_replies").notNull().default(true),
+  emailDms: boolean("email_dms").notNull().default(true),
+  emailFollows: boolean("email_follows").notNull().default(false),
+  emailReactions: boolean("email_reactions").notNull().default(false),
+  pushMentions: boolean("push_mentions").notNull().default(true),
+  pushReplies: boolean("push_replies").notNull().default(true),
+  pushDms: boolean("push_dms").notNull().default(true),
+  pushFollows: boolean("push_follows").notNull().default(true),
+  pushReactions: boolean("push_reactions").notNull().default(false),
+  emailAddress: text("email_address"),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+export const pushSubscriptionsTable = pgTable(
+  "push_subscriptions",
+  {
+    id: serial("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => usersTable.id, { onDelete: "cascade" }),
+    endpoint: text("endpoint").notNull(),
+    p256dh: text("p256dh").notNull(),
+    auth: text("auth").notNull(),
+    userAgent: text("user_agent"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("push_subscriptions_endpoint_unique").on(t.endpoint),
+    index("push_subscriptions_user_idx").on(t.userId),
+  ],
+);
+
+export const notificationDeliveriesTable = pgTable(
+  "notification_deliveries",
+  {
+    id: serial("id").primaryKey(),
+    notificationId: integer("notification_id")
+      .notNull()
+      .references(() => notificationsTable.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => usersTable.id, { onDelete: "cascade" }),
+    channel: text("channel").notNull(),
+    status: text("status").notNull(),
+    error: text("error"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    index("notification_deliveries_notif_idx").on(t.notificationId),
+    index("notification_deliveries_user_idx").on(t.userId, t.createdAt),
+  ],
+);
+
+export type Bookmark = typeof bookmarksTable.$inferSelect;
+export type UserPreferences = typeof userPreferencesTable.$inferSelect;
+export type PushSubscription = typeof pushSubscriptionsTable.$inferSelect;
+export type NotificationDelivery =
+  typeof notificationDeliveriesTable.$inferSelect;
+
 export type Post = typeof postsTable.$inferSelect;
 export type PostMedia = typeof postMediaTable.$inferSelect;
 export type Poll = typeof pollsTable.$inferSelect;

@@ -1,4 +1,5 @@
-import { db, notificationsTable } from "@workspace/db";
+import { db, notificationsTable, usersTable } from "@workspace/db";
+import { eq } from "drizzle-orm";
 
 export type NotificationKind =
   | "mention"
@@ -28,20 +29,60 @@ export async function createNotification(
   input: CreateNotificationInput,
 ): Promise<void> {
   if (input.actorId && input.actorId === input.recipientId) return;
+  let inserted: { id: number } | undefined;
   try {
-    await db.insert(notificationsTable).values({
-      recipientId: input.recipientId,
-      actorId: input.actorId ?? null,
-      kind: input.kind,
-      targetType: input.targetType ?? null,
-      targetId: input.targetId ?? null,
-      targetTextId: input.targetTextId ?? null,
-      snippet: input.snippet?.slice(0, 240) ?? null,
-      extra: input.extra ?? null,
-    });
+    const [row] = await db
+      .insert(notificationsTable)
+      .values({
+        recipientId: input.recipientId,
+        actorId: input.actorId ?? null,
+        kind: input.kind,
+        targetType: input.targetType ?? null,
+        targetId: input.targetId ?? null,
+        targetTextId: input.targetTextId ?? null,
+        snippet: input.snippet?.slice(0, 240) ?? null,
+        extra: input.extra ?? null,
+      })
+      .returning({ id: notificationsTable.id });
+    inserted = row;
   } catch {
     // Best-effort; never block the request if notifications fail.
+    return;
   }
+  if (!inserted) return;
+
+  // Fan-out to email/push, deferred so we never block the request.
+  // We deliberately don't await this; the dispatcher logs delivery rows itself.
+  setImmediate(() => {
+    void (async () => {
+      try {
+        let actorName: string | null = null;
+        if (input.actorId) {
+          const [actor] = await db
+            .select({ displayName: usersTable.displayName })
+            .from(usersTable)
+            .where(eq(usersTable.id, input.actorId))
+            .limit(1);
+          actorName = actor?.displayName ?? null;
+        }
+        const { dispatchNotification } = await import(
+          "./notificationDispatcher"
+        );
+        await dispatchNotification({
+          notificationId: inserted!.id,
+          recipientId: input.recipientId,
+          kind: input.kind,
+          actorName,
+          snippet: input.snippet ?? null,
+          targetType: input.targetType ?? null,
+          targetId: input.targetId ?? null,
+          targetTextId: input.targetTextId ?? null,
+        });
+      } catch {
+        // swallow
+      }
+    })();
+  });
 }
 
 /**
