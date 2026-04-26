@@ -74,6 +74,7 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
 const MOBILE_NAV: NavItem[] = [
   { href: "/app/home", label: "Home", icon: HomeIcon },
   { href: "/app/discover", label: "Discover", icon: Compass },
+  { href: "/app/reels", label: "Reels", icon: Film },
   { href: "/app/rooms", label: "Rooms", icon: Hash },
   { href: "/app/messages", label: "Messages", icon: MessageCircle },
   { href: "/app/saved", label: "Saved", icon: BookmarkIcon },
