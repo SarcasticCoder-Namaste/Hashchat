@@ -71,33 +71,73 @@ router.get("/users/lookup", requireAuth, async (req, res): Promise<void> => {
     res.status(400).json({ error: "Missing code" });
     return;
   }
-  const cleaned = code.replace(/^@/, "");
-  const [usernamePart, discPart] = cleaned.split("#");
-  const username = usernamePart?.trim().toLowerCase();
-  const disc = discPart?.trim();
-  if (!username) {
-    res.status(400).json({ error: "Invalid code" });
-    return;
+  const cleaned = code.replace(/^@/, "").trim();
+
+  let matchId: string | undefined;
+
+  if (cleaned.includes("#")) {
+    const [usernamePart, discPart] = cleaned.split("#");
+    const username = usernamePart?.trim().toLowerCase();
+    const disc = discPart?.trim();
+    if (username) {
+      const where = disc
+        ? and(eq(usersTable.username, username), eq(usersTable.discriminator, disc))
+        : eq(usersTable.username, username);
+      const [row] = await db
+        .select({ id: usersTable.id })
+        .from(usersTable)
+        .where(where)
+        .limit(1);
+      if (row) matchId = row.id;
+    }
   }
-  const where = disc
-    ? and(eq(usersTable.username, username), eq(usersTable.discriminator, disc))
-    : eq(usersTable.username, username);
-  const [match] = await db
-    .select({ id: usersTable.id })
-    .from(usersTable)
-    .where(where)
-    .limit(1);
-  if (!match) {
+
+  // For non-# inputs: try username first (so it always wins on collision),
+  // then fall back to friend-code matching.
+  if (!matchId) {
+    const fallbackUsername = cleaned.toLowerCase();
+    if (fallbackUsername) {
+      const [row] = await db
+        .select({ id: usersTable.id })
+        .from(usersTable)
+        .where(eq(usersTable.username, fallbackUsername))
+        .limit(1);
+      if (row) matchId = row.id;
+    }
+  }
+
+  if (!matchId) {
+    const normalized = normalizeFriendCode(cleaned);
+    if (normalized.length >= 3) {
+      const formatted =
+        normalized.length === 7
+          ? `${normalized.slice(0, 3)}-${normalized.slice(3)}`
+          : normalized;
+      const [row] = await db
+        .select({ id: usersTable.id })
+        .from(usersTable)
+        .where(
+          or(
+            eq(usersTable.friendCode, formatted),
+            eq(usersTable.friendCode, normalized),
+          ),
+        )
+        .limit(1);
+      if (row) matchId = row.id;
+    }
+  }
+
+  if (!matchId) {
     res.status(404).json({ error: "No user found with that code" });
     return;
   }
-  if (match.id === me) {
+  if (matchId === me) {
     res.status(400).json({ error: "That's you!" });
     return;
   }
-  const [user] = await loadMatchUsers(me, [match.id]);
-  const statusMap = await loadFriendStatuses(me, [match.id]);
-  res.json({ ...user, friendStatus: statusMap.get(match.id) ?? null });
+  const [user] = await loadMatchUsers(me, [matchId]);
+  const statusMap = await loadFriendStatuses(me, [matchId]);
+  res.json({ ...user, friendStatus: statusMap.get(matchId) ?? null });
 });
 
 router.get("/me/friend-code", requireAuth, async (req, res): Promise<void> => {

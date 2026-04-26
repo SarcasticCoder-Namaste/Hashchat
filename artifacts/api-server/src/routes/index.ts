@@ -31,6 +31,9 @@ import pushRouter from "./push";
 const router: IRouter = Router();
 
 router.use(healthRouter);
+// friendsRouter must be registered BEFORE usersRouter so its specific
+// /users/lookup and /users/by-code/:code routes win over /users/:id.
+router.use(friendsRouter);
 router.use(usersRouter);
 router.use(hashtagsRouter);
 router.use(discoveryRouter);
@@ -38,7 +41,6 @@ router.use(conversationsRouter);
 router.use(messagesRouter);
 router.use(roomsRouter);
 router.use(statsRouter);
-router.use(friendsRouter);
 router.use(adminRouter);
 router.use(mvpRouter);
 router.use(reelsRouter);

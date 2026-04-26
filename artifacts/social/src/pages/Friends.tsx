@@ -75,7 +75,13 @@ export default function Friends() {
       </p>
 
       <div className="mt-6 grid gap-4 md:grid-cols-2">
-        {me && <YourCodeCard username={me.username} discriminator={me.discriminator ?? null} />}
+        {me && (
+          <YourCodeCard
+            friendCode={me.friendCode ?? null}
+            username={me.username}
+            discriminator={me.discriminator ?? null}
+          />
+        )}
         <FindByCodeCard />
       </div>
 
@@ -271,9 +277,18 @@ function OutgoingActions({ user }: { user: MatchUser }) {
 }
 
 
-function YourCodeCard({ username, discriminator }: { username: string; discriminator: string | null }) {
+function YourCodeCard({
+  friendCode,
+  username,
+  discriminator,
+}: {
+  friendCode: string | null;
+  username: string;
+  discriminator: string | null;
+}) {
   const { toast } = useToast();
-  const code = `${username}${discriminator ? `#${discriminator}` : ""}`;
+  const handle = `${username}${discriminator ? `#${discriminator}` : ""}`;
+  const code = friendCode ?? handle;
   const copy = async () => {
     try {
       await navigator.clipboard.writeText(code);
@@ -291,7 +306,7 @@ function YourCodeCard({ username, discriminator }: { username: string; discrimin
       <div className="mt-2 flex items-center gap-2">
         <code
           data-testid="text-my-friend-code"
-          className="flex-1 truncate rounded-lg bg-muted px-3 py-2 font-mono text-sm"
+          className="flex-1 truncate rounded-lg bg-muted px-3 py-2 font-mono text-sm tracking-wider"
         >
           {code}
         </code>
@@ -307,6 +322,11 @@ function YourCodeCard({ username, discriminator }: { username: string; discrimin
       </div>
       <p className="mt-2 text-xs text-muted-foreground">
         Share this so friends can find you instantly.
+        {friendCode && (
+          <>
+            {" "}Or use your handle: <span className="font-mono">@{handle}</span>
+          </>
+        )}
       </p>
     </div>
   );
@@ -358,7 +378,7 @@ function FindByCodeCard() {
     <div className="rounded-xl border bg-card p-4">
       <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
         <Hash className="h-4 w-4" />
-        Add by friend code
+        Add by friend code or handle
       </div>
       <form
         onSubmit={(e) => {
@@ -370,7 +390,7 @@ function FindByCodeCard() {
         <Input
           value={code}
           onChange={(e) => setCode(e.target.value)}
-          placeholder="username#1234"
+          placeholder="ABC-1234 or username#1234"
           data-testid="input-friend-code"
           className="font-mono text-sm"
         />
