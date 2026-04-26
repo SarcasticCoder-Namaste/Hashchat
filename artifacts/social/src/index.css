@@ -741,3 +741,22 @@
     }
   }
 }
+/* Clerk auth widget overrides — keep footer & dev badge consistent with our card. */
+.cl-rootBox,
+.cl-card,
+.cl-cardBox,
+.cl-footer,
+.cl-footerAction,
+.cl-footerActionText,
+.cl-footerPages,
+.cl-internal-1hp5nqm,
+.cl-internal-b3fm6y {
+  background: transparent !important;
+  background-color: transparent !important;
+}
+.cl-card { box-shadow: none !important; }
+/* Hide Clerk's "Development mode" badge on auth screens — looks unpolished. */
+.cl-badge,
+.cl-internal-1rpdi70 {
+  display: none !important;
+}
