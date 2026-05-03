@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "wouter";
 import {
   useGetRoomMessages,
@@ -71,6 +71,13 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { PostCard } from "@/components/PostCard";
+import { FailedMessages } from "@/components/FailedMessages";
+import {
+  enqueueRoomMessage,
+  setOutboxUserId,
+  type QueuedMessage,
+} from "@/lib/offlineQueue";
+import { useRoomOutbox } from "@/hooks/useOutboxFlusher";
 
 export default function RoomChat({ tag }: { tag: string }) {
   const cleanTag = decodeURIComponent(tag).toLowerCase().replace(/^#/, "");
@@ -156,8 +163,6 @@ export default function RoomChat({ tag }: { tag: string }) {
   const send = useSendRoomMessage({
     mutation: {
       onSuccess: () => {
-        setDraft("");
-        setReplyTo(null);
         invalidateMessages();
         if (slowModeSeconds > 0 && !canModerate) {
           setSlowCooldown(slowModeSeconds);
@@ -234,39 +239,96 @@ export default function RoomChat({ tag }: { tag: string }) {
 
   const sendDisabled = slowCooldown > 0 && !canModerate;
 
+  const flushSend = useCallback(
+    async (m: QueuedMessage) => {
+      const t = m.target.kind === "room" ? m.target.tag : cleanTag;
+      await send.mutateAsync({
+        tag: t,
+        data: {
+          content: m.data.content,
+          imageUrl: m.data.imageUrl ?? null,
+          audioUrl: m.data.audioUrl ?? null,
+          gifUrl: m.data.gifUrl ?? null,
+          replyToId: m.data.replyToId ?? null,
+        },
+      });
+    },
+    [send, cleanTag],
+  );
+
+  const { pending, online } = useRoomOutbox(cleanTag, flushSend);
+  const failedQueued = useMemo(
+    () => pending.filter((m) => m.status === "failed"),
+    [pending],
+  );
+  const sendingQueued = useMemo(
+    () => pending.filter((m) => m.status !== "failed"),
+    [pending],
+  );
+
+  async function trySend(payload: {
+    content: string;
+    imageUrl?: string | null;
+    audioUrl?: string | null;
+    gifUrl?: string | null;
+    replyToId?: number | null;
+    imageAlt?: string | null;
+    audioWaveform?: number[] | null;
+  }) {
+    const queueData = {
+      content: payload.content,
+      imageUrl: payload.imageUrl ?? null,
+      audioUrl: payload.audioUrl ?? null,
+      gifUrl: payload.gifUrl ?? null,
+      replyToId: payload.replyToId ?? null,
+    };
+    if (!online) {
+      enqueueRoomMessage(cleanTag, queueData);
+      setDraft("");
+      setReplyTo(null);
+      return;
+    }
+    try {
+      await send.mutateAsync({ tag: cleanTag, data: payload });
+      setDraft("");
+      setReplyTo(null);
+    } catch {
+      enqueueRoomMessage(cleanTag, queueData);
+      setDraft("");
+      setReplyTo(null);
+    }
+  }
+
   function submit(e: React.FormEvent) {
     e.preventDefault();
     const content = draft.trim();
-    if (!content || send.isPending || sendDisabled) return;
-    send.mutate({
-      tag: cleanTag,
-      data: { content, replyToId: replyTo?.id ?? null },
-    });
+    if (!content || sendDisabled || send.isPending) return;
+    void trySend({ content, replyToId: replyTo?.id ?? null });
   }
 
   function sendImage(imageUrl: string, suggestedAlt?: string) {
-    send.mutate({
-      tag: cleanTag,
-      data: {
-        content: "",
-        imageUrl,
-        imageAlt: suggestedAlt?.trim() || null,
-        replyToId: replyTo?.id ?? null,
-      },
+    void trySend({
+      content: "",
+      imageUrl,
+      imageAlt: suggestedAlt?.trim() || null,
+      replyToId: replyTo?.id ?? null,
     });
   }
 
   function sendAudio(audioUrl: string, peaks: number[] | null) {
-    send.mutate({
-      tag: cleanTag,
-      data: { content: "", audioUrl, audioWaveform: peaks, replyToId: replyTo?.id ?? null },
+    void trySend({
+      content: "",
+      audioUrl,
+      audioWaveform: peaks,
+      replyToId: replyTo?.id ?? null,
     });
   }
 
   function sendGif(gifUrl: string) {
-    send.mutate({
-      tag: cleanTag,
-      data: { content: "", gifUrl, replyToId: replyTo?.id ?? null },
+    void trySend({
+      content: "",
+      gifUrl,
+      replyToId: replyTo?.id ?? null,
     });
   }
 
@@ -281,6 +343,9 @@ export default function RoomChat({ tag }: { tag: string }) {
 
   const meQ = useGetMe();
   const meId = meQ.data?.id ?? null;
+  useEffect(() => {
+    setOutboxUserId(meId);
+  }, [meId]);
   const ownerId = visibilityQ.data?.ownerId ?? null;
   const isPremiumLocked =
     isPremiumRoom && !myIsPremium && meId !== ownerId;
@@ -552,6 +617,17 @@ export default function RoomChat({ tag }: { tag: string }) {
         )}
       </div>
 
+      {(!online || sendingQueued.length > 0) && (
+        <div
+          className="relative z-10 border-t border-border bg-muted px-3 py-1.5 text-xs text-muted-foreground"
+          data-testid="room-outbox-status"
+        >
+          {!online
+            ? `Offline · ${sendingQueued.length} message${sendingQueued.length === 1 ? "" : "s"} queued`
+            : `Sending ${sendingQueued.length} pending message${sendingQueued.length === 1 ? "" : "s"}…`}
+        </div>
+      )}
+      <FailedMessages items={failedQueued} />
       <form
         onSubmit={submit}
         className="relative z-10 flex shrink-0 flex-col gap-2 border-t border-border bg-card p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]"
@@ -608,11 +684,9 @@ export default function RoomChat({ tag }: { tag: string }) {
               value={draft}
               onChange={setDraft}
               onSubmit={() => {
-                if (draft.trim() && !send.isPending) {
-                  send.mutate({
-                    tag: cleanTag,
-                    data: { content: draft.trim(), replyToId: replyTo?.id ?? null },
-                  });
+                const content = draft.trim();
+                if (content && !sendDisabled && !send.isPending) {
+                  void trySend({ content, replyToId: replyTo?.id ?? null });
                 }
               }}
               onUserActivity={pingTyping}

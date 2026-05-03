@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { useUser } from "@clerk/react";
 import {
@@ -43,6 +43,13 @@ import { VoiceMessageButton } from "@/components/VoiceMessageButton";
 import { CallButton } from "@/components/CallButton";
 import { ScheduleDmDialog } from "@/components/ScheduleDmDialog";
 import { ScheduledDmsSheet } from "@/components/ScheduledDmsSheet";
+import { FailedMessages } from "@/components/FailedMessages";
+import {
+  enqueueMessage,
+  setOutboxUserId,
+  type QueuedMessage,
+} from "@/lib/offlineQueue";
+import { useConversationOutbox } from "@/hooks/useOutboxFlusher";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -518,6 +525,10 @@ export default function ConversationChat({ id }: { id: number }) {
   const isGroup = conv?.kind === "group";
   const meId = clerkUser?.id ?? "";
 
+  useEffect(() => {
+    setOutboxUserId(clerkUser?.id ?? null);
+  }, [clerkUser?.id]);
+
   const msgs = useGetConversationMessages(id, {
     query: {
       queryKey: getGetConversationMessagesQueryKey(id),
@@ -550,13 +561,72 @@ export default function ConversationChat({ id }: { id: number }) {
   const send = useSendConversationMessage({
     mutation: {
       onSuccess: () => {
-        setDraft("");
-        setReplyTo(null);
         invalidateMessages();
         qc.invalidateQueries({ queryKey: getGetConversationsQueryKey() });
       },
     },
   });
+
+  const flushSend = useCallback(
+    async (m: QueuedMessage) => {
+      const targetId =
+        m.target.kind === "conversation" ? m.target.conversationId : id;
+      await send.mutateAsync({
+        id: targetId,
+        data: {
+          content: m.data.content,
+          imageUrl: m.data.imageUrl ?? null,
+          audioUrl: m.data.audioUrl ?? null,
+          gifUrl: m.data.gifUrl ?? null,
+          replyToId: m.data.replyToId ?? null,
+        },
+      });
+    },
+    [send, id],
+  );
+
+  const { pending, online } = useConversationOutbox(id, flushSend);
+  const failedQueued = useMemo(
+    () => pending.filter((m) => m.status === "failed"),
+    [pending],
+  );
+  const sendingQueued = useMemo(
+    () => pending.filter((m) => m.status !== "failed"),
+    [pending],
+  );
+
+  async function trySend(payload: {
+    content: string;
+    imageUrl?: string | null;
+    audioUrl?: string | null;
+    gifUrl?: string | null;
+    replyToId?: number | null;
+    imageAlt?: string | null;
+    audioWaveform?: number[] | null;
+  }) {
+    const queueData = {
+      content: payload.content,
+      imageUrl: payload.imageUrl ?? null,
+      audioUrl: payload.audioUrl ?? null,
+      gifUrl: payload.gifUrl ?? null,
+      replyToId: payload.replyToId ?? null,
+    };
+    if (!online) {
+      enqueueMessage(id, queueData);
+      setDraft("");
+      setReplyTo(null);
+      return;
+    }
+    try {
+      await send.mutateAsync({ id, data: payload });
+      setDraft("");
+      setReplyTo(null);
+    } catch {
+      enqueueMessage(id, queueData);
+      setDraft("");
+      setReplyTo(null);
+    }
+  }
 
   const typingQuery = useGetConversationTyping(id, {
     query: {
@@ -659,26 +729,26 @@ export default function ConversationChat({ id }: { id: number }) {
   });
 
   function sendImage(imageUrl: string, suggestedAlt?: string) {
-    send.mutate({
-      id,
-      data: {
-        content: "",
-        imageUrl,
-        imageAlt: suggestedAlt?.trim() || null,
-        replyToId: replyTo?.id ?? null,
-      },
+    void trySend({
+      content: "",
+      imageUrl,
+      imageAlt: suggestedAlt?.trim() || null,
+      replyToId: replyTo?.id ?? null,
     });
   }
   function sendAudio(audioUrl: string, peaks: number[] | null) {
-    send.mutate({
-      id,
-      data: { content: "", audioUrl, audioWaveform: peaks, replyToId: replyTo?.id ?? null },
+    void trySend({
+      content: "",
+      audioUrl,
+      audioWaveform: peaks,
+      replyToId: replyTo?.id ?? null,
     });
   }
   function sendGif(gifUrl: string) {
-    send.mutate({
-      id,
-      data: { content: "", gifUrl, replyToId: replyTo?.id ?? null },
+    void trySend({
+      content: "",
+      gifUrl,
+      replyToId: replyTo?.id ?? null,
     });
   }
 
@@ -698,10 +768,7 @@ export default function ConversationChat({ id }: { id: number }) {
     e.preventDefault();
     const content = draft.trim();
     if (!content || send.isPending) return;
-    send.mutate({
-      id,
-      data: { content, replyToId: replyTo?.id ?? null },
-    });
+    void trySend({ content, replyToId: replyTo?.id ?? null });
   }
 
   function startReply(m: Message) {
@@ -1070,6 +1137,17 @@ export default function ConversationChat({ id }: { id: number }) {
         </div>
       </div>
 
+      {(!online || sendingQueued.length > 0) && (
+        <div
+          className="relative z-10 border-t border-border bg-muted px-3 py-1.5 text-xs text-muted-foreground"
+          data-testid="dm-outbox-status"
+        >
+          {!online
+            ? `Offline · ${sendingQueued.length} message${sendingQueued.length === 1 ? "" : "s"} queued`
+            : `Sending ${sendingQueued.length} pending message${sendingQueued.length === 1 ? "" : "s"}…`}
+        </div>
+      )}
+      <FailedMessages items={failedQueued} />
       <form
         onSubmit={submit}
         className={[
@@ -1148,14 +1226,9 @@ export default function ConversationChat({ id }: { id: number }) {
             value={draft}
             onChange={setDraft}
             onSubmit={() => {
-              if (draft.trim() && !send.isPending) {
-                send.mutate({
-                  id,
-                  data: {
-                    content: draft.trim(),
-                    replyToId: replyTo?.id ?? null,
-                  },
-                });
+              const content = draft.trim();
+              if (content && !send.isPending) {
+                void trySend({ content, replyToId: replyTo?.id ?? null });
               }
             }}
             onUserActivity={pingTyping}
