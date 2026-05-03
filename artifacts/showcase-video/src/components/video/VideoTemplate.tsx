@@ -7,12 +7,14 @@ import { Scene3 } from './video_scenes/Scene3';
 import { Scene4 } from './video_scenes/Scene4';
 import { Scene5 } from './video_scenes/Scene5';
 import { Scene6 } from './video_scenes/Scene6';
+import { Scene7 } from './video_scenes/Scene7';
 
 export const SCENE_DURATIONS = {
   hook: 4500,
   chat: 6500,
   voice: 5500,
   reels: 5800,
+  features: 7000,
   gamification: 6000,
   outro: 5000,
 };
@@ -22,6 +24,7 @@ const SCENE_COMPONENTS: Record<string, React.ComponentType> = {
   chat: Scene2,
   voice: Scene3,
   reels: Scene6,
+  features: Scene7,
   gamification: Scene4,
   outro: Scene5,
 };
