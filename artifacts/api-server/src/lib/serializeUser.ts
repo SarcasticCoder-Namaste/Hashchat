@@ -12,10 +12,15 @@ export type UserPublicFields = {
   role: string;
   mvpPlan: boolean;
   verified: boolean;
+  tier: string;
+  animatedAvatarUrl: string | null;
+  bannerGifUrl: string | null;
   lastSeenAt: string;
 };
 
 export function publicUser(u: User): UserPublicFields {
+  // Pro-only customizations are only surfaced while the user is on Pro.
+  const isPro = u.tier === "pro";
   return {
     id: u.id,
     username: u.username,
@@ -28,6 +33,9 @@ export function publicUser(u: User): UserPublicFields {
     role: u.role,
     mvpPlan: u.mvpPlan,
     verified: u.verified,
+    tier: u.tier,
+    animatedAvatarUrl: isPro ? u.animatedAvatarUrl : null,
+    bannerGifUrl: isPro ? u.bannerGifUrl : null,
     lastSeenAt: u.lastSeenAt.toISOString(),
   };
 }

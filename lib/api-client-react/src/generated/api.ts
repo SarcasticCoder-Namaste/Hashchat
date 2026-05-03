@@ -96,6 +96,7 @@ import type {
   PostDraft,
   PostDraftBody,
   PostEdit,
+  PremiumCheckoutBody,
   PremiumCheckoutResponse,
   PremiumPortalResponse,
   PremiumStatus,
@@ -11852,11 +11853,14 @@ export const getCreatePremiumCheckoutUrl = () => {
 };
 
 export const createPremiumCheckout = async (
+  premiumCheckoutBody: PremiumCheckoutBody,
   options?: RequestInit,
 ): Promise<PremiumCheckoutResponse> => {
   return customFetch<PremiumCheckoutResponse>(getCreatePremiumCheckoutUrl(), {
     ...options,
     method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(premiumCheckoutBody),
   });
 };
 
@@ -11867,14 +11871,14 @@ export const getCreatePremiumCheckoutMutationOptions = <
   mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof createPremiumCheckout>>,
     TError,
-    void,
+    { data: BodyType<PremiumCheckoutBody> },
     TContext
   >;
   request?: SecondParameter<typeof customFetch>;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof createPremiumCheckout>>,
   TError,
-  void,
+  { data: BodyType<PremiumCheckoutBody> },
   TContext
 > => {
   const mutationKey = ["createPremiumCheckout"];
@@ -11888,9 +11892,11 @@ export const getCreatePremiumCheckoutMutationOptions = <
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof createPremiumCheckout>>,
-    void
-  > = () => {
-    return createPremiumCheckout(requestOptions);
+    { data: BodyType<PremiumCheckoutBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return createPremiumCheckout(data, requestOptions);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -11899,7 +11905,7 @@ export const getCreatePremiumCheckoutMutationOptions = <
 export type CreatePremiumCheckoutMutationResult = NonNullable<
   Awaited<ReturnType<typeof createPremiumCheckout>>
 >;
-
+export type CreatePremiumCheckoutMutationBody = BodyType<PremiumCheckoutBody>;
 export type CreatePremiumCheckoutMutationError = ErrorType<unknown>;
 
 export const useCreatePremiumCheckout = <
@@ -11909,14 +11915,14 @@ export const useCreatePremiumCheckout = <
   mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof createPremiumCheckout>>,
     TError,
-    void,
+    { data: BodyType<PremiumCheckoutBody> },
     TContext
   >;
   request?: SecondParameter<typeof customFetch>;
 }): UseMutationResult<
   Awaited<ReturnType<typeof createPremiumCheckout>>,
   TError,
-  void,
+  { data: BodyType<PremiumCheckoutBody> },
   TContext
 > => {
   return useMutation(getCreatePremiumCheckoutMutationOptions(options));
@@ -11930,11 +11936,14 @@ export const getDevConfirmPremiumUrl = () => {
 };
 
 export const devConfirmPremium = async (
+  premiumCheckoutBody?: PremiumCheckoutBody,
   options?: RequestInit,
 ): Promise<PremiumStatus> => {
   return customFetch<PremiumStatus>(getDevConfirmPremiumUrl(), {
     ...options,
     method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(premiumCheckoutBody),
   });
 };
 
@@ -11945,14 +11954,14 @@ export const getDevConfirmPremiumMutationOptions = <
   mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof devConfirmPremium>>,
     TError,
-    void,
+    { data: BodyType<PremiumCheckoutBody> },
     TContext
   >;
   request?: SecondParameter<typeof customFetch>;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof devConfirmPremium>>,
   TError,
-  void,
+  { data: BodyType<PremiumCheckoutBody> },
   TContext
 > => {
   const mutationKey = ["devConfirmPremium"];
@@ -11966,9 +11975,11 @@ export const getDevConfirmPremiumMutationOptions = <
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof devConfirmPremium>>,
-    void
-  > = () => {
-    return devConfirmPremium(requestOptions);
+    { data: BodyType<PremiumCheckoutBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return devConfirmPremium(data, requestOptions);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -11977,7 +11988,7 @@ export const getDevConfirmPremiumMutationOptions = <
 export type DevConfirmPremiumMutationResult = NonNullable<
   Awaited<ReturnType<typeof devConfirmPremium>>
 >;
-
+export type DevConfirmPremiumMutationBody = BodyType<PremiumCheckoutBody>;
 export type DevConfirmPremiumMutationError = ErrorType<unknown>;
 
 /**
@@ -11990,14 +12001,14 @@ export const useDevConfirmPremium = <
   mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof devConfirmPremium>>,
     TError,
-    void,
+    { data: BodyType<PremiumCheckoutBody> },
     TContext
   >;
   request?: SecondParameter<typeof customFetch>;
 }): UseMutationResult<
   Awaited<ReturnType<typeof devConfirmPremium>>,
   TError,
-  void,
+  { data: BodyType<PremiumCheckoutBody> },
   TContext
 > => {
   return useMutation(getDevConfirmPremiumMutationOptions(options));

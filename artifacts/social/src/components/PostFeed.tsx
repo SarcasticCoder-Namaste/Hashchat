@@ -11,7 +11,8 @@ import {
 } from "@workspace/api-client-react";
 import { PostCard } from "./PostCard";
 import { Button } from "./ui/button";
-import { Loader2 } from "lucide-react";
+import { Loader2, Megaphone } from "lucide-react";
+import { useTier } from "@/hooks/useTier";
 
 const PAGE_SIZE = 30;
 
@@ -26,6 +27,7 @@ interface PostFeedProps {
 
 export function PostFeed({ scope, meId, emptyMessage }: PostFeedProps) {
   const qc = useQueryClient();
+  const { isPremium } = useTier();
 
   const queryKey =
     scope.kind === "home"
@@ -106,16 +108,37 @@ export function PostFeed({ scope, meId, emptyMessage }: PostFeedProps) {
       </div>
     );
   }
+  // Free-tier users in the For You / home feed see a single Sponsored slot.
+  // Premium and Pro members are ad-free, so the slot is omitted entirely.
+  const showSponsored = scope.kind === "home" && !isPremium && posts.length >= 2;
   return (
     <div className="flex flex-col gap-3" data-testid="post-feed">
-      {posts.map((p) => (
-        <PostCard
-          key={p.id}
-          post={p}
-          meId={meId}
-          onDeleted={invalidate}
-          onChanged={invalidate}
-        />
+      {posts.map((p, idx) => (
+        <div key={p.id} className="contents">
+          <PostCard
+            post={p}
+            meId={meId}
+            onDeleted={invalidate}
+            onChanged={invalidate}
+          />
+          {showSponsored && idx === 1 ? (
+            <div
+              className="rounded-xl border border-dashed border-border bg-muted/40 p-4 text-sm"
+              data-testid="sponsored-card"
+            >
+              <div className="mb-1 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                <Megaphone className="h-3 w-3" /> Sponsored
+              </div>
+              <p className="font-medium text-foreground">
+                Tired of ads? Go ad-free with HashChat Premium.
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Premium hides this slot and unlocks custom accents, larger
+                uploads, and more.
+              </p>
+            </div>
+          ) : null}
+        </div>
       ))}
       {q.hasNextPage ? (
         <div

@@ -160,6 +160,8 @@ function serializeAuthor(
         role: string;
         mvpPlan: boolean;
         verified: boolean;
+        tier?: string;
+        animatedAvatarUrl?: string | null;
       }
     | undefined,
   fallbackId: string,
@@ -173,6 +175,8 @@ function serializeAuthor(
     role: a?.role ?? "user",
     mvpPlan: a?.mvpPlan ?? false,
     verified: a?.verified ?? false,
+    tier: a?.tier ?? "free",
+    animatedAvatarUrl: a?.tier === "pro" ? a?.animatedAvatarUrl ?? null : null,
   };
 }
 
@@ -191,6 +195,8 @@ async function buildPosts(rows: PostRow[], myUserId: string) {
       role: usersTable.role,
       mvpPlan: usersTable.mvpPlan,
       verified: usersTable.verified,
+      tier: usersTable.tier,
+      animatedAvatarUrl: usersTable.animatedAvatarUrl,
     })
     .from(usersTable)
     .where(inArray(usersTable.id, authorIds));

@@ -6,7 +6,19 @@ import { getUncachableStripeClient, isStripeConnected } from "../lib/stripeClien
 
 const router: IRouter = Router();
 
-const PRICE_LOOKUP_KEY = "hashchat_pro_monthly";
+type Tier = "premium" | "pro";
+type Cadence = "monthly" | "annual";
+
+function lookupKey(tier: Tier, cadence: Cadence): string {
+  return `hashchat_${tier}_${cadence}`;
+}
+
+function parseBody(body: unknown): { tier: Tier; cadence: Cadence } {
+  const b = (body ?? {}) as { tier?: unknown; billingPeriod?: unknown };
+  const tier: Tier = b.tier === "pro" ? "pro" : "premium";
+  const cadence: Cadence = b.billingPeriod === "annual" ? "annual" : "monthly";
+  return { tier, cadence };
+}
 
 function appOrigin(): string {
   return (
@@ -19,11 +31,15 @@ function appOrigin(): string {
   );
 }
 
-async function resolvePremiumPriceId(): Promise<string | null> {
-  if (process.env.STRIPE_PRICE_PREMIUM) return process.env.STRIPE_PRICE_PREMIUM;
+async function resolvePriceId(tier: Tier, cadence: Cadence): Promise<string | null> {
+  const key = lookupKey(tier, cadence);
   try {
     const stripe = await getUncachableStripeClient();
-    const prices = await stripe.prices.list({ lookup_keys: [PRICE_LOOKUP_KEY], active: true, limit: 1 });
+    const prices = await stripe.prices.list({
+      lookup_keys: [key],
+      active: true,
+      limit: 1,
+    });
     return prices.data[0]?.id ?? null;
   } catch {
     return null;
@@ -33,7 +49,12 @@ async function resolvePremiumPriceId(): Promise<string | null> {
 router.get("/premium/status", requireAuth, async (req, res): Promise<void> => {
   const me = getUserId(req);
   const [user] = await db
-    .select({ verified: usersTable.verified, premiumUntil: usersTable.premiumUntil })
+    .select({
+      verified: usersTable.verified,
+      tier: usersTable.tier,
+      billingPeriod: usersTable.billingPeriod,
+      premiumUntil: usersTable.premiumUntil,
+    })
     .from(usersTable)
     .where(eq(usersTable.id, me))
     .limit(1);
@@ -49,6 +70,8 @@ router.get("/premium/status", requireAuth, async (req, res): Promise<void> => {
   res.json({
     verified: !!user?.verified,
     active,
+    tier: user?.tier ?? "free",
+    billingPeriod: user?.billingPeriod ?? null,
     plan: sub?.plan ?? null,
     currentPeriodEnd: sub?.currentPeriodEnd
       ? sub.currentPeriodEnd.toISOString()
@@ -62,16 +85,23 @@ router.get("/premium/status", requireAuth, async (req, res): Promise<void> => {
 
 router.post("/premium/checkout", requireAuth, async (req, res): Promise<void> => {
   const me = getUserId(req);
+  const { tier, cadence } = parseBody(req.body);
   if (!isStripeConnected()) {
-    res.json({ url: `${appOrigin()}/app/premium?dev_confirm=1`, provider: "dev" });
+    res.json({
+      url: `${appOrigin()}/app/premium?dev_confirm=1&tier=${tier}&cadence=${cadence}`,
+      provider: "dev",
+    });
     return;
   }
   try {
     const stripe = await getUncachableStripeClient();
-    const priceId = await resolvePremiumPriceId();
+    const priceId = await resolvePriceId(tier, cadence);
     if (!priceId) {
-      req.log.error("Stripe price not found; run pnpm --filter @workspace/scripts run seed-stripe-products");
-      res.status(500).json({ error: "Premium price not configured" });
+      req.log.error(
+        { tier, cadence, lookupKey: lookupKey(tier, cadence) },
+        "Stripe price not found; run pnpm --filter @workspace/scripts run seed-stripe-products",
+      );
+      res.status(500).json({ error: "Subscription price not configured" });
       return;
     }
     const [user] = await db.select().from(usersTable).where(eq(usersTable.id, me)).limit(1);
@@ -94,8 +124,8 @@ router.post("/premium/checkout", requireAuth, async (req, res): Promise<void> =>
       line_items: [{ price: priceId, quantity: 1 }],
       success_url: `${appOrigin()}/app/premium?session_id={CHECKOUT_SESSION_ID}&status=success`,
       cancel_url: `${appOrigin()}/app/premium?status=cancelled`,
-      metadata: { userId: me },
-      subscription_data: { metadata: { userId: me } },
+      metadata: { userId: me, tier, billingPeriod: cadence },
+      subscription_data: { metadata: { userId: me, tier, billingPeriod: cadence } },
       allow_promotion_codes: true,
     });
     res.json({ url: session.url ?? `${appOrigin()}/app/premium`, provider: "stripe" });
@@ -139,16 +169,27 @@ router.post("/premium/dev-confirm", requireAuth, async (req, res): Promise<void>
     return;
   }
   const me = getUserId(req);
-  const periodEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+  const { tier, cadence } = parseBody(req.body);
+  const days = cadence === "annual" ? 365 : 30;
+  const periodEnd = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
+  const key = lookupKey(tier, cadence);
   await db
     .update(usersTable)
-    .set({ verified: true, premiumUntil: periodEnd })
+    .set({
+      verified: true,
+      tier,
+      billingPeriod: cadence,
+      premiumUntil: periodEnd,
+    })
     .where(eq(usersTable.id, me));
   await db
     .insert(subscriptionsTable)
     .values({
       userId: me,
-      plan: "premium",
+      plan: tier,
+      tier,
+      billingPeriod: cadence,
+      priceLookupKey: key,
       status: "active",
       currentPeriodEnd: periodEnd,
       cancelAtPeriodEnd: false,
@@ -156,7 +197,10 @@ router.post("/premium/dev-confirm", requireAuth, async (req, res): Promise<void>
     .onConflictDoUpdate({
       target: subscriptionsTable.userId,
       set: {
-        plan: "premium",
+        plan: tier,
+        tier,
+        billingPeriod: cadence,
+        priceLookupKey: key,
         status: "active",
         currentPeriodEnd: periodEnd,
         cancelAtPeriodEnd: false,
@@ -166,7 +210,9 @@ router.post("/premium/dev-confirm", requireAuth, async (req, res): Promise<void>
   res.json({
     verified: true,
     active: true,
-    plan: "premium",
+    tier,
+    billingPeriod: cadence,
+    plan: tier,
     currentPeriodEnd: periodEnd.toISOString(),
     cancelAtPeriodEnd: false,
     provider: "dev",

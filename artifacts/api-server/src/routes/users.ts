@@ -42,6 +42,10 @@ async function loadUser(userId: string) {
     role: user.role,
     mvpPlan: user.mvpPlan,
     verified: user.verified,
+    tier: user.tier,
+    billingPeriod: user.billingPeriod,
+    animatedAvatarUrl: user.animatedAvatarUrl,
+    bannerGifUrl: user.bannerGifUrl,
     premiumUntil: user.premiumUntil ? user.premiumUntil.toISOString() : null,
     lastSeenAt: user.lastSeenAt.toISOString(),
     hashtags: tags.map((t) => t.tag),
@@ -111,11 +115,27 @@ router.patch("/me", requireAuth, async (req, res): Promise<void> => {
   }
   if (parsed.data.featuredHashtag !== undefined)
     updates.featuredHashtag = parsed.data.featuredHashtag;
-  if (Object.keys(updates).length > 0) {
-    await db.update(usersTable).set(updates).where(eq(usersTable.id, getUserId(req)));
+
+  // Pro-tier-only customizations: animated avatar and banner GIF.
+  // Setting requires tier === "pro" and is silently ignored otherwise so
+  // downgraded users keep their stored values without the client erroring.
+  const me = getUserId(req);
+  const [{ tier: currentTier } = { tier: "free" }] = await db
+    .select({ tier: usersTable.tier })
+    .from(usersTable)
+    .where(eq(usersTable.id, me))
+    .limit(1);
+  if (parsed.data.animatedAvatarUrl !== undefined && currentTier === "pro") {
+    updates.animatedAvatarUrl = parsed.data.animatedAvatarUrl;
   }
-  const me = await loadUser(getUserId(req));
-  res.json(me);
+  if (parsed.data.bannerGifUrl !== undefined && currentTier === "pro") {
+    updates.bannerGifUrl = parsed.data.bannerGifUrl;
+  }
+  if (Object.keys(updates).length > 0) {
+    await db.update(usersTable).set(updates).where(eq(usersTable.id, me));
+  }
+  const updated = await loadUser(me);
+  res.json(updated);
 });
 
 async function hashtagStats(tags: string[]) {

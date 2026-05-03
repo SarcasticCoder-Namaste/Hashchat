@@ -9,6 +9,26 @@ export interface HealthStatus {
   status: string;
 }
 
+export type UserTier = (typeof UserTier)[keyof typeof UserTier];
+
+export const UserTier = {
+  free: "free",
+  premium: "premium",
+  pro: "pro",
+} as const;
+
+/**
+ * @nullable
+ */
+export type UserBillingPeriod =
+  | (typeof UserBillingPeriod)[keyof typeof UserBillingPeriod]
+  | null;
+
+export const UserBillingPeriod = {
+  monthly: "monthly",
+  annual: "annual",
+} as const;
+
 export interface User {
   id: string;
   username: string;
@@ -39,6 +59,13 @@ export interface User {
   role: string;
   mvpPlan: boolean;
   verified: boolean;
+  tier: UserTier;
+  /** @nullable */
+  billingPeriod?: UserBillingPeriod;
+  /** @nullable */
+  animatedAvatarUrl?: string | null;
+  /** @nullable */
+  bannerGifUrl?: string | null;
   /** @nullable */
   premiumUntil?: string | null;
   lastSeenAt: string;
@@ -68,6 +95,10 @@ export interface UpdateUserBody {
   status?: string;
   /** @nullable */
   featuredHashtag?: string | null;
+  /** @nullable */
+  animatedAvatarUrl?: string | null;
+  /** @nullable */
+  bannerGifUrl?: string | null;
 }
 
 export interface SetHashtagsBody {
@@ -90,6 +121,14 @@ export interface TrendingHashtag {
   score: number;
 }
 
+export type MatchUserTier = (typeof MatchUserTier)[keyof typeof MatchUserTier];
+
+export const MatchUserTier = {
+  free: "free",
+  premium: "premium",
+  pro: "pro",
+} as const;
+
 export interface MatchUser {
   id: string;
   username: string;
@@ -106,6 +145,11 @@ export interface MatchUser {
   role: string;
   mvpPlan: boolean;
   verified: boolean;
+  tier?: MatchUserTier;
+  /** @nullable */
+  animatedAvatarUrl?: string | null;
+  /** @nullable */
+  bannerGifUrl?: string | null;
   lastSeenAt: string;
   hashtags: string[];
   sharedHashtags: string[];
@@ -559,6 +603,15 @@ export interface SearchRoomHit {
   isMember: boolean;
 }
 
+export type PostAuthorTier =
+  (typeof PostAuthorTier)[keyof typeof PostAuthorTier];
+
+export const PostAuthorTier = {
+  free: "free",
+  premium: "premium",
+  pro: "pro",
+} as const;
+
 export interface PostAuthor {
   id: string;
   username: string;
@@ -566,10 +619,13 @@ export interface PostAuthor {
   /** @nullable */
   avatarUrl?: string | null;
   /** @nullable */
+  animatedAvatarUrl?: string | null;
+  /** @nullable */
   discriminator?: string | null;
   role: string;
   mvpPlan: boolean;
   verified: boolean;
+  tier?: PostAuthorTier;
 }
 
 export interface SearchPostHit {
@@ -1198,6 +1254,27 @@ export interface DecideJoinRequestBody {
   decision: DecideJoinRequestBodyDecision;
 }
 
+export type PremiumStatusTier =
+  (typeof PremiumStatusTier)[keyof typeof PremiumStatusTier];
+
+export const PremiumStatusTier = {
+  free: "free",
+  premium: "premium",
+  pro: "pro",
+} as const;
+
+/**
+ * @nullable
+ */
+export type PremiumStatusBillingPeriod =
+  | (typeof PremiumStatusBillingPeriod)[keyof typeof PremiumStatusBillingPeriod]
+  | null;
+
+export const PremiumStatusBillingPeriod = {
+  monthly: "monthly",
+  annual: "annual",
+} as const;
+
 export type PremiumStatusProvider =
   (typeof PremiumStatusProvider)[keyof typeof PremiumStatusProvider];
 
@@ -1209,12 +1286,36 @@ export const PremiumStatusProvider = {
 export interface PremiumStatus {
   verified: boolean;
   active: boolean;
+  tier: PremiumStatusTier;
+  /** @nullable */
+  billingPeriod?: PremiumStatusBillingPeriod;
   /** @nullable */
   plan?: string | null;
   /** @nullable */
   currentPeriodEnd?: string | null;
   cancelAtPeriodEnd: boolean;
   provider: PremiumStatusProvider;
+}
+
+export type PremiumCheckoutBodyTier =
+  (typeof PremiumCheckoutBodyTier)[keyof typeof PremiumCheckoutBodyTier];
+
+export const PremiumCheckoutBodyTier = {
+  premium: "premium",
+  pro: "pro",
+} as const;
+
+export type PremiumCheckoutBodyBillingPeriod =
+  (typeof PremiumCheckoutBodyBillingPeriod)[keyof typeof PremiumCheckoutBodyBillingPeriod];
+
+export const PremiumCheckoutBodyBillingPeriod = {
+  monthly: "monthly",
+  annual: "annual",
+} as const;
+
+export interface PremiumCheckoutBody {
+  tier: PremiumCheckoutBodyTier;
+  billingPeriod: PremiumCheckoutBodyBillingPeriod;
 }
 
 export type PremiumCheckoutResponseProvider =

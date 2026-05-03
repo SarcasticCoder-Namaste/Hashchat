@@ -2049,6 +2049,11 @@ paths:
     post:
       operationId: createPremiumCheckout
       tags: [premium]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PremiumCheckoutBody" }
       responses:
         "200":
           description: OK
@@ -2061,6 +2066,11 @@ paths:
       operationId: devConfirmPremium
       tags: [premium]
       summary: Dev-only confirmation when Stripe is not configured
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PremiumCheckoutBody" }
       responses:
         "200":
           description: OK
@@ -2383,6 +2393,14 @@ components:
         role: { type: string }
         mvpPlan: { type: boolean }
         verified: { type: boolean }
+        tier: { type: string, enum: [free, premium, pro] }
+        billingPeriod:
+          type: ["string", "null"]
+          enum: [monthly, annual, null]
+        animatedAvatarUrl:
+          type: ["string", "null"]
+        bannerGifUrl:
+          type: ["string", "null"]
         premiumUntil:
           type: ["string", "null"]
           format: date-time
@@ -2394,7 +2412,7 @@ components:
           type: array
           items: { type: string }
         createdAt: { type: string, format: date-time }
-      required: [id, username, displayName, status, role, mvpPlan, verified, lastSeenAt, hashtags, followedHashtags, createdAt]
+      required: [id, username, displayName, status, role, mvpPlan, verified, tier, lastSeenAt, hashtags, followedHashtags, createdAt]
 
     UpdateUserBody:
       type: object
@@ -2418,6 +2436,10 @@ components:
           type: ["string", "null"]
         status: { type: string }
         featuredHashtag:
+          type: ["string", "null"]
+        animatedAvatarUrl:
+          type: ["string", "null"]
+        bannerGifUrl:
           type: ["string", "null"]
 
     SetHashtagsBody:
@@ -2487,6 +2509,11 @@ components:
         role: { type: string }
         mvpPlan: { type: boolean }
         verified: { type: boolean }
+        tier: { type: string, enum: [free, premium, pro] }
+        animatedAvatarUrl:
+          type: ["string", "null"]
+        bannerGifUrl:
+          type: ["string", "null"]
         lastSeenAt: { type: string, format: date-time }
         hashtags:
           type: array
@@ -3318,11 +3345,14 @@ components:
         displayName: { type: string }
         avatarUrl:
           type: ["string", "null"]
+        animatedAvatarUrl:
+          type: ["string", "null"]
         discriminator:
           type: ["string", "null"]
         role: { type: string }
         mvpPlan: { type: boolean }
         verified: { type: boolean }
+        tier: { type: string, enum: [free, premium, pro] }
       required: [id, username, displayName, role, mvpPlan, verified]
 
     Post:
@@ -3801,6 +3831,10 @@ components:
       properties:
         verified: { type: boolean }
         active: { type: boolean }
+        tier: { type: string, enum: [free, premium, pro] }
+        billingPeriod:
+          type: ["string", "null"]
+          enum: [monthly, annual, null]
         plan:
           type: ["string", "null"]
         currentPeriodEnd:
@@ -3808,7 +3842,14 @@ components:
           format: date-time
         cancelAtPeriodEnd: { type: boolean }
         provider: { type: string, enum: [stripe, dev] }
-      required: [verified, active, cancelAtPeriodEnd, provider]
+      required: [verified, active, tier, cancelAtPeriodEnd, provider]
+
+    PremiumCheckoutBody:
+      type: object
+      properties:
+        tier: { type: string, enum: [premium, pro] }
+        billingPeriod: { type: string, enum: [monthly, annual] }
+      required: [tier, billingPeriod]
 
     PremiumCheckoutResponse:
       type: object

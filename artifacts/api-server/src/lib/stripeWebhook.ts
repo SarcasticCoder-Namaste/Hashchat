@@ -28,7 +28,6 @@ export async function handleStripeWebhook(req: Request, res: Response): Promise<
     return;
   }
 
-  // Parse the event ourselves so we can react to it (sync.processWebhook returns void).
   let event: Stripe.Event | undefined;
   try {
     const stripe = await getUncachableStripeClient();
@@ -61,6 +60,39 @@ export async function handleStripeWebhook(req: Request, res: Response): Promise<
   res.status(200).json({ received: true });
 }
 
+type ResolvedTier = {
+  tier: "free" | "premium" | "pro";
+  billingPeriod: "monthly" | "annual" | null;
+  priceLookupKey: string | null;
+};
+
+function resolveTierFromSubscription(subscription: Stripe.Subscription): ResolvedTier {
+  // Prefer the price's lookup_key; fallback to subscription metadata if present.
+  const item = subscription.items.data[0];
+  const lookupKey = item?.price?.lookup_key ?? null;
+  if (lookupKey) {
+    const match = /^hashchat_(premium|pro)_(monthly|annual)$/.exec(lookupKey);
+    if (match) {
+      return {
+        tier: match[1] as "premium" | "pro",
+        billingPeriod: match[2] as "monthly" | "annual",
+        priceLookupKey: lookupKey,
+      };
+    }
+  }
+  const metaTier = subscription.metadata?.tier;
+  const metaCadence = subscription.metadata?.billingPeriod;
+  if (metaTier === "premium" || metaTier === "pro") {
+    return {
+      tier: metaTier,
+      billingPeriod:
+        metaCadence === "annual" || metaCadence === "monthly" ? metaCadence : null,
+      priceLookupKey: lookupKey,
+    };
+  }
+  return { tier: "premium", billingPeriod: null, priceLookupKey: lookupKey };
+}
+
 async function reflectSubscriptionFromEvent(event: Stripe.Event): Promise<void> {
   const stripe = await getUncachableStripeClient();
 
@@ -72,7 +104,7 @@ async function reflectSubscriptionFromEvent(event: Stripe.Event): Promise<void> 
     userId = (session.metadata?.userId as string | undefined) ?? undefined;
     if (session.subscription) {
       const subId = typeof session.subscription === "string" ? session.subscription : session.subscription.id;
-      subscription = await stripe.subscriptions.retrieve(subId);
+      subscription = await stripe.subscriptions.retrieve(subId, { expand: ["items.data.price"] });
     }
   } else {
     subscription = event.data.object as Stripe.Subscription;
@@ -81,7 +113,6 @@ async function reflectSubscriptionFromEvent(event: Stripe.Event): Promise<void> 
 
   if (!subscription) return;
 
-  // Resolve userId via stored stripeCustomerId if not in metadata.
   if (!userId) {
     const customerId = typeof subscription.customer === "string" ? subscription.customer : subscription.customer.id;
     const [u] = await db
@@ -101,12 +132,22 @@ async function reflectSubscriptionFromEvent(event: Stripe.Event): Promise<void> 
   const periodEndSec = (subscription as unknown as { current_period_end?: number }).current_period_end;
   const periodEnd = periodEndSec ? new Date(periodEndSec * 1000) : null;
   const cancelAtPeriodEnd = subscription.cancel_at_period_end ?? false;
+  const resolved = resolveTierFromSubscription(subscription);
+
+  // When the subscription is no longer active we revert the user to "free".
+  // Pro-only fields (animatedAvatarUrl, bannerGifUrl) are *not* cleared so a
+  // user who later re-subscribes recovers their customizations.
+  const effectiveTier = isActive ? resolved.tier : "free";
+  const effectiveCadence = isActive ? resolved.billingPeriod : null;
 
   await db
     .insert(subscriptionsTable)
     .values({
       userId,
-      plan: "premium",
+      plan: resolved.tier,
+      tier: resolved.tier,
+      billingPeriod: resolved.billingPeriod,
+      priceLookupKey: resolved.priceLookupKey,
       status,
       currentPeriodEnd: periodEnd,
       cancelAtPeriodEnd,
@@ -114,7 +155,10 @@ async function reflectSubscriptionFromEvent(event: Stripe.Event): Promise<void> 
     .onConflictDoUpdate({
       target: subscriptionsTable.userId,
       set: {
-        plan: "premium",
+        plan: resolved.tier,
+        tier: resolved.tier,
+        billingPeriod: resolved.billingPeriod,
+        priceLookupKey: resolved.priceLookupKey,
         status,
         currentPeriodEnd: periodEnd,
         cancelAtPeriodEnd,
@@ -127,7 +171,9 @@ async function reflectSubscriptionFromEvent(event: Stripe.Event): Promise<void> 
     .set({
       stripeSubscriptionId: subscription.id,
       premiumUntil: isActive ? periodEnd : null,
-      verified: isActive ? true : false,
+      verified: isActive,
+      tier: effectiveTier,
+      billingPeriod: effectiveCadence,
     })
     .where(eq(usersTable.id, userId));
 }

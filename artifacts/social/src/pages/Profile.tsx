@@ -102,6 +102,7 @@ import {
   applyAccentToDocument,
   readStoredAccent,
 } from "@/lib/serverPreferences";
+import { useTier } from "@/hooks/useTier";
 import {
   subscribeToPush,
   unsubscribeFromPush,
@@ -1016,8 +1017,12 @@ function AppearanceTab() {
   const { theme, setTheme, themes } = useTheme();
   const [accent, setAccent] = useState<string>(() => readStoredAccent());
   const updatePrefs = useUpdateMyPreferences();
+  const { isPremium } = useTier();
 
   function chooseAccent(id: string) {
+    // Custom accent colors are a Premium perk; the "default" swatch stays
+    // available to everyone so free users have a working accent.
+    if (id !== "default" && !isPremium) return;
     setAccent(id);
     applyAccentToDocument(id);
     updatePrefs.mutate({ data: { accent: id } });
@@ -1049,6 +1054,7 @@ function AppearanceTab() {
         <div className="flex flex-wrap gap-2" data-testid="accent-grid">
           {ACCENTS.map((a) => {
             const active = accent === a.id;
+            const locked = a.id !== "default" && !isPremium;
             return (
               <button
                 key={a.id}
@@ -1056,12 +1062,14 @@ function AppearanceTab() {
                 onClick={() => chooseAccent(a.id)}
                 data-testid={`accent-${a.id}`}
                 aria-label={a.label}
-                title={a.label}
+                title={locked ? `${a.label} (Premium)` : a.label}
+                disabled={locked}
                 className={[
                   "relative h-9 w-9 overflow-hidden rounded-full border-2 transition-all",
                   active
                     ? "border-foreground ring-2 ring-primary/40"
                     : "border-border hover:scale-105",
+                  locked ? "opacity-40 grayscale cursor-not-allowed hover:scale-100" : "",
                 ].join(" ")}
                 style={{ background: a.swatch }}
               >
@@ -1072,6 +1080,15 @@ function AppearanceTab() {
             );
           })}
         </div>
+        {!isPremium && (
+          <p className="mt-2 text-xs text-muted-foreground" data-testid="accent-premium-hint">
+            Custom accent colors are a Premium perk.{" "}
+            <a href={`${basePath}/premium`} className="font-medium text-primary hover:underline">
+              Upgrade to unlock
+            </a>
+            .
+          </p>
+        )}
       </section>
 
       <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">

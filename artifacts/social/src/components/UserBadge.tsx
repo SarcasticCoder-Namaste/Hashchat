@@ -58,6 +58,7 @@ export function UserNameLine({
   role,
   mvpPlan,
   verified,
+  tier,
   featuredHashtag,
   className,
   showHandle = true,
@@ -69,6 +70,7 @@ export function UserNameLine({
   role?: string | null;
   mvpPlan?: boolean | null;
   verified?: boolean | null;
+  tier?: string | null;
   featuredHashtag?: string | null;
   className?: string;
   showHandle?: boolean;
@@ -116,6 +118,15 @@ export function UserNameLine({
             className="inline-flex items-center gap-0.5 rounded-full bg-gradient-to-r from-violet-500/30 to-pink-500/30 px-1.5 py-0.5 text-[10px] font-semibold text-foreground"
           >
             <Sparkles className="h-2.5 w-2.5" /> MVP
+          </span>
+        )}
+        {tier === "pro" && (
+          <span
+            title="HashChat Pro"
+            data-testid="badge-pro"
+            className="inline-flex items-center gap-0.5 rounded-full bg-gradient-to-r from-violet-500 to-pink-500 px-1.5 py-0.5 text-[10px] font-semibold text-white shadow-sm"
+          >
+            <Crown className="h-2.5 w-2.5" /> Pro
           </span>
         )}
         {featuredHashtag && (

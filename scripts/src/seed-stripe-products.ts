@@ -1,62 +1,103 @@
 import { getUncachableStripeClient } from "./stripeClient";
 
-const PRODUCT_NAME = "HashChat Pro";
-const PRICE_AMOUNT_CENTS = 499; // $4.99
-const PRICE_LOOKUP_KEY = "hashchat_pro_monthly";
+type TierKey = "premium" | "pro";
+type Cadence = "monthly" | "annual";
 
-async function main(): Promise<void> {
+const PRODUCTS: Record<
+  TierKey,
+  { name: string; description: string; monthlyCents: number }
+> = {
+  premium: {
+    name: "HashChat Premium",
+    description:
+      "HashChat Premium: verified badge, unlimited rooms & communities, custom accent color, ad-free For You feed, and larger upload limits.",
+    monthlyCents: 499,
+  },
+  pro: {
+    name: "HashChat Pro",
+    description:
+      "HashChat Pro: everything in Premium plus an animated avatar, banner GIF, larger scheduled-post cap, and a Pro badge variant.",
+    monthlyCents: 999,
+  },
+};
+
+// Annual pricing = 12 * monthly * 0.80 (20% off, rounded to whole cents)
+function annualCents(monthlyCents: number): number {
+  return Math.round(monthlyCents * 12 * 0.8);
+}
+
+function lookupKey(tier: TierKey, cadence: Cadence): string {
+  return `hashchat_${tier}_${cadence}`;
+}
+
+async function ensureProduct(tier: TierKey): Promise<string> {
   const stripe = await getUncachableStripeClient();
-
-  console.log(`Looking up existing "${PRODUCT_NAME}" product...`);
+  const meta = PRODUCTS[tier];
   const search = await stripe.products.search({
-    query: `name:'${PRODUCT_NAME}' AND active:'true'`,
+    query: `name:'${meta.name}' AND active:'true'`,
   });
-
-  let productId: string;
   if (search.data.length > 0) {
-    productId = search.data[0].id;
-    console.log(`Found existing product: ${productId}`);
-  } else {
-    const product = await stripe.products.create({
-      name: PRODUCT_NAME,
-      description:
-        "HashChat Pro: verified badge, unlimited rooms & communities, larger uploads, priority support.",
-      metadata: { tier: "pro" },
-    });
-    productId = product.id;
-    console.log(`Created product: ${productId}`);
+    console.log(`Found existing product ${meta.name}: ${search.data[0].id}`);
+    return search.data[0].id;
   }
+  const product = await stripe.products.create({
+    name: meta.name,
+    description: meta.description,
+    metadata: { tier },
+  });
+  console.log(`Created product ${meta.name}: ${product.id}`);
+  return product.id;
+}
 
-  // Look up existing monthly price by lookup_key.
-  const existingPrices = await stripe.prices.list({
+async function ensurePrice(
+  productId: string,
+  tier: TierKey,
+  cadence: Cadence,
+): Promise<string> {
+  const stripe = await getUncachableStripeClient();
+  const key = lookupKey(tier, cadence);
+  const monthly = PRODUCTS[tier].monthlyCents;
+  const amount = cadence === "monthly" ? monthly : annualCents(monthly);
+  const interval = cadence === "monthly" ? "month" : "year";
+
+  const existing = await stripe.prices.list({
     product: productId,
     active: true,
-    lookup_keys: [PRICE_LOOKUP_KEY],
+    lookup_keys: [key],
     limit: 1,
   });
-
-  let priceId: string;
-  if (existingPrices.data.length > 0) {
-    priceId = existingPrices.data[0].id;
-    console.log(`Found existing monthly price: ${priceId}`);
-  } else {
-    const price = await stripe.prices.create({
-      product: productId,
-      unit_amount: PRICE_AMOUNT_CENTS,
-      currency: "usd",
-      recurring: { interval: "month" },
-      lookup_key: PRICE_LOOKUP_KEY,
-      nickname: "HashChat Pro Monthly",
-    });
-    priceId = price.id;
-    console.log(`Created monthly price: ${priceId} ($${(PRICE_AMOUNT_CENTS / 100).toFixed(2)}/mo)`);
+  if (existing.data.length > 0) {
+    console.log(`  ${key}: ${existing.data[0].id} (existing)`);
+    return existing.data[0].id;
   }
+  const price = await stripe.prices.create({
+    product: productId,
+    unit_amount: amount,
+    currency: "usd",
+    recurring: { interval },
+    lookup_key: key,
+    nickname: `${PRODUCTS[tier].name} ${cadence}`,
+    metadata: { tier, billingPeriod: cadence },
+  });
+  console.log(
+    `  ${key}: ${price.id} ($${(amount / 100).toFixed(2)}/${interval})`,
+  );
+  return price.id;
+}
 
-  console.log("");
-  console.log("Done.");
-  console.log(`Product ID: ${productId}`);
-  console.log(`Price ID:   ${priceId}`);
-  console.log(`Lookup key: ${PRICE_LOOKUP_KEY}`);
+async function main(): Promise<void> {
+  for (const tier of ["premium", "pro"] as const) {
+    const productId = await ensureProduct(tier);
+    for (const cadence of ["monthly", "annual"] as const) {
+      await ensurePrice(productId, tier, cadence);
+    }
+  }
+  console.log("\nDone. Lookup keys:");
+  for (const tier of ["premium", "pro"] as const) {
+    for (const cadence of ["monthly", "annual"] as const) {
+      console.log(`  - ${lookupKey(tier, cadence)}`);
+    }
+  }
 }
 
 main().catch((err) => {
