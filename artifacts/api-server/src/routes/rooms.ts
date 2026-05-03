@@ -16,6 +16,7 @@ import { and, desc, eq, gt, inArray, sql } from "drizzle-orm";
 import { requireAuth, getUserId } from "../middlewares/requireAuth";
 import { isValidStorageUrl } from "../lib/storageUrls";
 import { serializeWaveform } from "../lib/waveform";
+import { transcribeMessageAudio } from "../lib/transcribeAudio";
 import { isAllowedGifUrl } from "../lib/giphy";
 import { SendRoomMessageBody } from "@workspace/api-zod";
 import { normalizeTag } from "../lib/hashtags";
@@ -281,6 +282,9 @@ router.post("/rooms/:tag/messages", requireAuth, async (req, res): Promise<void>
   }
   if (parsed.data.content) {
     void maybeAttachLinkPreview(created.id, parsed.data.content);
+  }
+  if (parsed.data.audioUrl) {
+    transcribeMessageAudio(created.id, parsed.data.audioUrl);
   }
 
   const resolved = await resolveMentions(parsed.data.content);

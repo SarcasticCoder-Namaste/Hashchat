@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Pause, Play } from "lucide-react";
+import { ChevronDown, ChevronUp, Pause, Play } from "lucide-react";
 
 const BAR_COUNT = 40;
 
@@ -64,6 +64,7 @@ async function decodePeaksFromUrl(url: string, target = BAR_COUNT): Promise<numb
 interface Props {
   src: string;
   peaks: number[] | null | undefined;
+  transcript?: string | null;
   isMine?: boolean;
   testId?: string;
   conversationKey?: string | number | null;
@@ -96,7 +97,8 @@ function formatSpeed(s: Speed): string {
   return Number.isInteger(s) ? `${s}x` : `${s}x`;
 }
 
-export function WaveformPlayer({ src, peaks, isMine, testId, conversationKey }: Props) {
+export function WaveformPlayer({ src, peaks, transcript, isMine, testId, conversationKey }: Props) {
+  const [showTranscript, setShowTranscript] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [duration, setDuration] = useState(0);
@@ -205,11 +207,14 @@ export function WaveformPlayer({ src, peaks, isMine, testId, conversationKey }: 
   const playedColor = isMine ? "bg-primary-foreground" : "bg-primary";
   const restColor = isMine ? "bg-primary-foreground/30" : "bg-primary/30";
 
+  const hasTranscript = !!transcript && transcript.trim().length > 0;
+
   return (
     <div
-      className="flex w-64 max-w-full items-center gap-2 px-2 py-2"
+      className="flex w-64 max-w-full flex-col gap-1 px-2 py-2"
       data-testid={testId}
     >
+    <div className="flex items-center gap-2">
       <audio ref={audioRef} src={src} preload="metadata" className="hidden" />
       <button
         type="button"
@@ -281,6 +286,35 @@ export function WaveformPlayer({ src, peaks, isMine, testId, conversationKey }: 
       >
         {formatSpeed(speed)}
       </button>
+    </div>
+    {hasTranscript && (
+      <>
+        <button
+          type="button"
+          onClick={() => setShowTranscript((v) => !v)}
+          className={[
+            "flex items-center gap-1 self-start text-[10px] hover:underline",
+            isMine ? "text-primary-foreground/80" : "text-muted-foreground",
+          ].join(" ")}
+          aria-expanded={showTranscript}
+          data-testid={testId ? `${testId}-transcript-toggle` : "waveform-transcript-toggle"}
+        >
+          {showTranscript ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+          {showTranscript ? "Hide transcript" : "Show transcript"}
+        </button>
+        {showTranscript && (
+          <p
+            className={[
+              "whitespace-pre-wrap break-words text-xs leading-snug",
+              isMine ? "text-primary-foreground/90" : "text-foreground",
+            ].join(" ")}
+            data-testid={testId ? `${testId}-transcript` : "waveform-transcript"}
+          >
+            {transcript}
+          </p>
+        )}
+      </>
+    )}
     </div>
   );
 }

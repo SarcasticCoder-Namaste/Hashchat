@@ -451,6 +451,7 @@ export const GetForYouFeedResponseItem = zod.object({
                     ),
                 )
                 .nullish(),
+              audioTranscript: zod.string().nullish(),
               reactions: zod.array(
                 zod.object({
                   emoji: zod.string(),
@@ -624,6 +625,7 @@ export const GetExploreResponse = zod.object({
                   ),
               )
               .nullish(),
+            audioTranscript: zod.string().nullish(),
             reactions: zod.array(
               zod.object({
                 emoji: zod.string(),
@@ -893,6 +895,7 @@ export const GetExploreResponse = zod.object({
                         ),
                     )
                     .nullish(),
+                  audioTranscript: zod.string().nullish(),
                   reactions: zod.array(
                     zod.object({
                       emoji: zod.string(),
@@ -1403,6 +1406,7 @@ export const GetConversationsResponseItem = zod.object({
               .max(getConversationsResponseLastMessageOneAudioWaveformItemMax),
           )
           .nullish(),
+        audioTranscript: zod.string().nullish(),
         reactions: zod.array(
           zod.object({
             emoji: zod.string(),
@@ -1528,6 +1532,7 @@ export const OpenConversationResponse = zod.object({
               .max(openConversationResponseLastMessageOneAudioWaveformItemMax),
           )
           .nullish(),
+        audioTranscript: zod.string().nullish(),
         reactions: zod.array(
           zod.object({
             emoji: zod.string(),
@@ -1620,6 +1625,7 @@ export const GetConversationMessagesResponseItem = zod.object({
         .max(getConversationMessagesResponseAudioWaveformItemMax),
     )
     .nullish(),
+  audioTranscript: zod.string().nullish(),
   reactions: zod.array(
     zod.object({
       emoji: zod.string(),
@@ -1760,6 +1766,7 @@ export const GetMessageRepliesResponse = zod.object({
           .max(getMessageRepliesResponseParentAudioWaveformItemMax),
       )
       .nullish(),
+    audioTranscript: zod.string().nullish(),
     reactions: zod.array(
       zod.object({
         emoji: zod.string(),
@@ -1835,6 +1842,7 @@ export const GetMessageRepliesResponse = zod.object({
             .max(getMessageRepliesResponseRepliesItemAudioWaveformItemMax),
         )
         .nullish(),
+      audioTranscript: zod.string().nullish(),
       reactions: zod.array(
         zod.object({
           emoji: zod.string(),
@@ -2098,6 +2106,7 @@ export const GetRoomsResponseItem = zod.object({
               .max(getRoomsResponseLastMessageOneAudioWaveformItemMax),
           )
           .nullish(),
+        audioTranscript: zod.string().nullish(),
         reactions: zod.array(
           zod.object({
             emoji: zod.string(),
@@ -2201,6 +2210,7 @@ export const GetTrendingRoomsResponseItem = zod.object({
               .max(getTrendingRoomsResponseLastMessageOneAudioWaveformItemMax),
           )
           .nullish(),
+        audioTranscript: zod.string().nullish(),
         reactions: zod.array(
           zod.object({
             emoji: zod.string(),
@@ -2294,6 +2304,7 @@ export const GetRoomMessagesResponseItem = zod.object({
         .max(getRoomMessagesResponseAudioWaveformItemMax),
     )
     .nullish(),
+  audioTranscript: zod.string().nullish(),
   reactions: zod.array(
     zod.object({
       emoji: zod.string(),
@@ -4054,6 +4065,7 @@ export const GetCommunityResponse = zod.object({
                   ),
               )
               .nullish(),
+            audioTranscript: zod.string().nullish(),
             reactions: zod.array(
               zod.object({
                 emoji: zod.string(),
@@ -4233,6 +4245,7 @@ export const JoinCommunityResponse = zod.object({
                   ),
               )
               .nullish(),
+            audioTranscript: zod.string().nullish(),
             reactions: zod.array(
               zod.object({
                 emoji: zod.string(),
@@ -4412,6 +4425,7 @@ export const LeaveCommunityResponse = zod.object({
                   ),
               )
               .nullish(),
+            audioTranscript: zod.string().nullish(),
             reactions: zod.array(
               zod.object({
                 emoji: zod.string(),

@@ -13,6 +13,7 @@ import { and, desc, eq, inArray, or, sql, gt } from "drizzle-orm";
 import { requireAuth, getUserId } from "../middlewares/requireAuth";
 import { isValidStorageUrl } from "../lib/storageUrls";
 import { serializeWaveform } from "../lib/waveform";
+import { transcribeMessageAudio } from "../lib/transcribeAudio";
 import { loadBlockWall, isBlockedEitherWay } from "../lib/relationships";
 import { isAllowedGifUrl } from "../lib/giphy";
 import {
@@ -35,7 +36,7 @@ function pair(a: string, b: string): [string, string] {
   return a < b ? [a, b] : [b, a];
 }
 
-async function buildMessages(rows: { id: number; conversationId: number | null; roomTag: string | null; senderId: string; content: string; imageUrl: string | null; audioUrl: string | null; audioWaveform: string | null; replyToId: number | null; createdAt: Date }[], myUserId: string) {
+async function buildMessages(rows: { id: number; conversationId: number | null; roomTag: string | null; senderId: string; content: string; imageUrl: string | null; audioUrl: string | null; audioWaveform: string | null; audioTranscript: string | null; replyToId: number | null; createdAt: Date }[], myUserId: string) {
   return sharedBuildMessages(rows, myUserId);
 }
 
@@ -332,6 +333,10 @@ router.post("/conversations/:id/messages", requireAuth, async (req, res): Promis
   if (parsed.data.content) {
     // Detach: link preview fetch can take seconds; do not block send.
     void maybeAttachLinkPreview(created.id, parsed.data.content);
+  }
+  if (parsed.data.audioUrl) {
+    // Fire-and-forget transcription; updates message row when ready.
+    transcribeMessageAudio(created.id, parsed.data.audioUrl);
   }
   await db
     .update(conversationsTable)

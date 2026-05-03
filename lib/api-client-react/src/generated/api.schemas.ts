@@ -363,6 +363,8 @@ export interface Message {
   audioUrl?: string | null;
   /** @nullable */
   audioWaveform?: number[] | null;
+  /** @nullable */
+  audioTranscript?: string | null;
   reactions: Reaction[];
   attachments: MessageAttachment[];
   mentions: MentionedUser[];

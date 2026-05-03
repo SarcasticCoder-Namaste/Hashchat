@@ -165,6 +165,7 @@ export function MessageBubble({
               <WaveformPlayer
                 src={message.audioUrl}
                 peaks={message.audioWaveform ?? null}
+                transcript={message.audioTranscript ?? null}
                 isMine={isMine}
                 testId={`msg-audio-${message.id}`}
                 conversationKey={
@@ -313,6 +314,7 @@ export function MessageBubble({
             <WaveformPlayer
               src={message.audioUrl}
               peaks={message.audioWaveform ?? null}
+              transcript={message.audioTranscript ?? null}
               testId={`msg-audio-${message.id}`}
               conversationKey={
                 message.conversationId != null

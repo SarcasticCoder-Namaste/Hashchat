@@ -2829,6 +2829,8 @@ components:
             type: integer
             minimum: 0
             maximum: 100
+        audioTranscript:
+          type: ["string", "null"]
         reactions:
           type: array
           items: { $ref: "#/components/schemas/Reaction" }
