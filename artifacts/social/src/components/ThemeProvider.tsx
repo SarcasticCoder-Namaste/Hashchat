@@ -38,7 +38,17 @@ export type ThemeId =
   | "moss"
   | "bubblegum"
   | "carbon"
-  | "tangerine";
+  | "tangerine"
+  | "vaporwave"
+  | "matrix"
+  | "tropical"
+  | "monokai"
+  | "blossom"
+  | "abyss"
+  | "vintage"
+  | "candy"
+  | "ember"
+  | "glacier";
 
 export interface ThemeMeta {
   id: ThemeId;
@@ -258,6 +268,76 @@ export const THEMES: ThemeMeta[] = [
     description: "Vibrant orange with cream",
     isDark: false,
     swatch: { bg: "#fff7ed", primary: "#f97316", accent: "#ffedd5" },
+  },
+  {
+    id: "vaporwave",
+    label: "Vaporwave",
+    description: "Retro pink and cyan dream",
+    isDark: true,
+    swatch: { bg: "#1a0830", primary: "#ff77e9", accent: "#2d1a5a" },
+  },
+  {
+    id: "matrix",
+    label: "Matrix",
+    description: "Hacker green on black",
+    isDark: true,
+    swatch: { bg: "#000800", primary: "#00ff66", accent: "#062a10" },
+  },
+  {
+    id: "tropical",
+    label: "Tropical",
+    description: "Turquoise sea and sand",
+    isDark: false,
+    swatch: { bg: "#ecfeff", primary: "#06b6d4", accent: "#cffafe" },
+  },
+  {
+    id: "monokai",
+    label: "Monokai",
+    description: "Classic editor olive and pink",
+    isDark: true,
+    swatch: { bg: "#272822", primary: "#f92672", accent: "#3e3d32" },
+  },
+  {
+    id: "blossom",
+    label: "Blossom",
+    description: "Spring rose and sage",
+    isDark: false,
+    swatch: { bg: "#fff5f5", primary: "#f43f5e", accent: "#fee2e2" },
+  },
+  {
+    id: "abyss",
+    label: "Abyss",
+    description: "Deep ocean teal on midnight",
+    isDark: true,
+    swatch: { bg: "#020617", primary: "#14b8a6", accent: "#0c2a32" },
+  },
+  {
+    id: "vintage",
+    label: "Vintage",
+    description: "Sepia paper with rust",
+    isDark: false,
+    swatch: { bg: "#faf3e0", primary: "#b45309", accent: "#f0e4ca" },
+  },
+  {
+    id: "candy",
+    label: "Candy",
+    description: "Sweet violet and rose pop",
+    isDark: false,
+    swatch: { bg: "#fdf4ff", primary: "#d946ef", accent: "#fae8ff" },
+  },
+  {
+    id: "ember",
+    label: "Ember",
+    description: "Glowing coal and ember orange",
+    isDark: true,
+    swatch: { bg: "#140805", primary: "#ff6a00", accent: "#3a160a" },
+  },
+  {
+    id: "glacier",
+    label: "Glacier",
+    description: "Pale ice with steel blue",
+    isDark: false,
+    swatch: { bg: "#f8fafc", primary: "#475569", accent: "#e2e8f0" },
   },
 ];
 
