@@ -82,7 +82,10 @@ import {
   LogOut,
   Bell,
   BellOff,
+  SlidersHorizontal,
 } from "lucide-react";
+import { Slider } from "@/components/ui/slider";
+import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
@@ -718,6 +721,35 @@ export default function ConversationChat({ id }: { id: number }) {
     .toUpperCase() || "?";
 
   const hasBg = !!conv?.backgroundUrl;
+  const bgStorageKey = `chat-bg:${id}`;
+  const [bgOpacity, setBgOpacity] = useState<number>(55);
+  const [bgBlur, setBgBlur] = useState<number>(12);
+  const [bgSettingsOpen, setBgSettingsOpen] = useState(false);
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(bgStorageKey);
+      if (raw) {
+        const parsed = JSON.parse(raw) as { opacity?: number; blur?: number };
+        if (typeof parsed.opacity === "number") setBgOpacity(parsed.opacity);
+        if (typeof parsed.blur === "number") setBgBlur(parsed.blur);
+      } else {
+        setBgOpacity(55);
+        setBgBlur(12);
+      }
+    } catch {
+      // ignore
+    }
+  }, [bgStorageKey]);
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        bgStorageKey,
+        JSON.stringify({ opacity: bgOpacity, blur: bgBlur }),
+      );
+    } catch {
+      // ignore
+    }
+  }, [bgStorageKey, bgOpacity, bgBlur]);
 
   return (
     <div
@@ -733,7 +765,14 @@ export default function ConversationChat({ id }: { id: number }) {
       }
     >
       {hasBg && (
-        <div className="pointer-events-none absolute inset-0 bg-background/55 backdrop-blur-md" />
+        <div
+          className="pointer-events-none absolute inset-0"
+          style={{
+            backgroundColor: `hsl(var(--background) / ${bgOpacity / 100})`,
+            backdropFilter: bgBlur > 0 ? `blur(${bgBlur}px)` : undefined,
+            WebkitBackdropFilter: bgBlur > 0 ? `blur(${bgBlur}px)` : undefined,
+          }}
+        />
       )}
       <header
         className={[
@@ -852,12 +891,20 @@ export default function ConversationChat({ id }: { id: number }) {
                   <ImageLucide className="mr-2 h-4 w-4" /> Set background
                 </DropdownMenuItem>
                 {conv.backgroundUrl && (
-                  <DropdownMenuItem
-                    onSelect={() => clearBg.mutate({ id })}
-                    data-testid="menu-clear-background"
-                  >
-                    <Trash2 className="mr-2 h-4 w-4" /> Clear background
-                  </DropdownMenuItem>
+                  <>
+                    <DropdownMenuItem
+                      onSelect={() => setBgSettingsOpen(true)}
+                      data-testid="menu-adjust-background"
+                    >
+                      <SlidersHorizontal className="mr-2 h-4 w-4" /> Adjust background
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onSelect={() => clearBg.mutate({ id })}
+                      data-testid="menu-clear-background"
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" /> Clear background
+                    </DropdownMenuItem>
+                  </>
                 )}
                 {!isGroup && otherUserId && (
                   <>
@@ -896,6 +943,80 @@ export default function ConversationChat({ id }: { id: number }) {
               }}
               data-testid="input-set-background"
             />
+            <Dialog open={bgSettingsOpen} onOpenChange={setBgSettingsOpen}>
+              <DialogContent className="sm:max-w-sm" data-testid="dialog-bg-settings">
+                <DialogHeader>
+                  <DialogTitle>Adjust background</DialogTitle>
+                  <DialogDescription>
+                    Tweak how visible and how blurry the chat background looks.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-5 py-2">
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="bg-opacity">Overlay opacity</Label>
+                      <span className="text-xs text-muted-foreground">
+                        {bgOpacity}%
+                      </span>
+                    </div>
+                    <Slider
+                      id="bg-opacity"
+                      min={0}
+                      max={100}
+                      step={1}
+                      value={[bgOpacity]}
+                      onValueChange={(v) => setBgOpacity(v[0] ?? 55)}
+                      data-testid="slider-bg-opacity"
+                    />
+                    <p className="text-[11px] text-muted-foreground">
+                      Lower = background image shows through more.
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="bg-blur">Background blur</Label>
+                      <span className="text-xs text-muted-foreground">
+                        {bgBlur}px
+                      </span>
+                    </div>
+                    <Slider
+                      id="bg-blur"
+                      min={0}
+                      max={32}
+                      step={1}
+                      value={[bgBlur]}
+                      onValueChange={(v) => setBgBlur(v[0] ?? 12)}
+                      data-testid="slider-bg-blur"
+                    />
+                    <p className="text-[11px] text-muted-foreground">
+                      Set to 0 for a sharp, un-blurred background.
+                    </p>
+                  </div>
+                </div>
+                <DialogFooter className="gap-2 sm:justify-between">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setBgOpacity(55);
+                      setBgBlur(12);
+                    }}
+                    data-testid="button-bg-reset"
+                  >
+                    Reset
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={() => setBgSettingsOpen(false)}
+                    data-testid="button-bg-done"
+                  >
+                    Done
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           </>
         ) : (
           <p className="text-sm text-muted-foreground">Loading…</p>
