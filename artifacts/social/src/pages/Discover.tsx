@@ -1,13 +1,9 @@
 import { useMemo } from "react";
 import { Link, useLocation, useSearch } from "wouter";
 import {
-  useDiscoverPeople,
-  useGetForYouFeed,
-  useGetTrendingHashtags,
+  useGetExplore,
   useGetMe,
   useGetMyFriends,
-  useGetFollowingFeed,
-  useGetFollowSuggestions,
   useOpenConversation,
   useSendFriendRequest,
   useCancelFriendRequest,
@@ -16,20 +12,24 @@ import {
   useUnfollowUser,
   useBlockUser,
   useMuteUser,
-  getDiscoverPeopleQueryKey,
-  getGetForYouFeedQueryKey,
+  useRsvpEvent,
+  useCancelRsvpEvent,
+  getGetExploreQueryKey,
   getGetMyFriendsQueryKey,
   getGetFriendRequestsQueryKey,
+  getGetMyRelationshipsQueryKey,
   getGetFollowingFeedQueryKey,
   getGetFollowSuggestionsQueryKey,
-  getGetMyRelationshipsQueryKey,
   type MatchUser,
-  type FollowingFeedItem,
+  type TrendingHashtag,
+  type Event as ApiEvent,
+  type Room as ApiRoom,
+  type HotPost,
   type ForYouItem,
+  type Post as ApiPost,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -59,9 +59,14 @@ import {
   MoreHorizontal,
   Ban,
   EyeOff,
-  Rss,
+  Calendar,
+  Radio,
+  Bell,
+  BellOff,
+  DoorOpen,
+  Heart,
+  Compass,
 } from "lucide-react";
-import { UpcomingEventsStrip } from "@/components/UpcomingEventsStrip";
 
 function greeting(name?: string) {
   const h = new Date().getHours();
@@ -69,11 +74,28 @@ function greeting(name?: string) {
   return name ? `${tod}, ${name}` : tod;
 }
 
+function formatRelative(iso: string) {
+  const t = new Date(iso).getTime();
+  const diff = t - Date.now();
+  const abs = Math.abs(diff);
+  const min = Math.round(abs / 60000);
+  if (min < 1) return diff > 0 ? "Now" : "Just now";
+  if (min < 60) return diff > 0 ? `in ${min}m` : `${min}m ago`;
+  const hr = Math.round(min / 60);
+  if (hr < 24) return diff > 0 ? `in ${hr}h` : `${hr}h ago`;
+  const day = Math.round(hr / 24);
+  return diff > 0 ? `in ${day}d` : `${day}d ago`;
+}
+
 export default function Discover() {
   const { data: me } = useGetMe();
-  const { data: matches, isLoading } = useDiscoverPeople({ limit: 12 });
-  const { data: trending } = useGetTrendingHashtags({ limit: 10 });
   const { data: friends } = useGetMyFriends();
+  const { data: explore, isLoading } = useGetExplore({
+    query: {
+      queryKey: getGetExploreQueryKey(),
+      refetchOnWindowFocus: false,
+    },
+  });
   const search = useSearch();
   const initialFriendCode = useMemo(() => {
     const params = new URLSearchParams(search ?? "");
@@ -88,11 +110,31 @@ export default function Discover() {
 
   const firstName = me?.displayName.split(" ")[0];
 
-  const stats = [
-    { label: "Hashtags", value: me?.hashtags.length ?? 0, icon: Hash, accent: "from-violet-500 to-fuchsia-500" },
-    { label: "Friends", value: friends?.length ?? 0, icon: Users, accent: "from-pink-500 to-rose-500" },
-    { label: "Trending", value: trending?.length ?? 0, icon: Flame, accent: "from-orange-500 to-amber-500" },
-  ];
+  const stats = useMemo(
+    () => [
+      {
+        label: "Hashtags",
+        value: me?.hashtags.length ?? 0,
+        icon: Hash,
+        accent: "from-violet-500 to-fuchsia-500",
+      },
+      {
+        label: "Friends",
+        value: friends?.length ?? 0,
+        icon: Users,
+        accent: "from-pink-500 to-rose-500",
+      },
+      {
+        label: "Trending",
+        value: explore?.trendingHashtags.length ?? 0,
+        icon: Flame,
+        accent: "from-orange-500 to-amber-500",
+      },
+    ],
+    [me?.hashtags.length, friends?.length, explore?.trendingHashtags.length],
+  );
+
+  const followsAnyHashtag = (explore?.followedHashtags.length ?? 0) > 0;
 
   return (
     <div className="mx-auto max-w-5xl space-y-10 px-4 py-6 md:px-8 md:py-10">
@@ -109,10 +151,10 @@ export default function Discover() {
             {greeting(firstName)} 👋
           </p>
           <h1 className="mt-1 text-3xl font-bold tracking-tight md:text-4xl">
-            Find your <span className="brand-gradient-text">people</span>.
+            <span className="brand-gradient-text">Explore</span> what's hot.
           </h1>
           <p className="mt-2 max-w-xl text-muted-foreground">
-            Fresh matches and hashtags hand-picked from what you love.
+            Trending hashtags, live events, and people who share your interests.
           </p>
         </motion.div>
 
@@ -149,84 +191,133 @@ export default function Discover() {
         autoLookup={Boolean(initialFriendCode)}
       />
 
-      <UpcomingEventsStrip />
+      <TrendingHashtagsSection
+        hashtags={explore?.trendingHashtags ?? []}
+        isLoading={isLoading}
+      />
 
-      {/* Tabs: For you / Smart matches / Following */}
-      <Tabs defaultValue="foryou" className="w-full">
-        <TabsList data-testid="discover-tabs">
-          <TabsTrigger value="foryou" data-testid="tab-foryou">
-            <Sparkles className="mr-1 h-4 w-4" /> For you
-          </TabsTrigger>
-          <TabsTrigger value="matches" data-testid="tab-matches">
-            <Users className="mr-1 h-4 w-4" /> Smart matches
-          </TabsTrigger>
-          <TabsTrigger value="following" data-testid="tab-following">
-            <Rss className="mr-1 h-4 w-4" /> Following
-          </TabsTrigger>
-        </TabsList>
-        <TabsContent value="foryou" className="mt-4">
-          <ForYouFeed />
-        </TabsContent>
-        <TabsContent value="matches" className="mt-4">
-          {isLoading ? (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {Array.from({ length: 6 }).map((_, i) => (
-                <CardSkeleton key={i} />
-              ))}
-            </div>
-          ) : matches && matches.length > 0 ? (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {matches.map((m, idx) => (
-                <motion.div
-                  key={m.id}
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: idx * 0.04, duration: 0.25 }}
-                >
-                  <MatchCard m={m} />
-                </motion.div>
-              ))}
-            </div>
-          ) : (
-            <EmptyState
-              icon={Sparkles}
-              title="No matches yet"
-              description="Add a few more hashtags from your profile and we'll surface people who share them."
-              action={
-                <Button asChild>
-                  <Link href="/app/settings">Add hashtags →</Link>
-                </Button>
-              }
-            />
-          )}
-        </TabsContent>
-        <TabsContent value="following" className="mt-4">
-          <FollowingFeed />
-        </TabsContent>
-      </Tabs>
+      <TrendingEventsSection
+        events={explore?.trendingEvents ?? []}
+        isLoading={isLoading}
+      />
 
-      {/* Trending */}
-      <section>
-        <div className="mb-3 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <TrendingUp className="h-5 w-5 text-pink-600" />
-            <h2 className="text-lg font-semibold text-foreground">Trending now</h2>
-          </div>
-          <Link
-            href="/app/trending"
-            className="text-sm font-medium text-primary hover:underline"
-            data-testid="link-all-trending"
-          >
-            See all →
-          </Link>
-        </div>
+      <SuggestedRoomsSection
+        rooms={explore?.suggestedRooms ?? []}
+        isLoading={isLoading}
+        followsAnyHashtag={followsAnyHashtag}
+      />
+
+      <PeopleToFollowSection
+        people={explore?.peopleToFollow ?? []}
+        isLoading={isLoading}
+        hasOwnHashtags={(me?.hashtags.length ?? 0) > 0}
+      />
+
+      <HotInYourHashtagsSection
+        items={explore?.hotInYourHashtags ?? []}
+        isLoading={isLoading}
+        followsAnyHashtag={followsAnyHashtag}
+      />
+
+      <ForYouPreviewSection
+        items={explore?.forYouPreview ?? []}
+        isLoading={isLoading}
+      />
+    </div>
+  );
+}
+
+// --------------------------- Section primitives ---------------------------
+
+function SectionHeader({
+  icon: Icon,
+  iconClass,
+  title,
+  href,
+  testId,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  iconClass: string;
+  title: string;
+  href?: string;
+  testId?: string;
+}) {
+  return (
+    <div className="mb-3 flex items-center justify-between">
+      <div className="flex items-center gap-2">
+        <Icon className={iconClass} />
+        <h2 className="text-lg font-semibold text-foreground">{title}</h2>
+      </div>
+      {href && (
+        <Link
+          href={href}
+          className="text-sm font-medium text-primary hover:underline"
+          data-testid={testId}
+        >
+          See all →
+        </Link>
+      )}
+    </div>
+  );
+}
+
+function HRail({ children, testId }: { children: React.ReactNode; testId?: string }) {
+  return (
+    <div
+      className="-mx-1 flex gap-3 overflow-x-auto px-1 pb-2 md:grid md:grid-cols-2 md:overflow-visible lg:grid-cols-3"
+      data-testid={testId}
+    >
+      {children}
+    </div>
+  );
+}
+
+// --------------------------- Trending hashtags ---------------------------
+
+function TrendingHashtagsSection({
+  hashtags,
+  isLoading,
+}: {
+  hashtags: TrendingHashtag[];
+  isLoading: boolean;
+}) {
+  return (
+    <section data-testid="explore-section-trending">
+      <SectionHeader
+        icon={TrendingUp}
+        iconClass="h-5 w-5 text-pink-600"
+        title="Trending hashtags"
+        href="/app/trending"
+        testId="link-all-trending"
+      />
+      {isLoading && hashtags.length === 0 ? (
         <div className="flex flex-wrap gap-2">
-          {trending?.map((t, idx) => (
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div
+              key={i}
+              className="h-8 w-24 animate-pulse rounded-full bg-accent"
+            />
+          ))}
+        </div>
+      ) : hashtags.length === 0 ? (
+        <EmptyState
+          icon={TrendingUp}
+          title="No trends yet"
+          description="Once people start chatting, hot hashtags will appear here."
+        />
+      ) : (
+        <div className="flex flex-wrap gap-2">
+          {hashtags.map((t, idx) => (
             <motion.div
               key={t.tag}
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: idx * 0.025, type: "spring", stiffness: 320, damping: 22 }}
+              transition={{
+                delay: idx * 0.025,
+                type: "spring",
+                stiffness: 320,
+                damping: 22,
+              }}
             >
               <Link
                 href={`/app/rooms/${encodeURIComponent(t.tag)}`}
@@ -242,17 +333,549 @@ export default function Discover() {
             </motion.div>
           ))}
         </div>
-      </section>
+      )}
+    </section>
+  );
+}
+
+// --------------------------- Trending events ---------------------------
+
+function TrendingEventsSection({
+  events,
+  isLoading,
+}: {
+  events: ApiEvent[];
+  isLoading: boolean;
+}) {
+  return (
+    <section data-testid="explore-section-events">
+      <SectionHeader
+        icon={Calendar}
+        iconClass="h-5 w-5 text-violet-600"
+        title="Trending events"
+      />
+      {isLoading && events.length === 0 ? (
+        <HRail>
+          {Array.from({ length: 3 }).map((_, i) => (
+            <CardSkeleton key={i} />
+          ))}
+        </HRail>
+      ) : events.length === 0 ? (
+        <EmptyState
+          icon={Calendar}
+          title="No upcoming events"
+          description="Follow more hashtags to see events from rooms you care about."
+          action={
+            <Button asChild>
+              <Link href="/app/trending">Browse rooms →</Link>
+            </Button>
+          }
+        />
+      ) : (
+        <HRail testId="trending-events-rail">
+          {events.map((e, idx) => (
+            <motion.div
+              key={e.id}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: idx * 0.04, duration: 0.2 }}
+              className="min-w-[260px] max-w-[320px] flex-shrink-0 md:min-w-0 md:max-w-none"
+            >
+              <EventCard e={e} />
+            </motion.div>
+          ))}
+        </HRail>
+      )}
+    </section>
+  );
+}
+
+function EventCard({ e }: { e: ApiEvent }) {
+  const qc = useQueryClient();
+  const invalidate = () =>
+    qc.invalidateQueries({ queryKey: getGetExploreQueryKey() });
+  const rsvp = useRsvpEvent({ mutation: { onSuccess: invalidate } });
+  const unRsvp = useCancelRsvpEvent({ mutation: { onSuccess: invalidate } });
+  return (
+    <div
+      className="rounded-xl border border-border bg-card p-3 shadow-sm"
+      data-testid={`event-card-${e.id}`}
+    >
+      <div className="mb-2 flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wide">
+        {e.isLive ? (
+          <span className="inline-flex items-center gap-1 rounded-full bg-red-500/15 px-1.5 py-0.5 text-red-600 dark:text-red-400">
+            <Radio className="h-3 w-3 animate-pulse" /> Live now
+          </span>
+        ) : (
+          <span className="inline-flex items-center gap-1 text-violet-600 dark:text-violet-400">
+            <Calendar className="h-3 w-3" /> {formatRelative(e.startsAt)}
+          </span>
+        )}
+        <Link
+          href={`/app/rooms/${encodeURIComponent(e.roomTag)}`}
+          className="ml-auto inline-flex items-center gap-0.5 text-xs font-medium text-primary hover:underline"
+        >
+          <Hash className="h-3 w-3" />
+          {e.roomTag}
+        </Link>
+      </div>
+      <p className="line-clamp-2 text-sm font-semibold text-foreground">
+        {e.title}
+      </p>
+      {e.description && (
+        <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
+          {e.description}
+        </p>
+      )}
+      <div className="mt-3 flex items-center justify-between text-xs">
+        <span className="text-muted-foreground">{e.rsvpCount} going</span>
+        {e.rsvpedByMe ? (
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={() => unRsvp.mutate({ id: e.id })}
+            disabled={unRsvp.isPending}
+            data-testid={`event-unrsvp-${e.id}`}
+          >
+            <BellOff className="mr-1 h-3.5 w-3.5" /> Going
+          </Button>
+        ) : (
+          <Button
+            size="sm"
+            onClick={() => rsvp.mutate({ id: e.id })}
+            disabled={rsvp.isPending}
+            data-testid={`event-rsvp-${e.id}`}
+          >
+            <Bell className="mr-1 h-3.5 w-3.5" /> RSVP
+          </Button>
+        )}
+      </div>
     </div>
   );
 }
+
+// --------------------------- Suggested rooms ---------------------------
+
+function SuggestedRoomsSection({
+  rooms,
+  isLoading,
+  followsAnyHashtag,
+}: {
+  rooms: ApiRoom[];
+  isLoading: boolean;
+  followsAnyHashtag: boolean;
+}) {
+  return (
+    <section data-testid="explore-section-rooms">
+      <SectionHeader
+        icon={DoorOpen}
+        iconClass="h-5 w-5 text-orange-500"
+        title="Suggested rooms"
+        href="/app/rooms"
+        testId="link-all-rooms"
+      />
+      {isLoading && rooms.length === 0 ? (
+        <HRail>
+          {Array.from({ length: 3 }).map((_, i) => (
+            <CardSkeleton key={i} />
+          ))}
+        </HRail>
+      ) : rooms.length === 0 ? (
+        <EmptyState
+          icon={DoorOpen}
+          title="No room suggestions yet"
+          description={
+            followsAnyHashtag
+              ? "Things are quiet — check back when more rooms get active."
+              : "Follow a few hashtags so we can suggest rooms tailored to you."
+          }
+          action={
+            !followsAnyHashtag ? (
+              <Button asChild>
+                <Link href="/app/settings">Follow more hashtags →</Link>
+              </Button>
+            ) : undefined
+          }
+        />
+      ) : (
+        <HRail testId="suggested-rooms-rail">
+          {rooms.map((r, idx) => (
+            <motion.div
+              key={r.tag}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: idx * 0.04, duration: 0.2 }}
+              className="min-w-[260px] max-w-[320px] flex-shrink-0 md:min-w-0 md:max-w-none"
+            >
+              <RoomCard r={r} />
+            </motion.div>
+          ))}
+        </HRail>
+      )}
+    </section>
+  );
+}
+
+function RoomCard({ r }: { r: ApiRoom }) {
+  return (
+    <Link
+      href={`/app/rooms/${encodeURIComponent(r.tag)}`}
+      className="lift block rounded-xl border border-border bg-gradient-to-br from-violet-500/5 via-card to-pink-500/5 p-4 shadow-sm"
+      data-testid={`room-card-${r.tag}`}
+    >
+      <div className="flex items-center gap-3">
+        <span className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500 to-pink-500 text-xl font-bold text-white shadow">
+          #
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="truncate font-semibold text-foreground">
+            <Hash className="inline h-4 w-4" />
+            {r.tag}
+          </p>
+          <p className="text-xs text-muted-foreground">
+            {r.memberCount} members · {r.recentMessages} recent
+          </p>
+        </div>
+      </div>
+    </Link>
+  );
+}
+
+// --------------------------- People to follow ---------------------------
+
+function PeopleToFollowSection({
+  people,
+  isLoading,
+  hasOwnHashtags,
+}: {
+  people: MatchUser[];
+  isLoading: boolean;
+  hasOwnHashtags: boolean;
+}) {
+  return (
+    <section data-testid="explore-section-people">
+      <SectionHeader
+        icon={Users}
+        iconClass="h-5 w-5 text-pink-600"
+        title="People to follow"
+        href="/app/discover/people"
+        testId="link-all-people"
+      />
+      {isLoading && people.length === 0 ? (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <CardSkeleton key={i} />
+          ))}
+        </div>
+      ) : people.length === 0 ? (
+        <EmptyState
+          icon={Users}
+          title="No one to suggest yet"
+          description={
+            hasOwnHashtags
+              ? "We'll surface more people as they join."
+              : "Add a few hashtags to your profile and we'll match you with people who share them."
+          }
+          action={
+            !hasOwnHashtags ? (
+              <Button asChild>
+                <Link href="/app/settings">Add hashtags →</Link>
+              </Button>
+            ) : undefined
+          }
+        />
+      ) : (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {people.map((m, idx) => (
+            <motion.div
+              key={m.id}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: idx * 0.04, duration: 0.25 }}
+            >
+              <MatchCard m={m} />
+            </motion.div>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+// --------------------------- Hot in your hashtags ---------------------------
+
+function HotInYourHashtagsSection({
+  items,
+  isLoading,
+  followsAnyHashtag,
+}: {
+  items: HotPost[];
+  isLoading: boolean;
+  followsAnyHashtag: boolean;
+}) {
+  return (
+    <section data-testid="explore-section-hot">
+      <SectionHeader
+        icon={Flame}
+        iconClass="h-5 w-5 text-orange-500"
+        title="What's hot in your hashtags"
+      />
+      {isLoading && items.length === 0 ? (
+        <div className="space-y-3">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <CardSkeleton key={i} />
+          ))}
+        </div>
+      ) : items.length === 0 ? (
+        <EmptyState
+          icon={Flame}
+          title={
+            followsAnyHashtag
+              ? "No hot posts in your hashtags yet"
+              : "Follow hashtags to see hot posts"
+          }
+          description={
+            followsAnyHashtag
+              ? "Check back soon — we surface the top posts of the last 24 hours."
+              : "Once you follow a few hashtags, the top engaging posts will appear here."
+          }
+          action={
+            !followsAnyHashtag ? (
+              <Button asChild>
+                <Link href="/app/settings">Follow more hashtags →</Link>
+              </Button>
+            ) : undefined
+          }
+        />
+      ) : (
+        <div className="space-y-3" data-testid="hot-posts-list">
+          {items.map((h, idx) => (
+            <motion.div
+              key={h.post.id}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: Math.min(idx, 6) * 0.03, duration: 0.2 }}
+            >
+              <HotPostCard h={h} />
+            </motion.div>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function HotPostCard({ h }: { h: HotPost }) {
+  return (
+    <article
+      className="rounded-xl border border-border bg-card p-4 shadow-sm"
+      data-testid={`hot-post-${h.post.id}`}
+    >
+      <div className="mb-2 flex items-center gap-2 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+        <Flame className="h-3 w-3 text-orange-500" />
+        {h.matchedHashtag ? (
+          <>
+            Hot in{" "}
+            <Link
+              href={`/app/tag/${encodeURIComponent(h.matchedHashtag)}`}
+              className="text-primary hover:underline"
+            >
+              #{h.matchedHashtag}
+            </Link>
+          </>
+        ) : (
+          <>Trending now</>
+        )}
+        <span className="ml-auto inline-flex items-center gap-1 normal-case text-foreground">
+          <Heart className="h-3 w-3 text-pink-500" /> {h.engagement}
+        </span>
+      </div>
+      <PostBody p={h.post} />
+    </article>
+  );
+}
+
+function PostBody({ p }: { p: ApiPost }) {
+  return (
+    <div className="flex gap-3">
+      <Link href={`/app/u/${p.author.username}`}>
+        <PresenceAvatar
+          displayName={p.author.displayName}
+          avatarUrl={p.author.avatarUrl ?? null}
+          size="md"
+        />
+      </Link>
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-baseline gap-1.5">
+          <Link
+            href={`/app/u/${p.author.username}`}
+            className="font-semibold text-foreground hover:underline"
+          >
+            {p.author.displayName}
+          </Link>
+          <span className="text-xs text-muted-foreground">
+            @{p.author.username}
+          </span>
+          <span className="ml-auto text-[11px] text-muted-foreground">
+            {new Date(p.createdAt).toLocaleString()}
+          </span>
+        </div>
+        {p.content && (
+          <p className="mt-1 whitespace-pre-wrap text-sm text-foreground">
+            {p.content}
+          </p>
+        )}
+        {p.imageUrls.length > 0 && (
+          <div className="mt-2 grid grid-cols-2 gap-2">
+            {p.imageUrls.slice(0, 4).map((u, i) => (
+              <img
+                key={i}
+                src={u}
+                alt=""
+                className="max-h-48 w-full rounded-lg border border-border object-cover"
+              />
+            ))}
+          </div>
+        )}
+        {p.hashtags.length > 0 && (
+          <div className="mt-2 flex flex-wrap gap-1">
+            {p.hashtags.slice(0, 4).map((t) => (
+              <Link
+                key={t}
+                href={`/app/tag/${encodeURIComponent(t)}`}
+                className="inline-flex items-center gap-0.5 rounded-full bg-accent px-2 py-0.5 text-xs font-medium text-accent-foreground hover:bg-primary/10 hover:text-primary"
+              >
+                <Hash className="h-3 w-3" />
+                {t}
+              </Link>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// --------------------------- For You preview ---------------------------
+
+function ForYouPreviewSection({
+  items,
+  isLoading,
+}: {
+  items: ForYouItem[];
+  isLoading: boolean;
+}) {
+  return (
+    <section data-testid="explore-section-foryou">
+      <SectionHeader
+        icon={Compass}
+        iconClass="h-5 w-5 text-violet-600"
+        title="For you"
+        href="/app/foryou"
+        testId="link-all-foryou"
+      />
+      {isLoading && items.length === 0 ? (
+        <div className="space-y-3">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <CardSkeleton key={i} />
+          ))}
+        </div>
+      ) : items.length === 0 ? (
+        <EmptyState
+          icon={Sparkles}
+          title="Nothing personalized yet"
+          description="Add hashtags or follow people and we'll fill this with picks made for you."
+          action={
+            <Button asChild>
+              <Link href="/app/settings">Add hashtags →</Link>
+            </Button>
+          }
+        />
+      ) : (
+        <div className="space-y-3" data-testid="foryou-preview">
+          {items.map((item, idx) => (
+            <motion.div
+              key={item.id}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: Math.min(idx, 6) * 0.03, duration: 0.2 }}
+            >
+              <ForYouRow item={item} />
+            </motion.div>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function ForYouRow({ item }: { item: ForYouItem }) {
+  if (item.kind === "post" && item.post) {
+    const p = item.post;
+    return (
+      <article
+        className="rounded-xl border border-border bg-card p-4 shadow-sm"
+        data-testid={`foryou-post-${p.id}`}
+      >
+        <div className="mb-2 flex items-center gap-2 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+          <Sparkles className="h-3 w-3 text-violet-500" /> {item.reason}
+        </div>
+        <PostBody p={p} />
+      </article>
+    );
+  }
+  if (item.kind === "room" && item.room) {
+    const r = item.room;
+    return (
+      <Link
+        href={`/app/rooms/${encodeURIComponent(r.tag)}`}
+        className="lift block rounded-xl border border-border bg-gradient-to-br from-violet-500/5 via-card to-pink-500/5 p-4 shadow-sm"
+        data-testid={`foryou-room-${r.tag}`}
+      >
+        <div className="mb-2 flex items-center gap-2 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+          <Flame className="h-3 w-3 text-orange-500" /> {item.reason}
+        </div>
+        <div className="flex items-center gap-3">
+          <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500 to-pink-500 text-xl font-bold text-white shadow">
+            #
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="truncate font-semibold text-foreground">
+              <Hash className="inline h-4 w-4" />
+              {r.tag}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {r.memberCount} members · {r.recentMessages} recent messages
+            </p>
+          </div>
+          <Button size="sm" variant="outline">
+            Open room
+          </Button>
+        </div>
+      </Link>
+    );
+  }
+  if (item.kind === "person" && item.person) {
+    return (
+      <div data-testid={`foryou-person-${item.person.username}`}>
+        <div className="mb-2 flex items-center gap-2 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+          <UserPlus className="h-3 w-3 text-pink-500" /> {item.reason}
+        </div>
+        <MatchCard m={item.person} />
+      </div>
+    );
+  }
+  return null;
+}
+
+// --------------------------- Match card (reused) ---------------------------
 
 function MatchCard({ m }: { m: MatchUser }) {
   const [, setLocation] = useLocation();
   const qc = useQueryClient();
   const { toast } = useToast();
   const invalidate = () => {
-    qc.invalidateQueries({ queryKey: getDiscoverPeopleQueryKey() });
+    qc.invalidateQueries({ queryKey: getGetExploreQueryKey() });
     qc.invalidateQueries({ queryKey: getGetMyFriendsQueryKey() });
     qc.invalidateQueries({ queryKey: getGetFriendRequestsQueryKey() });
     qc.invalidateQueries({ queryKey: getGetMyRelationshipsQueryKey() });
@@ -487,328 +1110,5 @@ function MatchCard({ m }: { m: MatchUser }) {
         </DropdownMenu>
       </div>
     </div>
-  );
-}
-
-function ForYouFeed() {
-  const { data, isLoading } = useGetForYouFeed(
-    { limit: 30 },
-    {
-      query: {
-        queryKey: getGetForYouFeedQueryKey({ limit: 30 }),
-        refetchOnWindowFocus: false,
-      },
-    },
-  );
-
-  if (isLoading) {
-    return (
-      <div className="space-y-3">
-        {Array.from({ length: 4 }).map((_, i) => (
-          <CardSkeleton key={i} />
-        ))}
-      </div>
-    );
-  }
-
-  if (!data || data.length === 0) {
-    return (
-      <EmptyState
-        icon={Sparkles}
-        title="Nothing to show yet"
-        description="Add hashtags or follow some people and we'll fill this with posts, rooms, and people you might like."
-        action={
-          <Button asChild>
-            <Link href="/app/settings">Add hashtags →</Link>
-          </Button>
-        }
-      />
-    );
-  }
-
-  return (
-    <div className="space-y-3" data-testid="foryou-feed">
-      {data.map((item, idx) => (
-        <motion.div
-          key={item.id}
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: Math.min(idx, 8) * 0.03, duration: 0.2 }}
-        >
-          <ForYouRow item={item} />
-        </motion.div>
-      ))}
-    </div>
-  );
-}
-
-function ForYouRow({ item }: { item: ForYouItem }) {
-  if (item.kind === "post" && item.post) {
-    const p = item.post;
-    return (
-      <article
-        className="rounded-xl border border-border bg-card p-4 shadow-sm"
-        data-testid={`foryou-post-${p.id}`}
-      >
-        <div className="mb-2 flex items-center gap-2 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-          <Sparkles className="h-3 w-3 text-violet-500" /> {item.reason}
-        </div>
-        <div className="flex gap-3">
-          <Link href={`/app/u/${p.author.username}`}>
-            <PresenceAvatar
-              displayName={p.author.displayName}
-              avatarUrl={p.author.avatarUrl ?? null}
-              size="md"
-            />
-          </Link>
-          <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-baseline gap-1.5">
-              <Link
-                href={`/app/u/${p.author.username}`}
-                className="font-semibold text-foreground hover:underline"
-              >
-                {p.author.displayName}
-              </Link>
-              <span className="text-xs text-muted-foreground">
-                @{p.author.username}
-              </span>
-              <span className="ml-auto text-[11px] text-muted-foreground">
-                {new Date(p.createdAt).toLocaleString()}
-              </span>
-            </div>
-            {p.content && (
-              <p className="mt-1 whitespace-pre-wrap text-sm text-foreground">
-                {p.content}
-              </p>
-            )}
-            {p.imageUrls.length > 0 && (
-              <div className="mt-2 grid grid-cols-2 gap-2">
-                {p.imageUrls.slice(0, 4).map((u, i) => (
-                  <img
-                    key={i}
-                    src={u}
-                    alt=""
-                    className="max-h-48 w-full rounded-lg border border-border object-cover"
-                  />
-                ))}
-              </div>
-            )}
-            {p.hashtags.length > 0 && (
-              <div className="mt-2 flex flex-wrap gap-1">
-                {p.hashtags.slice(0, 4).map((t) => (
-                  <Link
-                    key={t}
-                    href={`/app/tag/${encodeURIComponent(t)}`}
-                    className="inline-flex items-center gap-0.5 rounded-full bg-accent px-2 py-0.5 text-xs font-medium text-accent-foreground hover:bg-primary/10 hover:text-primary"
-                  >
-                    <Hash className="h-3 w-3" />
-                    {t}
-                  </Link>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-      </article>
-    );
-  }
-  if (item.kind === "room" && item.room) {
-    const r = item.room;
-    return (
-      <Link
-        href={`/app/rooms/${encodeURIComponent(r.tag)}`}
-        className="lift block rounded-xl border border-border bg-gradient-to-br from-violet-500/5 via-card to-pink-500/5 p-4 shadow-sm"
-        data-testid={`foryou-room-${r.tag}`}
-      >
-        <div className="mb-2 flex items-center gap-2 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-          <Flame className="h-3 w-3 text-orange-500" /> {item.reason}
-        </div>
-        <div className="flex items-center gap-3">
-          <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500 to-pink-500 text-xl font-bold text-white shadow">
-            #
-          </span>
-          <div className="min-w-0 flex-1">
-            <p className="truncate font-semibold text-foreground">
-              <Hash className="inline h-4 w-4" />
-              {r.tag}
-            </p>
-            <p className="text-xs text-muted-foreground">
-              {r.memberCount} members · {r.recentMessages} recent messages
-            </p>
-          </div>
-          <Button size="sm" variant="outline">
-            Open room
-          </Button>
-        </div>
-      </Link>
-    );
-  }
-  if (item.kind === "person" && item.person) {
-    return (
-      <div data-testid={`foryou-person-${item.person.username}`}>
-        <div className="mb-2 flex items-center gap-2 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-          <UserPlus className="h-3 w-3 text-pink-500" /> {item.reason}
-        </div>
-        <MatchCard m={item.person} />
-      </div>
-    );
-  }
-  return null;
-}
-
-function FollowingFeed() {
-  const { data, isLoading } = useGetFollowingFeed(
-    { limit: 30 },
-    {
-      query: {
-        queryKey: getGetFollowingFeedQueryKey({ limit: 30 }),
-        refetchOnWindowFocus: false,
-      },
-    },
-  );
-
-  if (isLoading) {
-    return (
-      <div className="space-y-3">
-        {Array.from({ length: 3 }).map((_, i) => (
-          <CardSkeleton key={i} />
-        ))}
-      </div>
-    );
-  }
-
-  if (!data || data.length === 0) {
-    return <FollowSuggestions />;
-  }
-
-  return (
-    <div className="space-y-3">
-      {data.map((item) => (
-        <FollowingFeedRow key={item.id} item={item} />
-      ))}
-    </div>
-  );
-}
-
-function FollowSuggestions() {
-  const { data, isLoading } = useGetFollowSuggestions(
-    { limit: 8 },
-    {
-      query: {
-        queryKey: getGetFollowSuggestionsQueryKey({ limit: 8 }),
-        refetchOnWindowFocus: false,
-      },
-    },
-  );
-
-  if (isLoading) {
-    return (
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {Array.from({ length: 6 }).map((_, i) => (
-          <CardSkeleton key={i} />
-        ))}
-      </div>
-    );
-  }
-
-  if (!data || data.length === 0) {
-    return (
-      <EmptyState
-        icon={Rss}
-        title="Quiet here so far"
-        description="Follow people from Smart matches to see their latest posts and rooms here."
-      />
-    );
-  }
-
-  return (
-    <div className="space-y-4" data-testid="follow-suggestions">
-      <div>
-        <h3 className="text-base font-semibold text-foreground">
-          Suggested for you
-        </h3>
-        <p className="text-sm text-muted-foreground">
-          People who share your hashtags. Follow a few to fill this feed.
-        </p>
-      </div>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {data.map((m, idx) => (
-          <motion.div
-            key={m.id}
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: idx * 0.04, duration: 0.25 }}
-          >
-            <MatchCard m={m} />
-          </motion.div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function FollowingFeedRow({ item }: { item: FollowingFeedItem }) {
-  const u = item.user;
-  return (
-    <article
-      className="flex gap-3 rounded-xl border border-border bg-card p-4 shadow-sm"
-      data-testid={`feed-item-${item.id}`}
-    >
-      <Link href={`/app/u/${u.username}`}>
-        <PresenceAvatar
-          displayName={u.displayName}
-          avatarUrl={u.avatarUrl}
-          lastSeenAt={u.lastSeenAt}
-          size="md"
-        />
-      </Link>
-      <div className="min-w-0 flex-1">
-        <div className="flex flex-wrap items-baseline gap-1.5">
-          <Link href={`/app/u/${u.username}`} className="font-semibold text-foreground hover:underline">
-            {u.displayName}
-          </Link>
-          <span className="text-xs text-muted-foreground">@{u.username}</span>
-          <span className="ml-auto text-[11px] text-muted-foreground">
-            {new Date(item.createdAt).toLocaleString()}
-          </span>
-        </div>
-        {item.kind === "room_join" ? (
-          <p className="mt-1 text-sm text-muted-foreground">
-            Joined{" "}
-            <Link
-              href={`/app/rooms/${encodeURIComponent(item.roomTag ?? "")}`}
-              className="font-medium text-primary hover:underline"
-            >
-              <Hash className="inline h-3.5 w-3.5" />
-              {item.roomTag}
-            </Link>
-          </p>
-        ) : (
-          <>
-            {item.roomTag && (
-              <Link
-                href={`/app/rooms/${encodeURIComponent(item.roomTag)}`}
-                className="mt-0.5 inline-flex items-center gap-0.5 text-xs font-medium text-primary hover:underline"
-              >
-                <Hash className="h-3 w-3" />
-                {item.roomTag}
-              </Link>
-            )}
-            {item.content && (
-              <p className="mt-1 whitespace-pre-wrap text-sm text-foreground">
-                {item.content}
-              </p>
-            )}
-            {item.imageUrl && (
-              <img
-                src={item.imageUrl}
-                alt=""
-                className="mt-2 max-h-72 rounded-lg border border-border"
-              />
-            )}
-          </>
-        )}
-      </div>
-    </article>
   );
 }

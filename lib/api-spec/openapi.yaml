@@ -263,6 +263,56 @@ paths:
                 type: array
                 items: { $ref: "#/components/schemas/ForYouItem" }
 
+  /discovery/explore:
+    get:
+      operationId: getExplore
+      tags: [discovery]
+      summary: Aggregated Explore page payload (trending, suggestions, hot posts, for-you preview)
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ExploreResponse" }
+
+  /discovery/hot-in-your-hashtags:
+    get:
+      operationId: getHotInYourHashtags
+      tags: [discovery]
+      summary: Top engaging posts of the last 24h within hashtags the user follows
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          schema: { type: integer, default: 20 }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/HotPost" }
+
+  /discovery/trending-events:
+    get:
+      operationId: getTrendingEvents
+      tags: [discovery]
+      summary: Top upcoming events across rooms relevant to the user
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          schema: { type: integer, default: 12 }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Event" }
+
   /hashtags/{tag}/analytics:
     get:
       operationId: getHashtagAnalytics
@@ -3392,6 +3442,41 @@ components:
             - { $ref: "#/components/schemas/MatchUser" }
             - { type: "null" }
       required: [kind, id, score, reason]
+
+    HotPost:
+      type: object
+      properties:
+        post: { $ref: "#/components/schemas/Post" }
+        engagement: { type: integer }
+        matchedHashtag:
+          type: ["string", "null"]
+      required: [post, engagement]
+
+    ExploreResponse:
+      type: object
+      properties:
+        trendingHashtags:
+          type: array
+          items: { $ref: "#/components/schemas/TrendingHashtag" }
+        trendingEvents:
+          type: array
+          items: { $ref: "#/components/schemas/Event" }
+        suggestedRooms:
+          type: array
+          items: { $ref: "#/components/schemas/Room" }
+        peopleToFollow:
+          type: array
+          items: { $ref: "#/components/schemas/MatchUser" }
+        hotInYourHashtags:
+          type: array
+          items: { $ref: "#/components/schemas/HotPost" }
+        forYouPreview:
+          type: array
+          items: { $ref: "#/components/schemas/ForYouItem" }
+        followedHashtags:
+          type: array
+          items: { type: string }
+      required: [trendingHashtags, trendingEvents, suggestedRooms, peopleToFollow, hotInYourHashtags, forYouPreview, followedHashtags]
 
     Community:
       type: object

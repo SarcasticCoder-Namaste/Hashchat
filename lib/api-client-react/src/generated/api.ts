@@ -41,6 +41,7 @@ import type {
   DecideJoinRequestBody,
   DiscoverPeopleParams,
   Event,
+  ExploreResponse,
   FollowingFeedItem,
   ForYouItem,
   FriendCodeResponse,
@@ -51,12 +52,14 @@ import type {
   GetForYouFeedParams,
   GetHashtagAnalyticsParams,
   GetHashtagPostsParams,
+  GetHotInYourHashtagsParams,
   GetLinkPreviewParams,
   GetMentionSuggestionsParams,
   GetMyBookmarksParams,
   GetMyFeedPostsParams,
   GetNotificationsParams,
   GetRecentGifsParams,
+  GetTrendingEventsParams,
   GetTrendingHashtagsParams,
   GetTrendingRoomsParams,
   GetUpcomingEventsParams,
@@ -71,6 +74,7 @@ import type {
   HashtagAnalytics,
   HashtagDetail,
   HealthStatus,
+  HotPost,
   InitiateCallBody,
   LinkPreview,
   ListCommunitiesParams,
@@ -1385,6 +1389,284 @@ export function useGetForYouFeed<
   },
 ): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getGetForYouFeedQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Aggregated Explore page payload (trending, suggestions, hot posts, for-you preview)
+ */
+export const getGetExploreUrl = () => {
+  return `/api/discovery/explore`;
+};
+
+export const getExplore = async (
+  options?: RequestInit,
+): Promise<ExploreResponse> => {
+  return customFetch<ExploreResponse>(getGetExploreUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetExploreQueryKey = () => {
+  return [`/api/discovery/explore`] as const;
+};
+
+export const getGetExploreQueryOptions = <
+  TData = Awaited<ReturnType<typeof getExplore>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getExplore>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetExploreQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getExplore>>> = ({
+    signal,
+  }) => getExplore({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getExplore>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetExploreQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getExplore>>
+>;
+export type GetExploreQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Aggregated Explore page payload (trending, suggestions, hot posts, for-you preview)
+ */
+
+export function useGetExplore<
+  TData = Awaited<ReturnType<typeof getExplore>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getExplore>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetExploreQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Top engaging posts of the last 24h within hashtags the user follows
+ */
+export const getGetHotInYourHashtagsUrl = (
+  params?: GetHotInYourHashtagsParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/discovery/hot-in-your-hashtags?${stringifiedParams}`
+    : `/api/discovery/hot-in-your-hashtags`;
+};
+
+export const getHotInYourHashtags = async (
+  params?: GetHotInYourHashtagsParams,
+  options?: RequestInit,
+): Promise<HotPost[]> => {
+  return customFetch<HotPost[]>(getGetHotInYourHashtagsUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetHotInYourHashtagsQueryKey = (
+  params?: GetHotInYourHashtagsParams,
+) => {
+  return [
+    `/api/discovery/hot-in-your-hashtags`,
+    ...(params ? [params] : []),
+  ] as const;
+};
+
+export const getGetHotInYourHashtagsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getHotInYourHashtags>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: GetHotInYourHashtagsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getHotInYourHashtags>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetHotInYourHashtagsQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getHotInYourHashtags>>
+  > = ({ signal }) =>
+    getHotInYourHashtags(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getHotInYourHashtags>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetHotInYourHashtagsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getHotInYourHashtags>>
+>;
+export type GetHotInYourHashtagsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Top engaging posts of the last 24h within hashtags the user follows
+ */
+
+export function useGetHotInYourHashtags<
+  TData = Awaited<ReturnType<typeof getHotInYourHashtags>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: GetHotInYourHashtagsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getHotInYourHashtags>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetHotInYourHashtagsQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Top upcoming events across rooms relevant to the user
+ */
+export const getGetTrendingEventsUrl = (params?: GetTrendingEventsParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/discovery/trending-events?${stringifiedParams}`
+    : `/api/discovery/trending-events`;
+};
+
+export const getTrendingEvents = async (
+  params?: GetTrendingEventsParams,
+  options?: RequestInit,
+): Promise<Event[]> => {
+  return customFetch<Event[]>(getGetTrendingEventsUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetTrendingEventsQueryKey = (
+  params?: GetTrendingEventsParams,
+) => {
+  return [
+    `/api/discovery/trending-events`,
+    ...(params ? [params] : []),
+  ] as const;
+};
+
+export const getGetTrendingEventsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getTrendingEvents>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: GetTrendingEventsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getTrendingEvents>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetTrendingEventsQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getTrendingEvents>>
+  > = ({ signal }) => getTrendingEvents(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getTrendingEvents>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetTrendingEventsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getTrendingEvents>>
+>;
+export type GetTrendingEventsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Top upcoming events across rooms relevant to the user
+ */
+
+export function useGetTrendingEvents<
+  TData = Awaited<ReturnType<typeof getTrendingEvents>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: GetTrendingEventsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getTrendingEvents>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetTrendingEventsQueryOptions(params, options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;

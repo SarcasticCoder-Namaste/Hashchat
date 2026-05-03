@@ -1000,6 +1000,23 @@ export interface ForYouItem {
   person?: MatchUser | null;
 }
 
+export interface HotPost {
+  post: Post;
+  engagement: number;
+  /** @nullable */
+  matchedHashtag?: string | null;
+}
+
+export interface ExploreResponse {
+  trendingHashtags: TrendingHashtag[];
+  trendingEvents: Event[];
+  suggestedRooms: Room[];
+  peopleToFollow: MatchUser[];
+  hotInYourHashtags: HotPost[];
+  forYouPreview: ForYouItem[];
+  followedHashtags: string[];
+}
+
 export interface Community {
   id: number;
   slug: string;
@@ -1271,6 +1288,14 @@ export type DiscoverPeopleParams = {
 };
 
 export type GetForYouFeedParams = {
+  limit?: number;
+};
+
+export type GetHotInYourHashtagsParams = {
+  limit?: number;
+};
+
+export type GetTrendingEventsParams = {
   limit?: number;
 };
 
