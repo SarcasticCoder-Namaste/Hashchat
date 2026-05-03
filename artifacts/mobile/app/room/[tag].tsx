@@ -126,6 +126,7 @@ export default function RoomScreen() {
                   message={item}
                   isMine={isMine}
                   showAvatar={showAvatar}
+                  roomTag={tag}
                 />
               );
             }}

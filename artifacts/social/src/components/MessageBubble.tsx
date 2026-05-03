@@ -336,6 +336,9 @@ export function MessageBubble({
           translation={translation}
           onTranslated={(text, language) => setTranslation({ text, language })}
           onClearTranslation={() => setTranslation(null)}
+          authorId={message.senderId}
+          authorName={message.senderName}
+          isMine={isMine}
         />
       </motion.div>
     );
@@ -488,6 +491,9 @@ export function MessageBubble({
         translation={translation}
         onTranslated={(text, language) => setTranslation({ text, language })}
         onClearTranslation={() => setTranslation(null)}
+        authorId={message.senderId}
+        authorName={message.senderName}
+        isMine={isMine}
       />
     </motion.div>
   );
@@ -545,6 +551,9 @@ function MessageActions({
   translation,
   onTranslated,
   onClearTranslation,
+  authorId,
+  authorName,
+  isMine,
 }: {
   messageId: number;
   pickerOpen: boolean;
@@ -560,6 +569,9 @@ function MessageActions({
   translation?: { text: string; language: string } | null;
   onTranslated?: (text: string, language: string) => void;
   onClearTranslation?: () => void;
+  authorId?: string;
+  authorName?: string;
+  isMine?: boolean;
 }) {
   return (
     <div className="flex items-start gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
@@ -629,6 +641,9 @@ function MessageActions({
         isLocked={isLocked}
         isRemoved={isRemoved}
         onChanged={onChanged}
+        authorId={authorId}
+        authorName={authorName}
+        isMine={isMine}
       />
     </div>
   );

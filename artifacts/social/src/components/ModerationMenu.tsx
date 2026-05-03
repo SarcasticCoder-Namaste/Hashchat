@@ -12,6 +12,7 @@ import {
   useUnlockMessage,
   useRemoveMessage,
   useCreateReport,
+  useMuteUserInRoom,
   getGetRoomPinnedPostsQueryKey,
   getGetCommunityPinnedPostsQueryKey,
 } from "@workspace/api-client-react";
@@ -21,7 +22,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { MoreHorizontal, Pin, PinOff, Lock, Unlock, Trash2, Flag } from "lucide-react";
+import { MoreHorizontal, Pin, PinOff, Lock, Unlock, Trash2, Flag, VolumeX, ChevronRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 export type ModerationScope =
@@ -38,7 +39,17 @@ interface Props {
   isRemoved?: boolean;
   onChanged?: () => void;
   testIdSuffix?: string;
+  authorId?: string;
+  authorName?: string;
+  isMine?: boolean;
 }
+
+const MUTE_DURATIONS: { label: string; hours: number | null }[] = [
+  { label: "1 hour", hours: 1 },
+  { label: "8 hours", hours: 8 },
+  { label: "24 hours", hours: 24 },
+  { label: "Forever", hours: null },
+];
 
 export function ModerationMenu({
   kind,
@@ -50,10 +61,14 @@ export function ModerationMenu({
   isRemoved,
   onChanged,
   testIdSuffix,
+  authorId,
+  authorName,
+  isMine,
 }: Props) {
   const qc = useQueryClient();
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
+  const [muteOpen, setMuteOpen] = useState(false);
   const id = typeof targetId === "string" ? Number(targetId) : targetId;
   const suffix = testIdSuffix ?? `${kind}-${targetId}`;
 
@@ -88,6 +103,42 @@ export function ModerationMenu({
   const lockMessage = useLockMessage(opts);
   const unlockMessage = useUnlockMessage(opts);
   const removeMessage = useRemoveMessage(opts);
+
+  const muteUserInRoom = useMuteUserInRoom({
+    mutation: {
+      onSuccess: (_data, variables) => {
+        const found = MUTE_DURATIONS.find(
+          (d) => (d.hours ?? null) === (variables.data?.durationHours ?? null),
+        );
+        toast({
+          title: `Muted ${authorName ? `@${authorName}` : "user"} in this room`,
+          description: found
+            ? found.hours === null
+              ? "Until you unmute them."
+              : `For ${found.label.toLowerCase()}.`
+            : undefined,
+        });
+        setMuteOpen(false);
+        setOpen(false);
+      },
+      onError: (err: unknown) => {
+        const e = err as { data?: { message?: string } };
+        toast({
+          title: e?.data?.message ?? "Could not mute user",
+          variant: "destructive",
+        });
+      },
+    },
+  });
+
+  function doMuteInRoom(hours: number | null) {
+    if (!scope || scope.type !== "room" || !authorId) return;
+    muteUserInRoom.mutate({
+      tag: scope.key,
+      id: authorId,
+      data: { durationHours: hours },
+    });
+  }
 
   const report = useCreateReport({
     mutation: {
@@ -153,6 +204,11 @@ export function ModerationMenu({
   if (!scope) return null;
   if (isRemoved && !canModerate) return null;
   const showReport = !canModerate;
+  const showMuteInRoom =
+    kind === "message" &&
+    scope.type === "room" &&
+    !!authorId &&
+    !isMine;
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -201,6 +257,43 @@ export function ModerationMenu({
             <Trash2 className="h-3.5 w-3.5" />
             Remove
           </button>
+        )}
+        {showMuteInRoom && (
+          <div className="relative">
+            <button
+              type="button"
+              className="flex w-full items-center justify-between gap-2 rounded-sm px-2 py-1.5 text-left text-sm hover:bg-accent"
+              onClick={() => setMuteOpen((v) => !v)}
+              data-testid={`menu-mute-in-room-${suffix}`}
+              aria-haspopup="menu"
+              aria-expanded={muteOpen}
+            >
+              <span className="flex items-center gap-2">
+                <VolumeX className="h-3.5 w-3.5" />
+                Mute in this room
+              </span>
+              <ChevronRight className="h-3.5 w-3.5 opacity-60" />
+            </button>
+            {muteOpen && (
+              <div
+                className="mt-1 flex flex-col rounded-md border bg-popover p-1 shadow-sm"
+                data-testid={`menu-mute-in-room-options-${suffix}`}
+              >
+                {MUTE_DURATIONS.map((d) => (
+                  <button
+                    key={d.label}
+                    type="button"
+                    className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left text-sm hover:bg-accent disabled:opacity-60"
+                    disabled={muteUserInRoom.isPending}
+                    onClick={() => doMuteInRoom(d.hours)}
+                    data-testid={`menu-mute-in-room-${d.hours ?? "forever"}-${suffix}`}
+                  >
+                    {d.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         )}
         {showReport && (
           <button
