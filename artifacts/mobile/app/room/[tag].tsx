@@ -2,7 +2,7 @@ import { Feather } from "@expo/vector-icons";
 import { useUser } from "@clerk/clerk-expo";
 import { useQueryClient } from "@tanstack/react-query";
 import { Stack, useLocalSearchParams } from "expo-router";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -19,10 +19,16 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ChatInput } from "@/components/ChatInput";
 import { EmptyState } from "@/components/EmptyState";
+import { FailedMessages } from "@/components/FailedMessages";
 import { MessageBubble } from "@/components/MessageBubble";
 import { OfflineBanner } from "@/components/OfflineBanner";
 import { SparkComposer, SparksRow } from "@/components/SparksPanel";
 import { useColors } from "@/hooks/useColors";
+import { useRoomOutbox } from "@/hooks/useOutboxFlusher";
+import {
+  enqueueRoomMessage,
+  type QueuedMessage,
+} from "@/lib/offlineQueue";
 import {
   getGetRoomMessagesQueryKey,
   getGetRoomSummaryQueryKey,
@@ -55,6 +61,31 @@ export default function RoomScreen() {
       },
     },
   });
+
+  const flushSend = useCallback(
+    async (m: QueuedMessage) => {
+      await send.mutateAsync({
+        tag,
+        data: {
+          content: m.data.content,
+          imageUrl: m.data.imageUrl ?? null,
+          audioUrl: m.data.audioUrl ?? null,
+          gifUrl: m.data.gifUrl ?? null,
+        },
+      });
+    },
+    [send, tag],
+  );
+
+  const { pending, online } = useRoomOutbox(tag, flushSend);
+  const failed = useMemo(
+    () => pending.filter((m) => m.status === "failed"),
+    [pending],
+  );
+  const sending = useMemo(
+    () => pending.filter((m) => m.status !== "failed"),
+    [pending],
+  );
 
   const data = useMemo(() => {
     const list = msgs.data ?? [];
@@ -134,21 +165,51 @@ export default function RoomScreen() {
             }}
           />
         )}
+        {sending.length > 0 && (
+          <View
+            style={{
+              paddingHorizontal: 12,
+              paddingVertical: 6,
+              backgroundColor: colors.muted,
+              borderTopWidth: StyleSheet.hairlineWidth,
+              borderTopColor: colors.border,
+            }}
+          >
+            <Text
+              style={{
+                color: colors.mutedForeground,
+                fontFamily: "Inter_500Medium",
+                fontSize: 12,
+              }}
+            >
+              {!online
+                ? `Offline · ${sending.length} message${sending.length === 1 ? "" : "s"} pending`
+                : `Sending ${sending.length} pending message${sending.length === 1 ? "" : "s"}…`}
+            </Text>
+          </View>
+        )}
+        <FailedMessages items={failed} />
         <View style={{ paddingBottom: insets.bottom }}>
           <ChatInput
             placeholder={`Message #${tag}`}
             sending={send.isPending}
             onSend={async (d) => {
               if (!tag) return;
-              await send.mutateAsync({
-                tag,
-                data: {
-                  content: d.content,
-                  imageUrl: d.imageUrl ?? d.gifUrl ?? null,
-                  audioUrl: d.audioUrl ?? null,
-                  gifUrl: d.gifUrl ?? null,
-                },
-              });
+              const payload = {
+                content: d.content,
+                imageUrl: d.imageUrl ?? d.gifUrl ?? null,
+                audioUrl: d.audioUrl ?? null,
+                gifUrl: d.gifUrl ?? null,
+              };
+              if (!online) {
+                await enqueueRoomMessage(tag, payload);
+                return;
+              }
+              try {
+                await send.mutateAsync({ tag, data: payload });
+              } catch {
+                await enqueueRoomMessage(tag, payload);
+              }
             }}
           />
         </View>

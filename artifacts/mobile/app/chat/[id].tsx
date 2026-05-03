@@ -15,6 +15,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ChatInput } from "@/components/ChatInput";
 import { EmptyState } from "@/components/EmptyState";
+import { FailedMessages } from "@/components/FailedMessages";
 import { MessageBubble } from "@/components/MessageBubble";
 import { useColors } from "@/hooks/useColors";
 import { useConversationOutbox } from "@/hooks/useOutboxFlusher";
@@ -64,8 +65,10 @@ export default function ConversationChatScreen() {
 
   const flushSend = useCallback(
     async (m: QueuedMessage) => {
+      const targetId =
+        m.target.kind === "conversation" ? m.target.conversationId : id;
       await send.mutateAsync({
-        id: m.conversationId,
+        id: targetId,
         data: {
           content: m.data.content,
           imageUrl: m.data.imageUrl ?? null,
@@ -74,10 +77,18 @@ export default function ConversationChatScreen() {
         },
       });
     },
-    [send],
+    [send, id],
   );
 
   const { pending, online } = useConversationOutbox(id, flushSend);
+  const failed = useMemo(
+    () => pending.filter((m) => m.status === "failed"),
+    [pending],
+  );
+  const sending = useMemo(
+    () => pending.filter((m) => m.status !== "failed"),
+    [pending],
+  );
 
   const markRead = useMarkConversationRead();
   const lastReadRef = useRef<number | null>(null);
@@ -134,7 +145,7 @@ export default function ConversationChatScreen() {
             }}
           />
         )}
-        {(!online || pending.length > 0) && (
+        {(!online || sending.length > 0) && (
           <View
             style={{
               paddingHorizontal: 12,
@@ -152,11 +163,12 @@ export default function ConversationChatScreen() {
               }}
             >
               {!online
-                ? `Offline · ${pending.length} message${pending.length === 1 ? "" : "s"} pending`
-                : `Sending ${pending.length} pending message${pending.length === 1 ? "" : "s"}…`}
+                ? `Offline · ${sending.length} message${sending.length === 1 ? "" : "s"} pending`
+                : `Sending ${sending.length} pending message${sending.length === 1 ? "" : "s"}…`}
             </Text>
           </View>
         )}
+        <FailedMessages items={failed} />
         <View style={{ paddingBottom: insets.bottom }}>
           <ChatInput
             sending={send.isPending}
