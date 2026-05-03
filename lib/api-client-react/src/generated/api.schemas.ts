@@ -1150,6 +1150,10 @@ export interface PremiumCheckoutResponse {
   provider: PremiumCheckoutResponseProvider;
 }
 
+export interface PremiumPortalResponse {
+  url: string;
+}
+
 export interface MentionSuggestion {
   id: string;
   username: string;

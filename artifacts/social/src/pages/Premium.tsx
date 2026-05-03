@@ -1,6 +1,7 @@
 import {
   useGetPremiumStatus,
   useCreatePremiumCheckout,
+  useCreatePremiumPortalSession,
   useDevConfirmPremium,
   getGetPremiumStatusQueryKey,
   getGetMeQueryKey,
@@ -41,6 +42,15 @@ export default function Premium() {
         }
       },
       onError: () => toast({ title: "Could not start checkout", variant: "destructive" }),
+    },
+  });
+
+  const portal = useCreatePremiumPortalSession({
+    mutation: {
+      onSuccess: (res) => {
+        if (res.url) window.location.href = res.url;
+      },
+      onError: () => toast({ title: "Could not open billing portal", variant: "destructive" }),
     },
   });
 
@@ -98,7 +108,7 @@ export default function Premium() {
 
         <div className="mt-6 rounded-xl bg-gradient-to-br from-violet-500/10 to-pink-500/10 p-4">
           <p className="text-2xl font-bold text-foreground">
-            $5<span className="text-base font-medium text-muted-foreground">/month</span>
+            $4.99<span className="text-base font-medium text-muted-foreground">/month</span>
           </p>
           <p className="mt-1 text-xs text-muted-foreground">
             Cancel anytime. Verified badge applies immediately.
@@ -107,10 +117,24 @@ export default function Premium() {
 
         <div className="mt-6 flex flex-col gap-2 sm:flex-row">
           {isActive ? (
-            <Button variant="secondary" disabled className="flex-1">
-              <BadgeCheck className="mr-1.5 h-4 w-4" />
-              You're a Premium member
-            </Button>
+            <>
+              <Button variant="secondary" disabled className="flex-1">
+                <BadgeCheck className="mr-1.5 h-4 w-4" />
+                You're a Premium member
+              </Button>
+              {provider === "stripe" && (
+                <Button
+                  variant="outline"
+                  onClick={() => portal.mutate()}
+                  disabled={portal.isPending}
+                  className="flex-1"
+                  data-testid="button-manage-billing"
+                >
+                  {portal.isPending && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
+                  Manage billing
+                </Button>
+              )}
+            </>
           ) : (
             <>
               <Button

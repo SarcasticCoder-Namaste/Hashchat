@@ -3451,6 +3451,13 @@ export const DevConfirmPremiumResponse = zod.object({
 });
 
 /**
+ * @summary Create a Stripe billing portal session for the current user
+ */
+export const CreatePremiumPortalSessionResponse = zod.object({
+  url: zod.string(),
+});
+
+/**
  * @summary Global search across users, hashtags, rooms, posts, and messages
  */
 export const GlobalSearchQueryParams = zod.object({

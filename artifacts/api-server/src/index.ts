@@ -2,6 +2,7 @@ import app from "./app";
 import { logger } from "./lib/logger";
 import { startHashtagMetricsScheduler } from "./lib/hashtagMetricsJob";
 import { startEventReminderScheduler } from "./lib/eventReminders";
+import { initStripe } from "./lib/stripeInit";
 
 const rawPort = process.env["PORT"];
 
@@ -26,4 +27,5 @@ app.listen(port, (err) => {
   logger.info({ port }, "Server listening");
   startHashtagMetricsScheduler();
   startEventReminderScheduler();
+  void initStripe();
 });

@@ -89,6 +89,7 @@ import type {
   Poll,
   Post,
   PremiumCheckoutResponse,
+  PremiumPortalResponse,
   PremiumStatus,
   PublicProfile,
   PushSubscribeBody,
@@ -11038,6 +11039,90 @@ export const useDevConfirmPremium = <
   TContext
 > => {
   return useMutation(getDevConfirmPremiumMutationOptions(options));
+};
+
+/**
+ * @summary Create a Stripe billing portal session for the current user
+ */
+export const getCreatePremiumPortalSessionUrl = () => {
+  return `/api/premium/portal`;
+};
+
+export const createPremiumPortalSession = async (
+  options?: RequestInit,
+): Promise<PremiumPortalResponse> => {
+  return customFetch<PremiumPortalResponse>(
+    getCreatePremiumPortalSessionUrl(),
+    {
+      ...options,
+      method: "POST",
+    },
+  );
+};
+
+export const getCreatePremiumPortalSessionMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createPremiumPortalSession>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createPremiumPortalSession>>,
+  TError,
+  void,
+  TContext
+> => {
+  const mutationKey = ["createPremiumPortalSession"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createPremiumPortalSession>>,
+    void
+  > = () => {
+    return createPremiumPortalSession(requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreatePremiumPortalSessionMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createPremiumPortalSession>>
+>;
+
+export type CreatePremiumPortalSessionMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Create a Stripe billing portal session for the current user
+ */
+export const useCreatePremiumPortalSession = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createPremiumPortalSession>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createPremiumPortalSession>>,
+  TError,
+  void,
+  TContext
+> => {
+  return useMutation(getCreatePremiumPortalSessionMutationOptions(options));
 };
 
 /**

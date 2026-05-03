@@ -1898,6 +1898,18 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/PremiumStatus" }
 
+  /premium/portal:
+    post:
+      operationId: createPremiumPortalSession
+      tags: [premium]
+      summary: Create a Stripe billing portal session for the current user
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PremiumPortalResponse" }
+
   /search:
     get:
       operationId: globalSearch
@@ -3507,6 +3519,12 @@ components:
         url: { type: string }
         provider: { type: string, enum: [stripe, dev] }
       required: [url, provider]
+
+    PremiumPortalResponse:
+      type: object
+      properties:
+        url: { type: string }
+      required: [url]
 
     MentionedUser:
       type: object

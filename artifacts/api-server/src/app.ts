@@ -8,8 +8,18 @@ import {
 } from "./middlewares/clerkProxyMiddleware";
 import router from "./routes";
 import { logger } from "./lib/logger";
+import { handleStripeWebhook } from "./lib/stripeWebhook";
 
 const app: Express = express();
+
+// Stripe webhook MUST be registered before express.json() to receive raw body.
+app.post(
+  "/api/stripe/webhook",
+  express.raw({ type: "application/json" }),
+  (req, res) => {
+    void handleStripeWebhook(req, res);
+  },
+);
 
 app.use(
   pinoHttp({
