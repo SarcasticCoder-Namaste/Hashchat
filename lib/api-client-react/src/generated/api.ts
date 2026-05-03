@@ -3854,6 +3854,177 @@ export const useSendRoomMessage = <
 };
 
 /**
+ * @summary Heartbeat that current user is typing in this room
+ */
+export const getPingRoomTypingUrl = (tag: string) => {
+  return `/api/rooms/${tag}/typing`;
+};
+
+export const pingRoomTyping = async (
+  tag: string,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getPingRoomTypingUrl(tag), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getPingRoomTypingMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof pingRoomTyping>>,
+    TError,
+    { tag: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof pingRoomTyping>>,
+  TError,
+  { tag: string },
+  TContext
+> => {
+  const mutationKey = ["pingRoomTyping"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof pingRoomTyping>>,
+    { tag: string }
+  > = (props) => {
+    const { tag } = props ?? {};
+
+    return pingRoomTyping(tag, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type PingRoomTypingMutationResult = NonNullable<
+  Awaited<ReturnType<typeof pingRoomTyping>>
+>;
+
+export type PingRoomTypingMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Heartbeat that current user is typing in this room
+ */
+export const usePingRoomTyping = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof pingRoomTyping>>,
+    TError,
+    { tag: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof pingRoomTyping>>,
+  TError,
+  { tag: string },
+  TContext
+> => {
+  return useMutation(getPingRoomTypingMutationOptions(options));
+};
+
+/**
+ * @summary Who is typing in this room right now (excluding me)
+ */
+export const getGetRoomTypingUrl = (tag: string) => {
+  return `/api/rooms/${tag}/typing`;
+};
+
+export const getRoomTyping = async (
+  tag: string,
+  options?: RequestInit,
+): Promise<TypingResponse> => {
+  return customFetch<TypingResponse>(getGetRoomTypingUrl(tag), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetRoomTypingQueryKey = (tag: string) => {
+  return [`/api/rooms/${tag}/typing`] as const;
+};
+
+export const getGetRoomTypingQueryOptions = <
+  TData = Awaited<ReturnType<typeof getRoomTyping>>,
+  TError = ErrorType<unknown>,
+>(
+  tag: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getRoomTyping>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetRoomTypingQueryKey(tag);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getRoomTyping>>> = ({
+    signal,
+  }) => getRoomTyping(tag, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!tag,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getRoomTyping>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetRoomTypingQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getRoomTyping>>
+>;
+export type GetRoomTypingQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Who is typing in this room right now (excluding me)
+ */
+
+export function useGetRoomTyping<
+  TData = Awaited<ReturnType<typeof getRoomTyping>>,
+  TError = ErrorType<unknown>,
+>(
+  tag: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getRoomTyping>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetRoomTypingQueryOptions(tag, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
  * @summary Set chat background image for this conversation (per-user override)
  */
 export const getSetConversationBackgroundUrl = (id: number) => {

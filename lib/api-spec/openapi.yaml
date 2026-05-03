@@ -674,6 +674,34 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/Message" }
 
+  /rooms/{tag}/typing:
+    post:
+      operationId: pingRoomTyping
+      tags: [rooms]
+      summary: Heartbeat that current user is typing in this room
+      parameters:
+        - name: tag
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "204": { description: No content }
+    get:
+      operationId: getRoomTyping
+      tags: [rooms]
+      summary: Who is typing in this room right now (excluding me)
+      parameters:
+        - name: tag
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TypingResponse" }
+
   /conversations/{id}/background:
     patch:
       operationId: setConversationBackground

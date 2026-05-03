@@ -9,7 +9,10 @@ import {
   useGetMe,
   useGetPremiumStatus,
   useRequestRoomJoin,
+  useGetRoomTyping,
+  usePingRoomTyping,
   getGetRoomMessagesQueryKey,
+  getGetRoomTypingQueryKey,
   getGetHashtagQueryKey,
   getGetMyFollowedHashtagsQueryKey,
   getGetRoomsQueryKey,
@@ -55,6 +58,7 @@ export default function RoomChat({ tag }: { tag: string }) {
   const [threadParent, setThreadParent] = useState<Message | null>(null);
   const scrollerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<MentionFieldHandle>(null);
+  const lastTypingPing = useRef(0);
   const { toast } = useToast();
 
   const hashtagQ = useGetHashtag(cleanTag);
@@ -96,6 +100,23 @@ export default function RoomChat({ tag }: { tag: string }) {
       },
     },
   });
+
+  const typingQuery = useGetRoomTyping(cleanTag, {
+    query: {
+      queryKey: getGetRoomTypingQueryKey(cleanTag),
+      refetchInterval: 2000,
+      enabled: !isLocked,
+    },
+  });
+  const typingPing = usePingRoomTyping();
+  function pingTyping() {
+    if (isLocked) return;
+    const now = Date.now();
+    if (now - lastTypingPing.current < 1500) return;
+    lastTypingPing.current = now;
+    typingPing.mutate({ tag: cleanTag });
+  }
+  const typingUsers = typingQuery.data?.users ?? [];
   const follow = useFollowHashtag({
     mutation: {
       onSuccess: () => {
@@ -361,6 +382,19 @@ export default function RoomChat({ tag }: { tag: string }) {
             </button>
           </div>
         )}
+        {typingUsers.length > 0 && (
+          <div
+            className="flex items-center gap-2 px-1 text-xs text-muted-foreground"
+            data-testid="typing-indicator"
+          >
+            <span className="inline-flex items-center gap-0.5">
+              <span className="inline-block h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground" style={{ animationDelay: "0ms" }} />
+              <span className="inline-block h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground" style={{ animationDelay: "120ms" }} />
+              <span className="inline-block h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground" style={{ animationDelay: "240ms" }} />
+            </span>
+            <span>{typingUsers.map((u) => u.displayName).join(", ")} is typing…</span>
+          </div>
+        )}
         <div className="flex items-center gap-2">
           <ImageUploadButton onUploaded={sendImage} testId="button-upload-room-image" />
           <GifPickerButton
@@ -381,6 +415,7 @@ export default function RoomChat({ tag }: { tag: string }) {
                 });
               }
             }}
+            onUserActivity={pingTyping}
             testId="input-room-message"
           />
           <Button

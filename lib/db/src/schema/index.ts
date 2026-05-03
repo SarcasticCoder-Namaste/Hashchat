@@ -154,6 +154,22 @@ export const conversationTypingTable = pgTable(
   (t) => [primaryKey({ columns: [t.conversationId, t.userId] })],
 );
 
+export const roomTypingTable = pgTable(
+  "room_typing",
+  {
+    tag: text("tag")
+      .notNull()
+      .references(() => hashtagsTable.tag, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => usersTable.id, { onDelete: "cascade" }),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.tag, t.userId] })],
+);
+
 export const messagesTable = pgTable(
   "messages",
   {

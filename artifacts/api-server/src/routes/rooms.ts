@@ -9,9 +9,10 @@ import {
   roomMembersTable,
   roomInvitesTable,
   roomJoinRequestsTable,
+  roomTypingTable,
   usersTable,
 } from "@workspace/db";
-import { and, desc, eq, inArray, sql } from "drizzle-orm";
+import { and, desc, eq, gt, inArray, sql } from "drizzle-orm";
 import { requireAuth, getUserId } from "../middlewares/requireAuth";
 import { isValidStorageUrl } from "../lib/storageUrls";
 import { isAllowedGifUrl } from "../lib/giphy";
@@ -314,8 +315,70 @@ router.post("/rooms/:tag/messages", requireAuth, async (req, res): Promise<void>
     }
   }
 
+  // Clear my typing state for this room
+  await db
+    .delete(roomTypingTable)
+    .where(and(eq(roomTypingTable.tag, tag), eq(roomTypingTable.userId, me)));
+
   const [built] = await buildMessages([created], me);
   res.status(201).json(built);
+});
+
+// ---------- Typing indicator ----------
+
+router.post("/rooms/:tag/typing", requireAuth, async (req, res): Promise<void> => {
+  const raw = Array.isArray(req.params.tag) ? req.params.tag[0] : req.params.tag;
+  const tag = normalizeTag(raw);
+  if (!tag) {
+    res.status(400).json({ error: "Invalid tag" });
+    return;
+  }
+  const me = getUserId(req);
+  const access = await getRoomAccess(tag, me);
+  if (access.isPrivate && !access.isMember) {
+    res.status(403).json({ error: "Not a member" });
+    return;
+  }
+  await db.insert(hashtagsTable).values({ tag }).onConflictDoNothing();
+  await db
+    .insert(roomTypingTable)
+    .values({ tag, userId: me, updatedAt: new Date() })
+    .onConflictDoUpdate({
+      target: [roomTypingTable.tag, roomTypingTable.userId],
+      set: { updatedAt: new Date() },
+    });
+  res.status(204).end();
+});
+
+router.get("/rooms/:tag/typing", requireAuth, async (req, res): Promise<void> => {
+  const raw = Array.isArray(req.params.tag) ? req.params.tag[0] : req.params.tag;
+  const tag = normalizeTag(raw);
+  if (!tag) {
+    res.status(400).json({ error: "Invalid tag" });
+    return;
+  }
+  const me = getUserId(req);
+  const access = await getRoomAccess(tag, me);
+  if (access.isPrivate && !access.isMember) {
+    res.status(403).json({ error: "Not a member" });
+    return;
+  }
+  const cutoff = new Date(Date.now() - 4000);
+  const rows = await db
+    .select({
+      id: roomTypingTable.userId,
+      displayName: usersTable.displayName,
+    })
+    .from(roomTypingTable)
+    .innerJoin(usersTable, eq(usersTable.id, roomTypingTable.userId))
+    .where(
+      and(
+        eq(roomTypingTable.tag, tag),
+        gt(roomTypingTable.updatedAt, cutoff),
+        sql`${roomTypingTable.userId} <> ${me}`,
+      ),
+    );
+  res.json({ users: rows });
 });
 
 // ---------- Visibility (private rooms) ----------

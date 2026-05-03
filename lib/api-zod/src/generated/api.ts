@@ -1545,6 +1545,29 @@ export const SendRoomMessageBody = zod.object({
 });
 
 /**
+ * @summary Heartbeat that current user is typing in this room
+ */
+export const PingRoomTypingParams = zod.object({
+  tag: zod.coerce.string(),
+});
+
+/**
+ * @summary Who is typing in this room right now (excluding me)
+ */
+export const GetRoomTypingParams = zod.object({
+  tag: zod.coerce.string(),
+});
+
+export const GetRoomTypingResponse = zod.object({
+  users: zod.array(
+    zod.object({
+      id: zod.string(),
+      displayName: zod.string(),
+    }),
+  ),
+});
+
+/**
  * @summary Set chat background image for this conversation (per-user override)
  */
 export const SetConversationBackgroundParams = zod.object({
