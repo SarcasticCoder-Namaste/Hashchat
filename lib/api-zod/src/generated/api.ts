@@ -352,6 +352,34 @@ export const GetForYouFeedResponseItem = zod.object({
             displayName: zod.string(),
           }),
         ),
+        status: zod.enum(["scheduled", "published"]),
+        scheduledFor: zod.coerce.date().nullish(),
+        editedAt: zod.coerce.date().nullish(),
+        editableUntil: zod.coerce.date().nullish(),
+        quotedPost: zod
+          .union([
+            zod.object({
+              id: zod.number(),
+              author: zod
+                .object({
+                  id: zod.string(),
+                  username: zod.string(),
+                  displayName: zod.string(),
+                  avatarUrl: zod.string().nullish(),
+                  discriminator: zod.string().nullish(),
+                  role: zod.string(),
+                  mvpPlan: zod.boolean(),
+                  verified: zod.boolean(),
+                })
+                .optional(),
+              content: zod.string(),
+              imageUrls: zod.array(zod.string()),
+              createdAt: zod.coerce.date(),
+              unavailable: zod.boolean(),
+            }),
+            zod.null(),
+          ])
+          .optional(),
         createdAt: zod.coerce.date(),
       }),
       zod.null(),
@@ -2976,6 +3004,9 @@ export const CreatePostBody = zod.object({
   content: zod.string().max(createPostBodyContentMax),
   hashtags: zod.array(zod.string()).optional(),
   imageUrls: zod.array(zod.string()).optional(),
+  scheduledFor: zod.coerce.date().nullish(),
+  quotedPostId: zod.number().nullish(),
+  fromDraftId: zod.number().nullish(),
 });
 
 /**
@@ -2984,6 +3015,263 @@ export const CreatePostBody = zod.object({
 export const DeletePostParams = zod.object({
   id: zod.coerce.number(),
 });
+
+/**
+ * @summary Edit a post within the 30-minute edit window
+ */
+export const UpdatePostParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const updatePostBodyContentMax = 500;
+
+export const UpdatePostBody = zod.object({
+  content: zod.string().max(updatePostBodyContentMax),
+});
+
+export const UpdatePostResponse = zod.object({
+  id: zod.number(),
+  author: zod.object({
+    id: zod.string(),
+    username: zod.string(),
+    displayName: zod.string(),
+    avatarUrl: zod.string().nullish(),
+    discriminator: zod.string().nullish(),
+    role: zod.string(),
+    mvpPlan: zod.boolean(),
+    verified: zod.boolean(),
+  }),
+  content: zod.string(),
+  hashtags: zod.array(zod.string()),
+  imageUrls: zod.array(zod.string()),
+  reactions: zod.array(
+    zod.object({
+      emoji: zod.string(),
+      count: zod.number(),
+      reactedByMe: zod.boolean(),
+    }),
+  ),
+  mentions: zod.array(
+    zod.object({
+      id: zod.string(),
+      username: zod.string(),
+      displayName: zod.string(),
+    }),
+  ),
+  status: zod.enum(["scheduled", "published"]),
+  scheduledFor: zod.coerce.date().nullish(),
+  editedAt: zod.coerce.date().nullish(),
+  editableUntil: zod.coerce.date().nullish(),
+  quotedPost: zod
+    .union([
+      zod.object({
+        id: zod.number(),
+        author: zod
+          .object({
+            id: zod.string(),
+            username: zod.string(),
+            displayName: zod.string(),
+            avatarUrl: zod.string().nullish(),
+            discriminator: zod.string().nullish(),
+            role: zod.string(),
+            mvpPlan: zod.boolean(),
+            verified: zod.boolean(),
+          })
+          .optional(),
+        content: zod.string(),
+        imageUrls: zod.array(zod.string()),
+        createdAt: zod.coerce.date(),
+        unavailable: zod.boolean(),
+      }),
+      zod.null(),
+    ])
+    .optional(),
+  createdAt: zod.coerce.date(),
+});
+
+/**
+ * @summary List edit history for a post (newest first)
+ */
+export const GetPostEditsParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const GetPostEditsResponseItem = zod.object({
+  previousContent: zod.string(),
+  editedAt: zod.coerce.date(),
+});
+export const GetPostEditsResponse = zod.array(GetPostEditsResponseItem);
+
+/**
+ * @summary List my saved post drafts
+ */
+export const GetMyDraftsResponseItem = zod.object({
+  id: zod.number(),
+  content: zod.string(),
+  hashtags: zod.array(zod.string()),
+  imageUrls: zod.array(zod.string()),
+  quotedPost: zod
+    .union([
+      zod.object({
+        id: zod.number(),
+        author: zod
+          .object({
+            id: zod.string(),
+            username: zod.string(),
+            displayName: zod.string(),
+            avatarUrl: zod.string().nullish(),
+            discriminator: zod.string().nullish(),
+            role: zod.string(),
+            mvpPlan: zod.boolean(),
+            verified: zod.boolean(),
+          })
+          .optional(),
+        content: zod.string(),
+        imageUrls: zod.array(zod.string()),
+        createdAt: zod.coerce.date(),
+        unavailable: zod.boolean(),
+      }),
+      zod.null(),
+    ])
+    .optional(),
+  updatedAt: zod.coerce.date(),
+  createdAt: zod.coerce.date(),
+});
+export const GetMyDraftsResponse = zod.array(GetMyDraftsResponseItem);
+
+/**
+ * @summary Create a new draft
+ */
+export const createDraftBodyContentMax = 500;
+
+export const CreateDraftBody = zod.object({
+  content: zod.string().max(createDraftBodyContentMax),
+  hashtags: zod.array(zod.string()).optional(),
+  imageUrls: zod.array(zod.string()).optional(),
+  quotedPostId: zod.number().nullish(),
+});
+
+/**
+ * @summary Update an existing draft
+ */
+export const UpdateDraftParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const updateDraftBodyContentMax = 500;
+
+export const UpdateDraftBody = zod.object({
+  content: zod.string().max(updateDraftBodyContentMax),
+  hashtags: zod.array(zod.string()).optional(),
+  imageUrls: zod.array(zod.string()).optional(),
+  quotedPostId: zod.number().nullish(),
+});
+
+export const UpdateDraftResponse = zod.object({
+  id: zod.number(),
+  content: zod.string(),
+  hashtags: zod.array(zod.string()),
+  imageUrls: zod.array(zod.string()),
+  quotedPost: zod
+    .union([
+      zod.object({
+        id: zod.number(),
+        author: zod
+          .object({
+            id: zod.string(),
+            username: zod.string(),
+            displayName: zod.string(),
+            avatarUrl: zod.string().nullish(),
+            discriminator: zod.string().nullish(),
+            role: zod.string(),
+            mvpPlan: zod.boolean(),
+            verified: zod.boolean(),
+          })
+          .optional(),
+        content: zod.string(),
+        imageUrls: zod.array(zod.string()),
+        createdAt: zod.coerce.date(),
+        unavailable: zod.boolean(),
+      }),
+      zod.null(),
+    ])
+    .optional(),
+  updatedAt: zod.coerce.date(),
+  createdAt: zod.coerce.date(),
+});
+
+/**
+ * @summary Delete a draft
+ */
+export const DeleteDraftParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+/**
+ * @summary List my scheduled (unpublished) posts
+ */
+export const GetMyScheduledPostsResponseItem = zod.object({
+  id: zod.number(),
+  author: zod.object({
+    id: zod.string(),
+    username: zod.string(),
+    displayName: zod.string(),
+    avatarUrl: zod.string().nullish(),
+    discriminator: zod.string().nullish(),
+    role: zod.string(),
+    mvpPlan: zod.boolean(),
+    verified: zod.boolean(),
+  }),
+  content: zod.string(),
+  hashtags: zod.array(zod.string()),
+  imageUrls: zod.array(zod.string()),
+  reactions: zod.array(
+    zod.object({
+      emoji: zod.string(),
+      count: zod.number(),
+      reactedByMe: zod.boolean(),
+    }),
+  ),
+  mentions: zod.array(
+    zod.object({
+      id: zod.string(),
+      username: zod.string(),
+      displayName: zod.string(),
+    }),
+  ),
+  status: zod.enum(["scheduled", "published"]),
+  scheduledFor: zod.coerce.date().nullish(),
+  editedAt: zod.coerce.date().nullish(),
+  editableUntil: zod.coerce.date().nullish(),
+  quotedPost: zod
+    .union([
+      zod.object({
+        id: zod.number(),
+        author: zod
+          .object({
+            id: zod.string(),
+            username: zod.string(),
+            displayName: zod.string(),
+            avatarUrl: zod.string().nullish(),
+            discriminator: zod.string().nullish(),
+            role: zod.string(),
+            mvpPlan: zod.boolean(),
+            verified: zod.boolean(),
+          })
+          .optional(),
+        content: zod.string(),
+        imageUrls: zod.array(zod.string()),
+        createdAt: zod.coerce.date(),
+        unavailable: zod.boolean(),
+      }),
+      zod.null(),
+    ])
+    .optional(),
+  createdAt: zod.coerce.date(),
+});
+export const GetMyScheduledPostsResponse = zod.array(
+  GetMyScheduledPostsResponseItem,
+);
 
 /**
  * @summary List recent posts from hashtags I follow (most recent first)
@@ -3029,6 +3317,34 @@ export const GetMyFeedPostsResponseItem = zod.object({
       displayName: zod.string(),
     }),
   ),
+  status: zod.enum(["scheduled", "published"]),
+  scheduledFor: zod.coerce.date().nullish(),
+  editedAt: zod.coerce.date().nullish(),
+  editableUntil: zod.coerce.date().nullish(),
+  quotedPost: zod
+    .union([
+      zod.object({
+        id: zod.number(),
+        author: zod
+          .object({
+            id: zod.string(),
+            username: zod.string(),
+            displayName: zod.string(),
+            avatarUrl: zod.string().nullish(),
+            discriminator: zod.string().nullish(),
+            role: zod.string(),
+            mvpPlan: zod.boolean(),
+            verified: zod.boolean(),
+          })
+          .optional(),
+        content: zod.string(),
+        imageUrls: zod.array(zod.string()),
+        createdAt: zod.coerce.date(),
+        unavailable: zod.boolean(),
+      }),
+      zod.null(),
+    ])
+    .optional(),
   createdAt: zod.coerce.date(),
 });
 export const GetMyFeedPostsResponse = zod.array(GetMyFeedPostsResponseItem);
@@ -3081,6 +3397,34 @@ export const GetHashtagPostsResponseItem = zod.object({
       displayName: zod.string(),
     }),
   ),
+  status: zod.enum(["scheduled", "published"]),
+  scheduledFor: zod.coerce.date().nullish(),
+  editedAt: zod.coerce.date().nullish(),
+  editableUntil: zod.coerce.date().nullish(),
+  quotedPost: zod
+    .union([
+      zod.object({
+        id: zod.number(),
+        author: zod
+          .object({
+            id: zod.string(),
+            username: zod.string(),
+            displayName: zod.string(),
+            avatarUrl: zod.string().nullish(),
+            discriminator: zod.string().nullish(),
+            role: zod.string(),
+            mvpPlan: zod.boolean(),
+            verified: zod.boolean(),
+          })
+          .optional(),
+        content: zod.string(),
+        imageUrls: zod.array(zod.string()),
+        createdAt: zod.coerce.date(),
+        unavailable: zod.boolean(),
+      }),
+      zod.null(),
+    ])
+    .optional(),
   createdAt: zod.coerce.date(),
 });
 export const GetHashtagPostsResponse = zod.array(GetHashtagPostsResponseItem);
@@ -3133,6 +3477,34 @@ export const GetUserPostsResponseItem = zod.object({
       displayName: zod.string(),
     }),
   ),
+  status: zod.enum(["scheduled", "published"]),
+  scheduledFor: zod.coerce.date().nullish(),
+  editedAt: zod.coerce.date().nullish(),
+  editableUntil: zod.coerce.date().nullish(),
+  quotedPost: zod
+    .union([
+      zod.object({
+        id: zod.number(),
+        author: zod
+          .object({
+            id: zod.string(),
+            username: zod.string(),
+            displayName: zod.string(),
+            avatarUrl: zod.string().nullish(),
+            discriminator: zod.string().nullish(),
+            role: zod.string(),
+            mvpPlan: zod.boolean(),
+            verified: zod.boolean(),
+          })
+          .optional(),
+        content: zod.string(),
+        imageUrls: zod.array(zod.string()),
+        createdAt: zod.coerce.date(),
+        unavailable: zod.boolean(),
+      }),
+      zod.null(),
+    ])
+    .optional(),
   createdAt: zod.coerce.date(),
 });
 export const GetUserPostsResponse = zod.array(GetUserPostsResponseItem);

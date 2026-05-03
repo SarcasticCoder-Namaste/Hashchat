@@ -109,7 +109,13 @@ export function PostFeed({ scope, meId, emptyMessage }: PostFeedProps) {
   return (
     <div className="flex flex-col gap-3" data-testid="post-feed">
       {posts.map((p) => (
-        <PostCard key={p.id} post={p} meId={meId} onDeleted={invalidate} />
+        <PostCard
+          key={p.id}
+          post={p}
+          meId={meId}
+          onDeleted={invalidate}
+          onChanged={invalidate}
+        />
       ))}
       {q.hasNextPage ? (
         <div

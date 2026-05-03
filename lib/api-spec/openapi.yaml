@@ -1494,6 +1494,109 @@ paths:
         - { name: id, in: path, required: true, schema: { type: integer } }
       responses:
         "204": { description: No content }
+    patch:
+      operationId: updatePost
+      tags: [posts]
+      summary: Edit a post within the 30-minute edit window
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/UpdatePostBody" }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Post" }
+
+  /posts/{id}/edits:
+    get:
+      operationId: getPostEdits
+      tags: [posts]
+      summary: List edit history for a post (newest first)
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/PostEdit" }
+
+  /me/drafts:
+    get:
+      operationId: getMyDrafts
+      tags: [posts]
+      summary: List my saved post drafts
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/PostDraft" }
+    post:
+      operationId: createDraft
+      tags: [posts]
+      summary: Create a new draft
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PostDraftBody" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PostDraft" }
+
+  /me/drafts/{id}:
+    patch:
+      operationId: updateDraft
+      tags: [posts]
+      summary: Update an existing draft
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PostDraftBody" }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PostDraft" }
+    delete:
+      operationId: deleteDraft
+      tags: [posts]
+      summary: Delete a draft
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      responses:
+        "204": { description: No content }
+
+  /me/scheduled-posts:
+    get:
+      operationId: getMyScheduledPosts
+      tags: [posts]
+      summary: List my scheduled (unpublished) posts
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Post" }
 
   /me/feed/posts:
     get:
@@ -3240,8 +3343,35 @@ components:
         mentions:
           type: array
           items: { $ref: "#/components/schemas/MentionedUser" }
+        status: { type: string, enum: [scheduled, published] }
+        scheduledFor:
+          type: ["string", "null"]
+          format: date-time
+        editedAt:
+          type: ["string", "null"]
+          format: date-time
+        editableUntil:
+          type: ["string", "null"]
+          format: date-time
+        quotedPost:
+          oneOf:
+            - { $ref: "#/components/schemas/QuotedPost" }
+            - type: "null"
         createdAt: { type: string, format: date-time }
-      required: [id, author, content, hashtags, imageUrls, reactions, mentions, createdAt]
+      required: [id, author, content, hashtags, imageUrls, reactions, mentions, status, createdAt]
+
+    QuotedPost:
+      type: object
+      properties:
+        id: { type: integer }
+        author: { $ref: "#/components/schemas/PostAuthor" }
+        content: { type: string }
+        imageUrls:
+          type: array
+          items: { type: string }
+        createdAt: { type: string, format: date-time }
+        unavailable: { type: boolean }
+      required: [id, content, imageUrls, createdAt, unavailable]
 
     CreatePostBody:
       type: object
@@ -3253,6 +3383,59 @@ components:
         imageUrls:
           type: array
           items: { type: string }
+        scheduledFor:
+          type: ["string", "null"]
+          format: date-time
+        quotedPostId:
+          type: ["integer", "null"]
+        fromDraftId:
+          type: ["integer", "null"]
+      required: [content]
+
+    UpdatePostBody:
+      type: object
+      properties:
+        content: { type: string, maxLength: 500 }
+      required: [content]
+
+    PostEdit:
+      type: object
+      properties:
+        previousContent: { type: string }
+        editedAt: { type: string, format: date-time }
+      required: [previousContent, editedAt]
+
+    PostDraft:
+      type: object
+      properties:
+        id: { type: integer }
+        content: { type: string }
+        hashtags:
+          type: array
+          items: { type: string }
+        imageUrls:
+          type: array
+          items: { type: string }
+        quotedPost:
+          oneOf:
+            - { $ref: "#/components/schemas/QuotedPost" }
+            - type: "null"
+        updatedAt: { type: string, format: date-time }
+        createdAt: { type: string, format: date-time }
+      required: [id, content, hashtags, imageUrls, updatedAt, createdAt]
+
+    PostDraftBody:
+      type: object
+      properties:
+        content: { type: string, maxLength: 500 }
+        hashtags:
+          type: array
+          items: { type: string }
+        imageUrls:
+          type: array
+          items: { type: string }
+        quotedPostId:
+          type: ["integer", "null"]
       required: [content]
 
     PollOption:

@@ -5,22 +5,176 @@ import {
   postHashtagsTable,
   postMediaTable,
   postReactionsTable,
+  postEditsTable,
+  postDraftsTable,
   hashtagsTable,
   usersTable,
   userFollowedHashtagsTable,
   mentionsTable,
 } from "@workspace/db";
-import { and, desc, eq, inArray, lt, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, lt, sql, isNull } from "drizzle-orm";
 import { requireAuth, getUserId } from "../middlewares/requireAuth";
 import { isValidStorageUrl } from "../lib/storageUrls";
 import { normalizeTag } from "../lib/hashtags";
-import { CreatePostBody, AddMessageReactionBody } from "@workspace/api-zod";
+import {
+  CreatePostBody,
+  UpdatePostBody,
+  CreateDraftBody,
+  UpdateDraftBody,
+  AddMessageReactionBody,
+} from "@workspace/api-zod";
 import { resolveMentions, recordMentions } from "../lib/mentions";
 import { createNotification } from "../lib/notifications";
+import { isBlockedEitherWay } from "../lib/relationships";
 
 const router: IRouter = Router();
 
+const EDIT_WINDOW_MS = 30 * 60 * 1000;
+
 type PostRow = typeof postsTable.$inferSelect;
+
+function editableUntil(row: PostRow): Date | null {
+  if (row.status !== "published") return null;
+  return new Date(row.createdAt.getTime() + EDIT_WINDOW_MS);
+}
+
+async function loadQuotedPosts(
+  ids: number[],
+  myId: string,
+): Promise<
+  Map<
+    number,
+    {
+      id: number;
+      author: ReturnType<typeof serializeAuthor> | null;
+      content: string;
+      imageUrls: string[];
+      createdAt: string;
+      unavailable: boolean;
+    }
+  >
+> {
+  const out = new Map<
+    number,
+    {
+      id: number;
+      author: ReturnType<typeof serializeAuthor> | null;
+      content: string;
+      imageUrls: string[];
+      createdAt: string;
+      unavailable: boolean;
+    }
+  >();
+  if (ids.length === 0) return out;
+
+  const rows = await db
+    .select()
+    .from(postsTable)
+    .where(inArray(postsTable.id, ids));
+
+  const authorIds = Array.from(new Set(rows.map((r) => r.authorId)));
+  const authors = authorIds.length
+    ? await db
+        .select({
+          id: usersTable.id,
+          username: usersTable.username,
+          displayName: usersTable.displayName,
+          avatarUrl: usersTable.avatarUrl,
+          discriminator: usersTable.discriminator,
+          role: usersTable.role,
+          mvpPlan: usersTable.mvpPlan,
+          verified: usersTable.verified,
+        })
+        .from(usersTable)
+        .where(inArray(usersTable.id, authorIds))
+    : [];
+  const authorMap = new Map(authors.map((a) => [a.id, a]));
+
+  const mediaRows = rows.length
+    ? await db
+        .select()
+        .from(postMediaTable)
+        .where(inArray(postMediaTable.postId, rows.map((r) => r.id)))
+        .orderBy(postMediaTable.position)
+    : [];
+  const mediaByPost = new Map<number, string[]>();
+  for (const m of mediaRows) {
+    if (!mediaByPost.has(m.postId)) mediaByPost.set(m.postId, []);
+    mediaByPost.get(m.postId)!.push(m.imageUrl);
+  }
+
+  const blockChecks = await Promise.all(
+    authorIds.map(async (aid) => [aid, await isBlockedEitherWay(myId, aid)] as const),
+  );
+  const blockedSet = new Set(
+    blockChecks.filter(([, blocked]) => blocked).map(([id]) => id),
+  );
+
+  const foundIds = new Set(rows.map((r) => r.id));
+
+  for (const id of ids) {
+    const r = rows.find((x) => x.id === id);
+    if (!r || !foundIds.has(id) || r.deletedAt || r.status !== "published") {
+      out.set(id, {
+        id,
+        author: null,
+        content: "",
+        imageUrls: [],
+        createdAt: new Date(0).toISOString(),
+        unavailable: true,
+      });
+      continue;
+    }
+    if (blockedSet.has(r.authorId)) {
+      out.set(id, {
+        id,
+        author: null,
+        content: "",
+        imageUrls: [],
+        createdAt: r.createdAt.toISOString(),
+        unavailable: true,
+      });
+      continue;
+    }
+    const a = authorMap.get(r.authorId);
+    out.set(id, {
+      id: r.id,
+      author: serializeAuthor(a, r.authorId),
+      content: r.content,
+      imageUrls: mediaByPost.get(r.id) ?? [],
+      createdAt: r.createdAt.toISOString(),
+      unavailable: false,
+    });
+  }
+  return out;
+}
+
+function serializeAuthor(
+  a:
+    | {
+        id: string;
+        username: string;
+        displayName: string;
+        avatarUrl: string | null;
+        discriminator: string | null;
+        role: string;
+        mvpPlan: boolean;
+        verified: boolean;
+      }
+    | undefined,
+  fallbackId: string,
+) {
+  return {
+    id: a?.id ?? fallbackId,
+    username: a?.username ?? "unknown",
+    displayName: a?.displayName ?? "Unknown",
+    avatarUrl: a?.avatarUrl ?? null,
+    discriminator: a?.discriminator ?? null,
+    role: a?.role ?? "user",
+    mvpPlan: a?.mvpPlan ?? false,
+    verified: a?.verified ?? false,
+  };
+}
 
 async function buildPosts(rows: PostRow[], myUserId: string) {
   if (rows.length === 0) return [];
@@ -112,25 +266,28 @@ async function buildPosts(rows: PostRow[], myUserId: string) {
     mentionsByPost.set(m.targetId, list);
   }
 
+  const quotedIds = Array.from(
+    new Set(rows.map((r) => r.quotedPostId).filter((v): v is number => v != null)),
+  );
+  const quotedMap = await loadQuotedPosts(quotedIds, myUserId);
+
   return rows.map((r) => {
     const a = authorMap.get(r.authorId);
+    const eu = editableUntil(r);
     return {
       id: r.id,
-      author: {
-        id: a?.id ?? r.authorId,
-        username: a?.username ?? "unknown",
-        displayName: a?.displayName ?? "Unknown",
-        avatarUrl: a?.avatarUrl ?? null,
-        discriminator: a?.discriminator ?? null,
-        role: a?.role ?? "user",
-        mvpPlan: a?.mvpPlan ?? false,
-        verified: a?.verified ?? false,
-      },
+      author: serializeAuthor(a, r.authorId),
       content: r.content,
       hashtags: tagsByPost.get(r.id) ?? [],
       imageUrls: mediaByPost.get(r.id) ?? [],
       reactions: reactionsByPost.get(r.id) ?? [],
       mentions: mentionsByPost.get(r.id) ?? [],
+      status: r.status === "scheduled" ? "scheduled" : "published",
+      scheduledFor: r.scheduledFor ? r.scheduledFor.toISOString() : null,
+      editedAt: r.editedAt ? r.editedAt.toISOString() : null,
+      editableUntil: eu ? eu.toISOString() : null,
+      quotedPost:
+        r.quotedPostId != null ? quotedMap.get(r.quotedPostId) ?? null : null,
       createdAt: r.createdAt.toISOString(),
     };
   });
@@ -165,9 +322,51 @@ router.post("/posts", requireAuth, async (req, res): Promise<void> => {
     }
   }
 
+  let scheduledFor: Date | null = null;
+  let status: "published" | "scheduled" = "published";
+  if (parsed.data.scheduledFor) {
+    const dt =
+      parsed.data.scheduledFor instanceof Date
+        ? parsed.data.scheduledFor
+        : new Date(parsed.data.scheduledFor);
+    if (Number.isNaN(dt.getTime())) {
+      res.status(400).json({ error: "Invalid scheduledFor" });
+      return;
+    }
+    if (dt.getTime() <= Date.now() + 30_000) {
+      res.status(400).json({ error: "scheduledFor must be in the future" });
+      return;
+    }
+    scheduledFor = dt;
+    status = "scheduled";
+  }
+
+  let quotedPostId: number | null = null;
+  if (parsed.data.quotedPostId != null) {
+    const qid = Number(parsed.data.quotedPostId);
+    if (Number.isNaN(qid)) {
+      res.status(400).json({ error: "Invalid quotedPostId" });
+      return;
+    }
+    const [qp] = await db
+      .select()
+      .from(postsTable)
+      .where(eq(postsTable.id, qid))
+      .limit(1);
+    if (!qp || qp.deletedAt || qp.status !== "published") {
+      res.status(400).json({ error: "Quoted post not found" });
+      return;
+    }
+    if (await isBlockedEitherWay(me, qp.authorId)) {
+      res.status(403).json({ error: "Cannot quote this post" });
+      return;
+    }
+    quotedPostId = qid;
+  }
+
   const [created] = await db
     .insert(postsTable)
-    .values({ authorId: me, content })
+    .values({ authorId: me, content, status, scheduledFor, quotedPostId })
     .returning();
 
   if (tags.length > 0) {
@@ -190,22 +389,35 @@ router.post("/posts", requireAuth, async (req, res): Promise<void> => {
     );
   }
 
-  const resolved = await resolveMentions(content);
-  const recorded = await recordMentions({
-    mentionerId: me,
-    targetType: "post",
-    targetId: created.id,
-    resolved,
-  });
-  for (const u of recorded) {
-    await createNotification({
-      recipientId: u.id,
-      actorId: me,
-      kind: "mention",
+  if (status === "published") {
+    const resolved = await resolveMentions(content);
+    const recorded = await recordMentions({
+      mentionerId: me,
       targetType: "post",
       targetId: created.id,
-      snippet: content.slice(0, 200),
+      resolved,
     });
+    for (const u of recorded) {
+      await createNotification({
+        recipientId: u.id,
+        actorId: me,
+        kind: "mention",
+        targetType: "post",
+        targetId: created.id,
+        snippet: content.slice(0, 200),
+      });
+    }
+  }
+
+  if (parsed.data.fromDraftId != null) {
+    await db
+      .delete(postDraftsTable)
+      .where(
+        and(
+          eq(postDraftsTable.id, Number(parsed.data.fromDraftId)),
+          eq(postDraftsTable.userId, me),
+        ),
+      );
   }
 
   const [built] = await buildPosts([created], me);
@@ -236,6 +448,95 @@ router.delete("/posts/:id", requireAuth, async (req, res): Promise<void> => {
   await db.delete(postsTable).where(eq(postsTable.id, id));
   res.status(204).end();
 });
+
+router.patch("/posts/:id", requireAuth, async (req, res): Promise<void> => {
+  const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const id = parseInt(raw, 10);
+  if (Number.isNaN(id)) {
+    res.status(400).json({ error: "Invalid id" });
+    return;
+  }
+  const parsed = UpdatePostBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+  const me = getUserId(req);
+  const newContent = parsed.data.content.trim();
+  if (!newContent) {
+    res.status(400).json({ error: "Content is required" });
+    return;
+  }
+
+  const [post] = await db
+    .select()
+    .from(postsTable)
+    .where(eq(postsTable.id, id))
+    .limit(1);
+  if (!post || post.deletedAt) {
+    res.status(404).json({ error: "Not found" });
+    return;
+  }
+  if (post.authorId !== me) {
+    res.status(403).json({ error: "Forbidden" });
+    return;
+  }
+  if (post.status !== "published") {
+    res.status(400).json({ error: "Only published posts can be edited" });
+    return;
+  }
+  if (Date.now() - post.createdAt.getTime() > EDIT_WINDOW_MS) {
+    res.status(403).json({ error: "Edit window has passed" });
+    return;
+  }
+  if (post.content === newContent) {
+    const [built] = await buildPosts([post], me);
+    res.json(built);
+    return;
+  }
+
+  await db.insert(postEditsTable).values({
+    postId: id,
+    previousContent: post.content,
+  });
+
+  const editedAt = new Date();
+  const [updated] = await db
+    .update(postsTable)
+    .set({ content: newContent, editedAt })
+    .where(eq(postsTable.id, id))
+    .returning();
+
+  const [built] = await buildPosts([updated], me);
+  res.json(built);
+});
+
+router.get(
+  "/posts/:id/edits",
+  requireAuth,
+  async (req, res): Promise<void> => {
+    const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    const id = parseInt(raw, 10);
+    if (Number.isNaN(id)) {
+      res.status(400).json({ error: "Invalid id" });
+      return;
+    }
+    const rows = await db
+      .select({
+        previousContent: postEditsTable.previousContent,
+        editedAt: postEditsTable.editedAt,
+      })
+      .from(postEditsTable)
+      .where(eq(postEditsTable.postId, id))
+      .orderBy(desc(postEditsTable.editedAt));
+    res.json(
+      rows.map((r) => ({
+        previousContent: r.previousContent,
+        editedAt: r.editedAt.toISOString(),
+      })),
+    );
+  },
+);
 
 router.get("/me/feed/posts", requireAuth, async (req, res): Promise<void> => {
   const me = getUserId(req);
@@ -269,6 +570,7 @@ router.get("/me/feed/posts", requireAuth, async (req, res): Promise<void> => {
   const conditions = [
     eq(userFollowedHashtagsTable.userId, me),
     sql`${postsTable.deletedAt} IS NULL`,
+    eq(postsTable.status, "published"),
   ];
   if (before) {
     conditions.push(lt(postsTable.createdAt, before));
@@ -279,6 +581,10 @@ router.get("/me/feed/posts", requireAuth, async (req, res): Promise<void> => {
       id: postsTable.id,
       authorId: postsTable.authorId,
       content: postsTable.content,
+      status: postsTable.status,
+      scheduledFor: postsTable.scheduledFor,
+      editedAt: postsTable.editedAt,
+      quotedPostId: postsTable.quotedPostId,
       deletedAt: postsTable.deletedAt,
       createdAt: postsTable.createdAt,
     })
@@ -343,6 +649,7 @@ router.get(
     const conditions = [
       eq(postHashtagsTable.tag, tag),
       sql`${postsTable.deletedAt} IS NULL`,
+      eq(postsTable.status, "published"),
     ];
     if (pag.before) {
       conditions.push(lt(postsTable.createdAt, pag.before));
@@ -352,6 +659,10 @@ router.get(
         id: postsTable.id,
         authorId: postsTable.authorId,
         content: postsTable.content,
+        status: postsTable.status,
+        scheduledFor: postsTable.scheduledFor,
+        editedAt: postsTable.editedAt,
+        quotedPostId: postsTable.quotedPostId,
         deletedAt: postsTable.deletedAt,
         createdAt: postsTable.createdAt,
       })
@@ -375,6 +686,7 @@ router.get("/users/:id/posts", requireAuth, async (req, res): Promise<void> => {
   const conditions = [
     eq(postsTable.authorId, raw),
     sql`${postsTable.deletedAt} IS NULL`,
+    eq(postsTable.status, "published"),
   ];
   if (pag.before) {
     conditions.push(lt(postsTable.createdAt, pag.before));
@@ -409,7 +721,7 @@ router.post(
       .from(postsTable)
       .where(eq(postsTable.id, id))
       .limit(1);
-    if (!post || post.deletedAt) {
+    if (!post || post.deletedAt || post.status !== "published") {
       res.status(404).json({ error: "Not found" });
       return;
     }
@@ -454,5 +766,222 @@ router.delete(
     res.status(204).end();
   },
 );
+
+// =================== Drafts ===================
+
+async function buildDrafts(
+  rows: (typeof postDraftsTable.$inferSelect)[],
+  myId: string,
+) {
+  if (rows.length === 0) return [];
+  const quotedIds = Array.from(
+    new Set(rows.map((r) => r.quotedPostId).filter((v): v is number => v != null)),
+  );
+  const quotedMap = await loadQuotedPosts(quotedIds, myId);
+  return rows.map((r) => {
+    let hashtags: string[] = [];
+    let imageUrls: string[] = [];
+    try {
+      hashtags = JSON.parse(r.hashtags);
+    } catch {}
+    try {
+      imageUrls = JSON.parse(r.imageUrls);
+    } catch {}
+    return {
+      id: r.id,
+      content: r.content,
+      hashtags,
+      imageUrls,
+      quotedPost:
+        r.quotedPostId != null ? quotedMap.get(r.quotedPostId) ?? null : null,
+      updatedAt: r.updatedAt.toISOString(),
+      createdAt: r.createdAt.toISOString(),
+    };
+  });
+}
+
+function validateDraftBody(body: unknown):
+  | {
+      content: string;
+      hashtags: string[];
+      imageUrls: string[];
+      quotedPostId: number | null;
+    }
+  | { error: string } {
+  const parsed = CreateDraftBody.safeParse(body);
+  if (!parsed.success) return { error: parsed.error.message };
+  const content = parsed.data.content;
+  const hashtags = (parsed.data.hashtags ?? [])
+    .map(normalizeTag)
+    .filter(Boolean)
+    .slice(0, 10);
+  const imageUrls = (parsed.data.imageUrls ?? []).slice(0, 4);
+  for (const u of imageUrls) {
+    if (!isValidStorageUrl(u)) return { error: "Invalid imageUrl" };
+  }
+  const quotedPostId =
+    parsed.data.quotedPostId != null ? Number(parsed.data.quotedPostId) : null;
+  return { content, hashtags, imageUrls, quotedPostId };
+}
+
+router.get("/me/drafts", requireAuth, async (req, res): Promise<void> => {
+  const me = getUserId(req);
+  const rows = await db
+    .select()
+    .from(postDraftsTable)
+    .where(eq(postDraftsTable.userId, me))
+    .orderBy(desc(postDraftsTable.updatedAt))
+    .limit(50);
+  res.json(await buildDrafts(rows, me));
+});
+
+router.post("/me/drafts", requireAuth, async (req, res): Promise<void> => {
+  const me = getUserId(req);
+  const v = validateDraftBody(req.body);
+  if ("error" in v) {
+    res.status(400).json({ error: v.error });
+    return;
+  }
+  const [created] = await db
+    .insert(postDraftsTable)
+    .values({
+      userId: me,
+      content: v.content,
+      hashtags: JSON.stringify(v.hashtags),
+      imageUrls: JSON.stringify(v.imageUrls),
+      quotedPostId: v.quotedPostId,
+    })
+    .returning();
+  const [built] = await buildDrafts([created], me);
+  res.status(201).json(built);
+});
+
+router.patch(
+  "/me/drafts/:id",
+  requireAuth,
+  async (req, res): Promise<void> => {
+    const me = getUserId(req);
+    const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    const id = parseInt(raw, 10);
+    if (Number.isNaN(id)) {
+      res.status(400).json({ error: "Invalid id" });
+      return;
+    }
+    const v = validateDraftBody(req.body);
+    if ("error" in v) {
+      res.status(400).json({ error: v.error });
+      return;
+    }
+    const [existing] = await db
+      .select()
+      .from(postDraftsTable)
+      .where(and(eq(postDraftsTable.id, id), eq(postDraftsTable.userId, me)))
+      .limit(1);
+    if (!existing) {
+      res.status(404).json({ error: "Not found" });
+      return;
+    }
+    const [updated] = await db
+      .update(postDraftsTable)
+      .set({
+        content: v.content,
+        hashtags: JSON.stringify(v.hashtags),
+        imageUrls: JSON.stringify(v.imageUrls),
+        quotedPostId: v.quotedPostId,
+        updatedAt: new Date(),
+      })
+      .where(eq(postDraftsTable.id, id))
+      .returning();
+    const [built] = await buildDrafts([updated], me);
+    res.json(built);
+  },
+);
+
+router.delete(
+  "/me/drafts/:id",
+  requireAuth,
+  async (req, res): Promise<void> => {
+    const me = getUserId(req);
+    const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    const id = parseInt(raw, 10);
+    if (Number.isNaN(id)) {
+      res.status(400).json({ error: "Invalid id" });
+      return;
+    }
+    await db
+      .delete(postDraftsTable)
+      .where(and(eq(postDraftsTable.id, id), eq(postDraftsTable.userId, me)));
+    res.status(204).end();
+  },
+);
+
+router.get(
+  "/me/scheduled-posts",
+  requireAuth,
+  async (req, res): Promise<void> => {
+    const me = getUserId(req);
+    const rows = await db
+      .select()
+      .from(postsTable)
+      .where(
+        and(
+          eq(postsTable.authorId, me),
+          eq(postsTable.status, "scheduled"),
+          isNull(postsTable.deletedAt),
+        ),
+      )
+      .orderBy(postsTable.scheduledFor)
+      .limit(100);
+    res.json(await buildPosts(rows, me));
+  },
+);
+
+// =================== Scheduler ===================
+
+export async function publishDueScheduledPosts(): Promise<number> {
+  const now = new Date();
+  const due = await db
+    .select()
+    .from(postsTable)
+    .where(
+      and(
+        eq(postsTable.status, "scheduled"),
+        isNull(postsTable.deletedAt),
+        lt(postsTable.scheduledFor, now),
+      ),
+    )
+    .limit(50);
+  if (due.length === 0) return 0;
+
+  for (const p of due) {
+    await db
+      .update(postsTable)
+      .set({
+        status: "published",
+        scheduledFor: null,
+        createdAt: now,
+      })
+      .where(eq(postsTable.id, p.id));
+
+    const resolved = await resolveMentions(p.content);
+    const recorded = await recordMentions({
+      mentionerId: p.authorId,
+      targetType: "post",
+      targetId: p.id,
+      resolved,
+    });
+    for (const u of recorded) {
+      await createNotification({
+        recipientId: u.id,
+        actorId: p.authorId,
+        kind: "mention",
+        targetType: "post",
+        targetId: p.id,
+        snippet: p.content.slice(0, 200),
+      });
+    }
+  }
+  return due.length;
+}
 
 export default router;

@@ -856,6 +856,22 @@ export interface GifConfigError {
   message: string;
 }
 
+export type PostStatus = (typeof PostStatus)[keyof typeof PostStatus];
+
+export const PostStatus = {
+  scheduled: "scheduled",
+  published: "published",
+} as const;
+
+export interface QuotedPost {
+  id: number;
+  author?: PostAuthor;
+  content: string;
+  imageUrls: string[];
+  createdAt: string;
+  unavailable: boolean;
+}
+
 export interface Post {
   id: number;
   author: PostAuthor;
@@ -864,6 +880,14 @@ export interface Post {
   imageUrls: string[];
   reactions: Reaction[];
   mentions: MentionedUser[];
+  status: PostStatus;
+  /** @nullable */
+  scheduledFor?: string | null;
+  /** @nullable */
+  editedAt?: string | null;
+  /** @nullable */
+  editableUntil?: string | null;
+  quotedPost?: QuotedPost | null;
   createdAt: string;
 }
 
@@ -872,6 +896,41 @@ export interface CreatePostBody {
   content: string;
   hashtags?: string[];
   imageUrls?: string[];
+  /** @nullable */
+  scheduledFor?: string | null;
+  /** @nullable */
+  quotedPostId?: number | null;
+  /** @nullable */
+  fromDraftId?: number | null;
+}
+
+export interface UpdatePostBody {
+  /** @maxLength 500 */
+  content: string;
+}
+
+export interface PostEdit {
+  previousContent: string;
+  editedAt: string;
+}
+
+export interface PostDraft {
+  id: number;
+  content: string;
+  hashtags: string[];
+  imageUrls: string[];
+  quotedPost?: QuotedPost | null;
+  updatedAt: string;
+  createdAt: string;
+}
+
+export interface PostDraftBody {
+  /** @maxLength 500 */
+  content: string;
+  hashtags?: string[];
+  imageUrls?: string[];
+  /** @nullable */
+  quotedPostId?: number | null;
 }
 
 export interface CreatePollBody {

@@ -93,6 +93,9 @@ import type {
   OverviewStats,
   Poll,
   Post,
+  PostDraft,
+  PostDraftBody,
+  PostEdit,
   PremiumCheckoutResponse,
   PremiumPortalResponse,
   PremiumStatus,
@@ -123,6 +126,7 @@ import type {
   TypingResponse,
   UnreadCountResponse,
   UpdateBookmarkBody,
+  UpdatePostBody,
   UpdatePreferencesBody,
   UpdateRoomEventBody,
   UpdateUserBody,
@@ -8963,6 +8967,587 @@ export const useDeletePost = <
 > => {
   return useMutation(getDeletePostMutationOptions(options));
 };
+
+/**
+ * @summary Edit a post within the 30-minute edit window
+ */
+export const getUpdatePostUrl = (id: number) => {
+  return `/api/posts/${id}`;
+};
+
+export const updatePost = async (
+  id: number,
+  updatePostBody: UpdatePostBody,
+  options?: RequestInit,
+): Promise<Post> => {
+  return customFetch<Post>(getUpdatePostUrl(id), {
+    ...options,
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(updatePostBody),
+  });
+};
+
+export const getUpdatePostMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updatePost>>,
+    TError,
+    { id: number; data: BodyType<UpdatePostBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updatePost>>,
+  TError,
+  { id: number; data: BodyType<UpdatePostBody> },
+  TContext
+> => {
+  const mutationKey = ["updatePost"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updatePost>>,
+    { id: number; data: BodyType<UpdatePostBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return updatePost(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdatePostMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updatePost>>
+>;
+export type UpdatePostMutationBody = BodyType<UpdatePostBody>;
+export type UpdatePostMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Edit a post within the 30-minute edit window
+ */
+export const useUpdatePost = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updatePost>>,
+    TError,
+    { id: number; data: BodyType<UpdatePostBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updatePost>>,
+  TError,
+  { id: number; data: BodyType<UpdatePostBody> },
+  TContext
+> => {
+  return useMutation(getUpdatePostMutationOptions(options));
+};
+
+/**
+ * @summary List edit history for a post (newest first)
+ */
+export const getGetPostEditsUrl = (id: number) => {
+  return `/api/posts/${id}/edits`;
+};
+
+export const getPostEdits = async (
+  id: number,
+  options?: RequestInit,
+): Promise<PostEdit[]> => {
+  return customFetch<PostEdit[]>(getGetPostEditsUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetPostEditsQueryKey = (id: number) => {
+  return [`/api/posts/${id}/edits`] as const;
+};
+
+export const getGetPostEditsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getPostEdits>>,
+  TError = ErrorType<unknown>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getPostEdits>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetPostEditsQueryKey(id);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getPostEdits>>> = ({
+    signal,
+  }) => getPostEdits(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getPostEdits>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetPostEditsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getPostEdits>>
+>;
+export type GetPostEditsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List edit history for a post (newest first)
+ */
+
+export function useGetPostEdits<
+  TData = Awaited<ReturnType<typeof getPostEdits>>,
+  TError = ErrorType<unknown>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getPostEdits>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetPostEditsQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary List my saved post drafts
+ */
+export const getGetMyDraftsUrl = () => {
+  return `/api/me/drafts`;
+};
+
+export const getMyDrafts = async (
+  options?: RequestInit,
+): Promise<PostDraft[]> => {
+  return customFetch<PostDraft[]>(getGetMyDraftsUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetMyDraftsQueryKey = () => {
+  return [`/api/me/drafts`] as const;
+};
+
+export const getGetMyDraftsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getMyDrafts>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getMyDrafts>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetMyDraftsQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getMyDrafts>>> = ({
+    signal,
+  }) => getMyDrafts({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getMyDrafts>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetMyDraftsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getMyDrafts>>
+>;
+export type GetMyDraftsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List my saved post drafts
+ */
+
+export function useGetMyDrafts<
+  TData = Awaited<ReturnType<typeof getMyDrafts>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getMyDrafts>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetMyDraftsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Create a new draft
+ */
+export const getCreateDraftUrl = () => {
+  return `/api/me/drafts`;
+};
+
+export const createDraft = async (
+  postDraftBody: PostDraftBody,
+  options?: RequestInit,
+): Promise<PostDraft> => {
+  return customFetch<PostDraft>(getCreateDraftUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(postDraftBody),
+  });
+};
+
+export const getCreateDraftMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createDraft>>,
+    TError,
+    { data: BodyType<PostDraftBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createDraft>>,
+  TError,
+  { data: BodyType<PostDraftBody> },
+  TContext
+> => {
+  const mutationKey = ["createDraft"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createDraft>>,
+    { data: BodyType<PostDraftBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return createDraft(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateDraftMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createDraft>>
+>;
+export type CreateDraftMutationBody = BodyType<PostDraftBody>;
+export type CreateDraftMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Create a new draft
+ */
+export const useCreateDraft = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createDraft>>,
+    TError,
+    { data: BodyType<PostDraftBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createDraft>>,
+  TError,
+  { data: BodyType<PostDraftBody> },
+  TContext
+> => {
+  return useMutation(getCreateDraftMutationOptions(options));
+};
+
+/**
+ * @summary Update an existing draft
+ */
+export const getUpdateDraftUrl = (id: number) => {
+  return `/api/me/drafts/${id}`;
+};
+
+export const updateDraft = async (
+  id: number,
+  postDraftBody: PostDraftBody,
+  options?: RequestInit,
+): Promise<PostDraft> => {
+  return customFetch<PostDraft>(getUpdateDraftUrl(id), {
+    ...options,
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(postDraftBody),
+  });
+};
+
+export const getUpdateDraftMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateDraft>>,
+    TError,
+    { id: number; data: BodyType<PostDraftBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateDraft>>,
+  TError,
+  { id: number; data: BodyType<PostDraftBody> },
+  TContext
+> => {
+  const mutationKey = ["updateDraft"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateDraft>>,
+    { id: number; data: BodyType<PostDraftBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return updateDraft(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateDraftMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateDraft>>
+>;
+export type UpdateDraftMutationBody = BodyType<PostDraftBody>;
+export type UpdateDraftMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Update an existing draft
+ */
+export const useUpdateDraft = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateDraft>>,
+    TError,
+    { id: number; data: BodyType<PostDraftBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateDraft>>,
+  TError,
+  { id: number; data: BodyType<PostDraftBody> },
+  TContext
+> => {
+  return useMutation(getUpdateDraftMutationOptions(options));
+};
+
+/**
+ * @summary Delete a draft
+ */
+export const getDeleteDraftUrl = (id: number) => {
+  return `/api/me/drafts/${id}`;
+};
+
+export const deleteDraft = async (
+  id: number,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getDeleteDraftUrl(id), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getDeleteDraftMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteDraft>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteDraft>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["deleteDraft"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteDraft>>,
+    { id: number }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return deleteDraft(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteDraftMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteDraft>>
+>;
+
+export type DeleteDraftMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Delete a draft
+ */
+export const useDeleteDraft = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteDraft>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteDraft>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  return useMutation(getDeleteDraftMutationOptions(options));
+};
+
+/**
+ * @summary List my scheduled (unpublished) posts
+ */
+export const getGetMyScheduledPostsUrl = () => {
+  return `/api/me/scheduled-posts`;
+};
+
+export const getMyScheduledPosts = async (
+  options?: RequestInit,
+): Promise<Post[]> => {
+  return customFetch<Post[]>(getGetMyScheduledPostsUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetMyScheduledPostsQueryKey = () => {
+  return [`/api/me/scheduled-posts`] as const;
+};
+
+export const getGetMyScheduledPostsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getMyScheduledPosts>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getMyScheduledPosts>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetMyScheduledPostsQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getMyScheduledPosts>>
+  > = ({ signal }) => getMyScheduledPosts({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getMyScheduledPosts>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetMyScheduledPostsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getMyScheduledPosts>>
+>;
+export type GetMyScheduledPostsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List my scheduled (unpublished) posts
+ */
+
+export function useGetMyScheduledPosts<
+  TData = Awaited<ReturnType<typeof getMyScheduledPosts>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getMyScheduledPosts>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetMyScheduledPostsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
 
 /**
  * @summary List recent posts from hashtags I follow (most recent first)

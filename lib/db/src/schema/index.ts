@@ -422,12 +422,55 @@ export const postsTable = pgTable(
       .notNull()
       .references(() => usersTable.id, { onDelete: "cascade" }),
     content: text("content").notNull(),
+    status: text("status").notNull().default("published"),
+    scheduledFor: timestamp("scheduled_for", { withTimezone: true }),
+    editedAt: timestamp("edited_at", { withTimezone: true }),
+    quotedPostId: integer("quoted_post_id"),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
   },
-  (t) => [index("posts_author_idx").on(t.authorId, t.createdAt)],
+  (t) => [
+    index("posts_author_idx").on(t.authorId, t.createdAt),
+    index("posts_scheduled_idx").on(t.status, t.scheduledFor),
+  ],
+);
+
+export const postEditsTable = pgTable(
+  "post_edits",
+  {
+    id: serial("id").primaryKey(),
+    postId: integer("post_id")
+      .notNull()
+      .references(() => postsTable.id, { onDelete: "cascade" }),
+    previousContent: text("previous_content").notNull(),
+    editedAt: timestamp("edited_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [index("post_edits_post_idx").on(t.postId, t.editedAt)],
+);
+
+export const postDraftsTable = pgTable(
+  "post_drafts",
+  {
+    id: serial("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => usersTable.id, { onDelete: "cascade" }),
+    content: text("content").notNull().default(""),
+    hashtags: text("hashtags").notNull().default("[]"),
+    imageUrls: text("image_urls").notNull().default("[]"),
+    quotedPostId: integer("quoted_post_id"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [index("post_drafts_user_idx").on(t.userId, t.updatedAt)],
 );
 
 export const postHashtagsTable = pgTable(
@@ -974,6 +1017,8 @@ export type NotificationDelivery =
 
 export type Post = typeof postsTable.$inferSelect;
 export type PostMedia = typeof postMediaTable.$inferSelect;
+export type PostEdit = typeof postEditsTable.$inferSelect;
+export type PostDraft = typeof postDraftsTable.$inferSelect;
 export type Poll = typeof pollsTable.$inferSelect;
 export type PollOption = typeof pollOptionsTable.$inferSelect;
 export type PollVote = typeof pollVotesTable.$inferSelect;

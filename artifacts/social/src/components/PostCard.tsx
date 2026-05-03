@@ -1,10 +1,14 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "wouter";
 import {
   useDeletePost,
   useAddPostReaction,
   useRemovePostReaction,
+  useUpdatePost,
+  useGetPostEdits,
+  getGetPostEditsQueryKey,
   type Post,
+  type QuotedPost,
 } from "@workspace/api-client-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -13,9 +17,33 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { Trash2, BadgeCheck, Smile } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Trash2,
+  BadgeCheck,
+  Smile,
+  MoreHorizontal,
+  Pencil,
+  Quote,
+  Loader2,
+} from "lucide-react";
 import { BookmarkButton } from "./BookmarkButton";
 import { renderRichContent } from "@/lib/mentions";
+import { QuotedPostPreview } from "./QuotedPostPreview";
+import { PostComposer } from "./PostComposer";
 
 const QUICK_REACTIONS = ["👍", "❤️", "😂", "😮", "😢", "🔥", "🎉", "🙌"];
 
@@ -41,8 +69,25 @@ function timeAgo(iso: string): string {
 export function PostCard({ post, meId, onDeleted, onChanged }: PostCardProps) {
   const isMine = meId === post.author.id;
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [editText, setEditText] = useState(post.content);
+  const [quoteOpen, setQuoteOpen] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
+
+  useEffect(() => {
+    setEditText(post.content);
+  }, [post.content]);
+
   const del = useDeletePost({
     mutation: { onSuccess: () => onDeleted?.() },
+  });
+  const update = useUpdatePost({
+    mutation: {
+      onSuccess: () => {
+        setEditing(false);
+        onChanged?.();
+      },
+    },
   });
   const addReaction = useAddPostReaction({
     mutation: { onSuccess: () => onChanged?.() },
@@ -59,6 +104,20 @@ export function PostCard({ post, meId, onDeleted, onChanged }: PostCardProps) {
     }
     setPickerOpen(false);
   }
+
+  const editableUntilTs = post.editableUntil
+    ? new Date(post.editableUntil).getTime()
+    : 0;
+  const canEdit = isMine && editableUntilTs > Date.now();
+
+  const quotedPreview: QuotedPost = {
+    id: post.id,
+    author: post.author,
+    content: post.content,
+    imageUrls: post.imageUrls,
+    createdAt: post.createdAt,
+    unavailable: false,
+  };
 
   return (
     <article
@@ -100,30 +159,132 @@ export function PostCard({ post, meId, onDeleted, onChanged }: PostCardProps) {
           <span className="text-xs text-muted-foreground/70">
             {timeAgo(post.createdAt)}
           </span>
+          {post.editedAt && (
+            <Popover open={historyOpen} onOpenChange={setHistoryOpen}>
+              <PopoverTrigger asChild>
+                <button
+                  type="button"
+                  className="rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground hover:bg-muted/70"
+                  data-testid={`badge-edited-${post.id}`}
+                  aria-label="Show edit history"
+                >
+                  edited
+                </button>
+              </PopoverTrigger>
+              <PopoverContent
+                align="start"
+                side="bottom"
+                className="w-72 p-3"
+                data-testid={`history-${post.id}`}
+              >
+                <PostEditHistory postId={post.id} open={historyOpen} />
+              </PopoverContent>
+            </Popover>
+          )}
           <div className="ml-auto flex items-center gap-0.5">
             <BookmarkButton kind="post" targetId={post.id} />
-            {isMine && (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                onClick={() => {
-                  if (confirm("Delete this post?")) del.mutate({ id: post.id });
-                }}
-                disabled={del.isPending}
-                data-testid={`button-delete-post-${post.id}`}
-                aria-label="Delete post"
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-              </Button>
-            )}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 text-muted-foreground"
+                  data-testid={`button-post-menu-${post.id}`}
+                  aria-label="Post actions"
+                >
+                  <MoreHorizontal className="h-3.5 w-3.5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem
+                  onSelect={() => setQuoteOpen(true)}
+                  data-testid={`button-quote-post-${post.id}`}
+                >
+                  <Quote className="mr-2 h-4 w-4" />
+                  Quote
+                </DropdownMenuItem>
+                {canEdit && (
+                  <DropdownMenuItem
+                    onSelect={() => setEditing(true)}
+                    data-testid={`button-edit-post-${post.id}`}
+                  >
+                    <Pencil className="mr-2 h-4 w-4" />
+                    Edit
+                  </DropdownMenuItem>
+                )}
+                {isMine && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      className="text-destructive focus:text-destructive"
+                      onSelect={() => {
+                        if (confirm("Delete this post?"))
+                          del.mutate({ id: post.id });
+                      }}
+                      data-testid={`button-delete-post-${post.id}`}
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Delete
+                    </DropdownMenuItem>
+                  </>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
-        {post.content && (
-          <p className="mt-1 whitespace-pre-wrap break-words text-sm text-foreground">
-            {renderRichContent(post.content, post.mentions)}
-          </p>
+        {editing ? (
+          <div className="mt-2 flex flex-col gap-2">
+            <textarea
+              value={editText}
+              onChange={(e) => setEditText(e.target.value)}
+              rows={3}
+              maxLength={500}
+              className="w-full resize-none rounded-md border border-border bg-background p-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+              data-testid={`input-edit-post-${post.id}`}
+            />
+            <div className="flex items-center justify-end gap-2">
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                onClick={() => {
+                  setEditing(false);
+                  setEditText(post.content);
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                disabled={
+                  update.isPending ||
+                  !editText.trim() ||
+                  editText === post.content
+                }
+                onClick={() =>
+                  update.mutate({
+                    id: post.id,
+                    data: { content: editText.trim() },
+                  })
+                }
+                data-testid={`button-save-edit-${post.id}`}
+              >
+                {update.isPending ? (
+                  <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
+                ) : null}
+                Save
+              </Button>
+            </div>
+          </div>
+        ) : (
+          post.content && (
+            <p className="mt-1 whitespace-pre-wrap break-words text-sm text-foreground">
+              {renderRichContent(post.content, post.mentions)}
+            </p>
+          )
         )}
+        {post.quotedPost && <QuotedPostPreview quoted={post.quotedPost} />}
         {post.imageUrls.length > 0 && (
           <div
             className={[
@@ -200,6 +361,63 @@ export function PostCard({ post, meId, onDeleted, onChanged }: PostCardProps) {
           </Popover>
         </div>
       </div>
+
+      <Dialog open={quoteOpen} onOpenChange={setQuoteOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Quote post</DialogTitle>
+          </DialogHeader>
+          <PostComposer
+            placeholder="Add a comment…"
+            initialQuote={quotedPreview}
+            onPosted={() => {
+              setQuoteOpen(false);
+              onChanged?.();
+            }}
+            onCancelQuote={() => setQuoteOpen(false)}
+            hideHistorySheets
+          />
+          <DialogFooter />
+        </DialogContent>
+      </Dialog>
     </article>
+  );
+}
+
+function PostEditHistory({ postId, open }: { postId: number; open: boolean }) {
+  const q = useGetPostEdits(postId, {
+    query: {
+      queryKey: getGetPostEditsQueryKey(postId),
+      enabled: open,
+    },
+  });
+  const edits = q.data ?? [];
+  return (
+    <div className="space-y-2">
+      <p className="text-xs font-semibold text-foreground">Edit history</p>
+      {q.isLoading ? (
+        <div className="flex justify-center py-2">
+          <Loader2 className="h-4 w-4 animate-spin text-muted-foreground/70" />
+        </div>
+      ) : edits.length === 0 ? (
+        <p className="text-xs text-muted-foreground">No previous versions.</p>
+      ) : (
+        <ul className="space-y-2">
+          {edits.map((e, i) => (
+            <li
+              key={i}
+              className="rounded-md border border-border bg-muted/30 p-2"
+            >
+              <div className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                {new Date(e.editedAt).toLocaleString()}
+              </div>
+              <p className="mt-1 whitespace-pre-wrap break-words text-xs text-foreground/90">
+                {e.previousContent}
+              </p>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
   );
 }
