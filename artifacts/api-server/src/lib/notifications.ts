@@ -2,9 +2,10 @@ import {
   db,
   notificationsTable,
   notificationMutesTable,
+  conversationMembersTable,
   usersTable,
 } from "@workspace/db";
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNotNull } from "drizzle-orm";
 
 export type NotificationKind =
   | "mention"
@@ -69,6 +70,22 @@ async function isNotificationMuted(input: CreateNotificationInput): Promise<bool
           ),
         )
         .limit(1),
+    );
+  }
+  if (input.targetType === "conversation" && input.targetId != null) {
+    checks.push(
+      db
+        .select({ sourceType: conversationMembersTable.userId })
+        .from(conversationMembersTable)
+        .where(
+          and(
+            eq(conversationMembersTable.conversationId, input.targetId),
+            eq(conversationMembersTable.userId, input.recipientId),
+            isNotNull(conversationMembersTable.mutedAt),
+          ),
+        )
+        .limit(1)
+        .then((rows) => rows.map(() => ({ sourceType: "conversation" }))),
     );
   }
   const roomTag = roomTagFromTarget(input.targetTextId);

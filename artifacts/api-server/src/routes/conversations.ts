@@ -153,6 +153,17 @@ async function buildConversationView(conversationId: number, me: string) {
     .limit(1);
   if (!convo) return null;
   const members = await loadMembers(conversationId);
+  const [myMembership] = await db
+    .select({ mutedAt: conversationMembersTable.mutedAt })
+    .from(conversationMembersTable)
+    .where(
+      and(
+        eq(conversationMembersTable.conversationId, conversationId),
+        eq(conversationMembersTable.userId, me),
+      ),
+    )
+    .limit(1);
+  const isMuted = !!myMembership?.mutedAt;
 
   const lastMessages = await db
     .select()
@@ -217,6 +228,7 @@ async function buildConversationView(conversationId: number, me: string) {
     members,
     lastMessage: built[0] ?? null,
     unreadCount: unread?.count ?? 0,
+    isMuted,
     backgroundUrl: bgRow?.backgroundUrl ?? convo.backgroundUrl ?? null,
     updatedAt: convo.updatedAt.toISOString(),
   };
@@ -739,6 +751,64 @@ router.post(
         .where(eq(conversationsTable.id, id));
     }
     res.status(204).end();
+  },
+);
+
+router.post(
+  "/conversations/:id/mute",
+  requireAuth,
+  async (req, res): Promise<void> => {
+    const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    const id = parseInt(raw, 10);
+    if (Number.isNaN(id)) {
+      res.status(400).json({ error: "Invalid id" });
+      return;
+    }
+    const me = getUserId(req);
+    if (!(await isMember(id, me))) {
+      res.status(404).json({ error: "Not found" });
+      return;
+    }
+    await db
+      .update(conversationMembersTable)
+      .set({ mutedAt: new Date() })
+      .where(
+        and(
+          eq(conversationMembersTable.conversationId, id),
+          eq(conversationMembersTable.userId, me),
+        ),
+      );
+    const view = await buildConversationView(id, me);
+    res.json(view);
+  },
+);
+
+router.delete(
+  "/conversations/:id/mute",
+  requireAuth,
+  async (req, res): Promise<void> => {
+    const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    const id = parseInt(raw, 10);
+    if (Number.isNaN(id)) {
+      res.status(400).json({ error: "Invalid id" });
+      return;
+    }
+    const me = getUserId(req);
+    if (!(await isMember(id, me))) {
+      res.status(404).json({ error: "Not found" });
+      return;
+    }
+    await db
+      .update(conversationMembersTable)
+      .set({ mutedAt: null })
+      .where(
+        and(
+          eq(conversationMembersTable.conversationId, id),
+          eq(conversationMembersTable.userId, me),
+        ),
+      );
+    const view = await buildConversationView(id, me);
+    res.json(view);
   },
 );
 

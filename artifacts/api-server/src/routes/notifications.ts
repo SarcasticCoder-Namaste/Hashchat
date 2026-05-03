@@ -104,16 +104,27 @@ router.get(
       .where(eq(conversationMembersTable.userId, me));
     let dms = 0;
     if (memberships.length > 0) {
-      const convoIds = memberships.map((m) => m.conversationId);
-      const reads = await db
-        .select()
-        .from(conversationReadsTable)
-        .where(
-          and(
-            eq(conversationReadsTable.userId, me),
-            inArray(conversationReadsTable.conversationId, convoIds),
-          ),
-        );
+      const myMemberRows = await db
+        .select({
+          conversationId: conversationMembersTable.conversationId,
+          mutedAt: conversationMembersTable.mutedAt,
+        })
+        .from(conversationMembersTable)
+        .where(eq(conversationMembersTable.userId, me));
+      const convoIds = myMemberRows
+        .filter((r) => r.mutedAt === null)
+        .map((r) => r.conversationId);
+      const reads = convoIds.length
+        ? await db
+            .select()
+            .from(conversationReadsTable)
+            .where(
+              and(
+                eq(conversationReadsTable.userId, me),
+                inArray(conversationReadsTable.conversationId, convoIds),
+              ),
+            )
+        : [];
       const readMap = new Map(reads.map((r) => [r.conversationId, r.lastReadAt]));
       for (const cid of convoIds) {
         const lastReadAt = readMap.get(cid) ?? new Date(0);

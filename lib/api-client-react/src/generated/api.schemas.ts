@@ -489,6 +489,7 @@ export interface Conversation {
   members: ConversationMember[];
   lastMessage?: Message | null;
   unreadCount: number;
+  isMuted: boolean;
   /** @nullable */
   backgroundUrl?: string | null;
   updatedAt: string;

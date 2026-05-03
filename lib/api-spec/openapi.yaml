@@ -542,6 +542,32 @@ paths:
       responses:
         "204": { description: No content }
 
+  /conversations/{id}/mute:
+    post:
+      operationId: muteConversation
+      tags: [conversations]
+      summary: Mute a conversation for the current user
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Conversation" }
+    delete:
+      operationId: unmuteConversation
+      tags: [conversations]
+      summary: Unmute a conversation for the current user
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Conversation" }
+
   /conversations/{id}/messages:
     get:
       operationId: getConversationMessages
@@ -3206,10 +3232,11 @@ components:
             - $ref: "#/components/schemas/Message"
             - type: "null"
         unreadCount: { type: integer }
+        isMuted: { type: boolean }
         backgroundUrl:
           type: ["string", "null"]
         updatedAt: { type: string, format: date-time }
-      required: [id, kind, members, unreadCount, updatedAt]
+      required: [id, kind, members, unreadCount, isMuted, updatedAt]
 
     ConversationMember:
       type: object

@@ -3016,6 +3016,174 @@ export const useLeaveConversation = <
 };
 
 /**
+ * @summary Mute a conversation for the current user
+ */
+export const getMuteConversationUrl = (id: number) => {
+  return `/api/conversations/${id}/mute`;
+};
+
+export const muteConversation = async (
+  id: number,
+  options?: RequestInit,
+): Promise<Conversation> => {
+  return customFetch<Conversation>(getMuteConversationUrl(id), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getMuteConversationMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof muteConversation>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof muteConversation>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["muteConversation"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof muteConversation>>,
+    { id: number }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return muteConversation(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type MuteConversationMutationResult = NonNullable<
+  Awaited<ReturnType<typeof muteConversation>>
+>;
+
+export type MuteConversationMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Mute a conversation for the current user
+ */
+export const useMuteConversation = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof muteConversation>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof muteConversation>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  return useMutation(getMuteConversationMutationOptions(options));
+};
+
+/**
+ * @summary Unmute a conversation for the current user
+ */
+export const getUnmuteConversationUrl = (id: number) => {
+  return `/api/conversations/${id}/mute`;
+};
+
+export const unmuteConversation = async (
+  id: number,
+  options?: RequestInit,
+): Promise<Conversation> => {
+  return customFetch<Conversation>(getUnmuteConversationUrl(id), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getUnmuteConversationMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof unmuteConversation>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof unmuteConversation>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["unmuteConversation"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof unmuteConversation>>,
+    { id: number }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return unmuteConversation(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UnmuteConversationMutationResult = NonNullable<
+  Awaited<ReturnType<typeof unmuteConversation>>
+>;
+
+export type UnmuteConversationMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Unmute a conversation for the current user
+ */
+export const useUnmuteConversation = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof unmuteConversation>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof unmuteConversation>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  return useMutation(getUnmuteConversationMutationOptions(options));
+};
+
+/**
  * @summary List messages in a conversation
  */
 export const getGetConversationMessagesUrl = (id: number) => {

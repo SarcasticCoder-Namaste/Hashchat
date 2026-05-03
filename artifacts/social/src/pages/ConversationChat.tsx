@@ -18,6 +18,8 @@ import {
   useAddConversationMembers,
   useRemoveConversationMember,
   useLeaveConversation,
+  useMuteConversation,
+  useUnmuteConversation,
   getGetConversationMessagesQueryKey,
   getGetConversationsQueryKey,
   getGetMyRelationshipsQueryKey,
@@ -78,6 +80,8 @@ import {
   UserPlus,
   Pencil,
   LogOut,
+  Bell,
+  BellOff,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -174,6 +178,34 @@ function GroupMembersPanel({
         }),
     },
   });
+  const mute = useMuteConversation({
+    mutation: {
+      onSuccess: () => {
+        refreshAll();
+        toast({ title: "Group muted" });
+      },
+      onError: (e: unknown) =>
+        toast({
+          title: "Couldn't mute",
+          description: e instanceof Error ? e.message : "",
+          variant: "destructive",
+        }),
+    },
+  });
+  const unmute = useUnmuteConversation({
+    mutation: {
+      onSuccess: () => {
+        refreshAll();
+        toast({ title: "Group unmuted" });
+      },
+      onError: (e: unknown) =>
+        toast({
+          title: "Couldn't unmute",
+          description: e instanceof Error ? e.message : "",
+          variant: "destructive",
+        }),
+    },
+  });
   const leave = useLeaveConversation({
     mutation: {
       onSuccess: () => {
@@ -234,6 +266,29 @@ function GroupMembersPanel({
                 Rename group
               </Button>
             )}
+            <Button
+              variant="outline"
+              className="w-full justify-start"
+              onClick={() =>
+                conv.isMuted
+                  ? unmute.mutate({ id: conv.id })
+                  : mute.mutate({ id: conv.id })
+              }
+              disabled={mute.isPending || unmute.isPending}
+              data-testid="button-toggle-mute"
+            >
+              {conv.isMuted ? (
+                <>
+                  <Bell className="mr-2 h-4 w-4" />
+                  Unmute group
+                </>
+              ) : (
+                <>
+                  <BellOff className="mr-2 h-4 w-4" />
+                  Mute group
+                </>
+              )}
+            </Button>
             <Button
               variant="outline"
               className="w-full justify-start text-destructive hover:text-destructive"
