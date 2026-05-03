@@ -28,7 +28,17 @@ export type ThemeId =
   | "sapphire"
   | "crimson"
   | "mint"
-  | "gold";
+  | "gold"
+  | "neon"
+  | "peach"
+  | "galaxy"
+  | "lemon"
+  | "ruby"
+  | "arctic"
+  | "moss"
+  | "bubblegum"
+  | "carbon"
+  | "tangerine";
 
 export interface ThemeMeta {
   id: ThemeId;
@@ -178,6 +188,76 @@ export const THEMES: ThemeMeta[] = [
     description: "Black tie with rich gold",
     isDark: true,
     swatch: { bg: "#0d0a05", primary: "#eab308", accent: "#3a2a06" },
+  },
+  {
+    id: "neon",
+    label: "Neon",
+    description: "Electric lime on jet black",
+    isDark: true,
+    swatch: { bg: "#050a05", primary: "#84ff00", accent: "#0d2a0d" },
+  },
+  {
+    id: "peach",
+    label: "Peach",
+    description: "Soft peach pastel and coral",
+    isDark: false,
+    swatch: { bg: "#fff4ec", primary: "#fb7185", accent: "#ffe1d2" },
+  },
+  {
+    id: "galaxy",
+    label: "Galaxy",
+    description: "Cosmic purple with starlight",
+    isDark: true,
+    swatch: { bg: "#0a0420", primary: "#a855f7", accent: "#1f0f4a" },
+  },
+  {
+    id: "lemon",
+    label: "Lemon",
+    description: "Bright zesty yellow and white",
+    isDark: false,
+    swatch: { bg: "#fefce8", primary: "#ca8a04", accent: "#fef08a" },
+  },
+  {
+    id: "ruby",
+    label: "Ruby",
+    description: "Rich wine red on charcoal",
+    isDark: true,
+    swatch: { bg: "#1a0810", primary: "#e11d48", accent: "#3a0e1f" },
+  },
+  {
+    id: "arctic",
+    label: "Arctic",
+    description: "Icy blue with crisp white",
+    isDark: false,
+    swatch: { bg: "#f0f9ff", primary: "#0ea5e9", accent: "#e0f2fe" },
+  },
+  {
+    id: "moss",
+    label: "Moss",
+    description: "Earthy moss with deep olive",
+    isDark: true,
+    swatch: { bg: "#0f140a", primary: "#84cc16", accent: "#243011" },
+  },
+  {
+    id: "bubblegum",
+    label: "Bubblegum",
+    description: "Playful pink and lilac",
+    isDark: false,
+    swatch: { bg: "#fff0f7", primary: "#ec4899", accent: "#fbcfe8" },
+  },
+  {
+    id: "carbon",
+    label: "Carbon",
+    description: "Monochrome charcoal and silver",
+    isDark: true,
+    swatch: { bg: "#0a0a0a", primary: "#a3a3a3", accent: "#1f1f1f" },
+  },
+  {
+    id: "tangerine",
+    label: "Tangerine",
+    description: "Vibrant orange with cream",
+    isDark: false,
+    swatch: { bg: "#fff7ed", primary: "#f97316", accent: "#ffedd5" },
   },
 ];
 
