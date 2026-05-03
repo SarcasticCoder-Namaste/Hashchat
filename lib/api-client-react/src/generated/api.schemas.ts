@@ -906,6 +906,16 @@ export interface PushUnsubscribeBody {
   endpoint: string;
 }
 
+export interface ExpoPushSubscribeBody {
+  token: string;
+  /** @nullable */
+  deviceName?: string | null;
+}
+
+export interface ExpoPushUnsubscribeBody {
+  token: string;
+}
+
 export interface SolanaWallet {
   id: number;
   publicKey: string;

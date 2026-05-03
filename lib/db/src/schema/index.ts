@@ -1077,9 +1077,10 @@ export const pushSubscriptionsTable = pgTable(
     userId: text("user_id")
       .notNull()
       .references(() => usersTable.id, { onDelete: "cascade" }),
+    kind: text("kind").notNull().default("web"),
     endpoint: text("endpoint").notNull(),
-    p256dh: text("p256dh").notNull(),
-    auth: text("auth").notNull(),
+    p256dh: text("p256dh"),
+    auth: text("auth"),
     userAgent: text("user_agent"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
@@ -1088,6 +1089,7 @@ export const pushSubscriptionsTable = pgTable(
   (t) => [
     uniqueIndex("push_subscriptions_endpoint_unique").on(t.endpoint),
     index("push_subscriptions_user_idx").on(t.userId),
+    index("push_subscriptions_kind_idx").on(t.kind),
   ],
 );
 

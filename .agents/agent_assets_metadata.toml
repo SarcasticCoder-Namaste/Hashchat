@@ -6,3 +6,9 @@ id = "j5XcmfYkThOaG7dYN2Y7k"
 uri = "file://artifacts/social/public/logo.png"
 type = "image"
 title = "generated_image"
+
+[[generated]]
+id = "-S15Rncu4bQ1x8LzJ7HIz"
+uri = "file://artifacts/mobile/assets/images/icon.png"
+type = "image"
+title = "hashchat-icon"

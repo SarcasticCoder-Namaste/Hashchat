@@ -2403,6 +2403,36 @@ paths:
       responses:
         "204": { description: No content }
 
+  /push/expo-subscribe:
+    post:
+      operationId: subscribeExpoPush
+      tags: [push]
+      summary: Register an Expo push token for the current user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ExpoPushSubscribeBody" }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/OkResponse" }
+
+  /push/expo-unsubscribe:
+    post:
+      operationId: unsubscribeExpoPush
+      tags: [push]
+      summary: Remove an Expo push token registration
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ExpoPushUnsubscribeBody" }
+      responses:
+        "204": { description: No content }
+
   /me/wallets/challenge:
     post:
       operationId: createWalletChallenge
@@ -3362,6 +3392,20 @@ components:
       properties:
         endpoint: { type: string }
       required: [endpoint]
+
+    ExpoPushSubscribeBody:
+      type: object
+      properties:
+        token: { type: string }
+        deviceName:
+          type: ["string", "null"]
+      required: [token]
+
+    ExpoPushUnsubscribeBody:
+      type: object
+      properties:
+        token: { type: string }
+      required: [token]
 
     SolanaWallet:
       type: object

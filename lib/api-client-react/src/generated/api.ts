@@ -42,6 +42,8 @@ import type {
   DiscoverPeopleParams,
   Event,
   ExploreResponse,
+  ExpoPushSubscribeBody,
+  ExpoPushUnsubscribeBody,
   FollowingFeedItem,
   ForYouItem,
   FriendCodeResponse,
@@ -13881,6 +13883,178 @@ export const useUnsubscribePush = <
   TContext
 > => {
   return useMutation(getUnsubscribePushMutationOptions(options));
+};
+
+/**
+ * @summary Register an Expo push token for the current user
+ */
+export const getSubscribeExpoPushUrl = () => {
+  return `/api/push/expo-subscribe`;
+};
+
+export const subscribeExpoPush = async (
+  expoPushSubscribeBody: ExpoPushSubscribeBody,
+  options?: RequestInit,
+): Promise<OkResponse> => {
+  return customFetch<OkResponse>(getSubscribeExpoPushUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(expoPushSubscribeBody),
+  });
+};
+
+export const getSubscribeExpoPushMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof subscribeExpoPush>>,
+    TError,
+    { data: BodyType<ExpoPushSubscribeBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof subscribeExpoPush>>,
+  TError,
+  { data: BodyType<ExpoPushSubscribeBody> },
+  TContext
+> => {
+  const mutationKey = ["subscribeExpoPush"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof subscribeExpoPush>>,
+    { data: BodyType<ExpoPushSubscribeBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return subscribeExpoPush(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SubscribeExpoPushMutationResult = NonNullable<
+  Awaited<ReturnType<typeof subscribeExpoPush>>
+>;
+export type SubscribeExpoPushMutationBody = BodyType<ExpoPushSubscribeBody>;
+export type SubscribeExpoPushMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Register an Expo push token for the current user
+ */
+export const useSubscribeExpoPush = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof subscribeExpoPush>>,
+    TError,
+    { data: BodyType<ExpoPushSubscribeBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof subscribeExpoPush>>,
+  TError,
+  { data: BodyType<ExpoPushSubscribeBody> },
+  TContext
+> => {
+  return useMutation(getSubscribeExpoPushMutationOptions(options));
+};
+
+/**
+ * @summary Remove an Expo push token registration
+ */
+export const getUnsubscribeExpoPushUrl = () => {
+  return `/api/push/expo-unsubscribe`;
+};
+
+export const unsubscribeExpoPush = async (
+  expoPushUnsubscribeBody: ExpoPushUnsubscribeBody,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getUnsubscribeExpoPushUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(expoPushUnsubscribeBody),
+  });
+};
+
+export const getUnsubscribeExpoPushMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof unsubscribeExpoPush>>,
+    TError,
+    { data: BodyType<ExpoPushUnsubscribeBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof unsubscribeExpoPush>>,
+  TError,
+  { data: BodyType<ExpoPushUnsubscribeBody> },
+  TContext
+> => {
+  const mutationKey = ["unsubscribeExpoPush"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof unsubscribeExpoPush>>,
+    { data: BodyType<ExpoPushUnsubscribeBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return unsubscribeExpoPush(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UnsubscribeExpoPushMutationResult = NonNullable<
+  Awaited<ReturnType<typeof unsubscribeExpoPush>>
+>;
+export type UnsubscribeExpoPushMutationBody = BodyType<ExpoPushUnsubscribeBody>;
+export type UnsubscribeExpoPushMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Remove an Expo push token registration
+ */
+export const useUnsubscribeExpoPush = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof unsubscribeExpoPush>>,
+    TError,
+    { data: BodyType<ExpoPushUnsubscribeBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof unsubscribeExpoPush>>,
+  TError,
+  { data: BodyType<ExpoPushUnsubscribeBody> },
+  TContext
+> => {
+  return useMutation(getUnsubscribeExpoPushMutationOptions(options));
 };
 
 /**

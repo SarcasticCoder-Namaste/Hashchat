@@ -197,16 +197,18 @@ async function sendBrowserPush(
   payload: Record<string, unknown>,
 ): Promise<{ sent: number; failed: number; skipped: boolean }> {
   const wp = await getWebPush();
-  if (!wp) {
-    return { sent: 0, failed: 0, skipped: true };
-  }
   const subs = await db
     .select()
     .from(pushSubscriptionsTable)
     .where(eq(pushSubscriptionsTable.userId, userId));
+  const webSubs = subs.filter((s) => s.kind !== "expo");
+  if (!wp) {
+    return { sent: 0, failed: 0, skipped: webSubs.length === 0 ? false : true };
+  }
   let sent = 0;
   let failed = 0;
-  for (const s of subs) {
+  for (const s of webSubs) {
+    if (!s.p256dh || !s.auth) continue;
     try {
       await wp.sendNotification(
         {
@@ -232,6 +234,83 @@ async function sendBrowserPush(
     }
   }
   return { sent, failed, skipped: false };
+}
+
+interface ExpoPushTicket {
+  status: "ok" | "error";
+  id?: string;
+  message?: string;
+  details?: { error?: string };
+}
+
+async function sendExpoPush(
+  userId: string,
+  title: string,
+  body: string,
+  data: Record<string, unknown>,
+): Promise<{ sent: number; failed: number }> {
+  const subs = await db
+    .select()
+    .from(pushSubscriptionsTable)
+    .where(
+      and(
+        eq(pushSubscriptionsTable.userId, userId),
+        eq(pushSubscriptionsTable.kind, "expo"),
+      ),
+    );
+  if (subs.length === 0) return { sent: 0, failed: 0 };
+
+  const messages = subs.map((s) => ({
+    to: s.endpoint,
+    sound: "default" as const,
+    title,
+    body,
+    data,
+  }));
+
+  try {
+    const r = await fetch("https://exp.host/--/api/v2/push/send", {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Accept-Encoding": "gzip, deflate",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(messages),
+    });
+    if (!r.ok) {
+      return { sent: 0, failed: subs.length };
+    }
+    const json = (await r.json()) as { data?: ExpoPushTicket[] };
+    const tickets = json.data ?? [];
+    let sent = 0;
+    let failed = 0;
+    for (let i = 0; i < tickets.length; i += 1) {
+      const t = tickets[i];
+      const sub = subs[i];
+      if (t?.status === "ok") {
+        sent += 1;
+      } else {
+        failed += 1;
+        const err = t?.details?.error;
+        if (
+          sub &&
+          (err === "DeviceNotRegistered" || err === "InvalidCredentials")
+        ) {
+          try {
+            await db
+              .delete(pushSubscriptionsTable)
+              .where(eq(pushSubscriptionsTable.id, sub.id));
+          } catch {
+            // ignore
+          }
+        }
+      }
+    }
+    return { sent, failed };
+  } catch {
+    return { sent: 0, failed: subs.length };
+  }
 }
 
 export async function dispatchNotification(input: DispatchInput): Promise<void> {
@@ -317,13 +396,25 @@ export async function dispatchNotification(input: DispatchInput): Promise<void> 
 
     // PUSH
     if (wantPush) {
-      const result = await sendBrowserPush(input.recipientId, {
+      const payload = {
         title: subject,
         body,
         url,
         kind: input.kind,
         notificationId: input.notificationId,
-      });
+        targetType: input.targetType,
+        targetId: input.targetId,
+        targetTextId: input.targetTextId,
+      };
+      const [webResult, expoResult] = await Promise.all([
+        sendBrowserPush(input.recipientId, payload),
+        sendExpoPush(input.recipientId, subject, body, payload),
+      ]);
+      const result = {
+        sent: webResult.sent + expoResult.sent,
+        failed: webResult.failed + expoResult.failed,
+        skipped: webResult.skipped && expoResult.sent === 0 && expoResult.failed === 0,
+      };
       if (result.skipped) {
         await recordDelivery(
           input.notificationId,

@@ -6240,6 +6240,25 @@ export const UnsubscribePushBody = zod.object({
 });
 
 /**
+ * @summary Register an Expo push token for the current user
+ */
+export const SubscribeExpoPushBody = zod.object({
+  token: zod.string(),
+  deviceName: zod.string().nullish(),
+});
+
+export const SubscribeExpoPushResponse = zod.object({
+  ok: zod.boolean(),
+});
+
+/**
+ * @summary Remove an Expo push token registration
+ */
+export const UnsubscribeExpoPushBody = zod.object({
+  token: zod.string(),
+});
+
+/**
  * @summary Start the wallet linking flow by requesting a sign-in nonce
  */
 export const CreateWalletChallengeBody = zod.object({

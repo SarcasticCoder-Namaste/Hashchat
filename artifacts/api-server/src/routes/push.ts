@@ -82,4 +82,69 @@ router.post(
   },
 );
 
+router.post(
+  "/push/expo-subscribe",
+  requireAuth,
+  async (req, res): Promise<void> => {
+    const me = getUserId(req);
+    const { token, deviceName } = (req.body ?? {}) as {
+      token?: string;
+      deviceName?: string | null;
+    };
+    if (typeof token !== "string" || !token) {
+      res.status(400).json({ error: "token required" });
+      return;
+    }
+
+    const [existing] = await db
+      .select()
+      .from(pushSubscriptionsTable)
+      .where(eq(pushSubscriptionsTable.endpoint, token))
+      .limit(1);
+
+    if (existing) {
+      await db
+        .update(pushSubscriptionsTable)
+        .set({
+          userId: me,
+          kind: "expo",
+          userAgent: deviceName ?? existing.userAgent,
+        })
+        .where(eq(pushSubscriptionsTable.id, existing.id));
+    } else {
+      await db.insert(pushSubscriptionsTable).values({
+        userId: me,
+        kind: "expo",
+        endpoint: token,
+        p256dh: null,
+        auth: null,
+        userAgent: deviceName ?? null,
+      });
+    }
+    res.json({ ok: true });
+  },
+);
+
+router.post(
+  "/push/expo-unsubscribe",
+  requireAuth,
+  async (req, res): Promise<void> => {
+    const me = getUserId(req);
+    const { token } = (req.body ?? {}) as { token?: string };
+    if (typeof token !== "string" || !token) {
+      res.status(400).json({ error: "token required" });
+      return;
+    }
+    await db
+      .delete(pushSubscriptionsTable)
+      .where(
+        and(
+          eq(pushSubscriptionsTable.endpoint, token),
+          eq(pushSubscriptionsTable.userId, me),
+        ),
+      );
+    res.status(204).end();
+  },
+);
+
 export default router;

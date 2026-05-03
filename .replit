@@ -28,6 +28,7 @@ ADMIN_EMAILS = "sarcastic.saksham@gmail.com"
 VAPID_PUBLIC_KEY = "BP9Nt1NqmPIlKhd-ch_w4g2wnlk0KfW9ZbQ-6JhZvuiO0nTfN5GFrBHXBRZdcnSZK6vxPVig6DC9QWA_6kkglxE"
 VAPID_PRIVATE_KEY = "iSh0kQvZPfATMcQIkrvhmkMgZE3RADsFSTb6xWb4WP0"
 VAPID_SUBJECT = "mailto:no-reply@hashchat.app"
+EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY = "pk_test_c3Ryb25nLWRlZXItMi5jbGVyay5hY2NvdW50cy5kZXYk"
 
 [[ports]]
 localPort = 8080
