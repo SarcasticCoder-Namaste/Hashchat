@@ -33,6 +33,8 @@ const PREF_KEY_BY_KIND: Record<
   event_starting: { email: "emailMentions", push: "pushMentions" },
   // Scheduled post publication notifications piggyback on mention prefs.
   scheduled_post_published: { email: "emailMentions", push: "pushMentions" },
+  // Poll closing reminders piggyback on mention prefs.
+  poll_closing: { email: "emailMentions", push: "pushMentions" },
 };
 
 const EMAIL_FIELDS = {
@@ -67,6 +69,8 @@ function titleFor(kind: NotificationKind, actor: string | null): string {
       return `Event starting soon on HashChat`;
     case "scheduled_post_published":
       return `Your scheduled post is now live on HashChat`;
+    case "poll_closing":
+      return `A poll you can vote in is closing soon on HashChat`;
   }
 }
 

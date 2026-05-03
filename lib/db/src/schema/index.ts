@@ -531,11 +531,15 @@ export const pollsTable = pgTable(
     mode: text("mode").notNull().default("single"),
     maxSelections: integer("max_selections").notNull().default(1),
     expiresAt: timestamp("expires_at", { withTimezone: true }),
+    reminderSentAt: timestamp("reminder_sent_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
   },
-  (t) => [index("polls_room_idx").on(t.roomTag, t.createdAt)],
+  (t) => [
+    index("polls_room_idx").on(t.roomTag, t.createdAt),
+    index("polls_reminder_idx").on(t.expiresAt, t.reminderSentAt),
+  ],
 );
 
 export const pollOptionsTable = pgTable(

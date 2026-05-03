@@ -2,6 +2,7 @@ import app from "./app";
 import { logger } from "./lib/logger";
 import { startHashtagMetricsScheduler } from "./lib/hashtagMetricsJob";
 import { startEventReminderScheduler } from "./lib/eventReminders";
+import { startPollReminderScheduler } from "./lib/pollReminders";
 import { startScheduledPostsScheduler } from "./lib/scheduledPostsJob";
 import { initStripe } from "./lib/stripeInit";
 
@@ -28,6 +29,7 @@ app.listen(port, (err) => {
   logger.info({ port }, "Server listening");
   startHashtagMetricsScheduler();
   startEventReminderScheduler();
+  startPollReminderScheduler();
   startScheduledPostsScheduler();
   void initStripe();
 });

@@ -13,14 +13,16 @@ export type NotificationKind =
   | "follow"
   | "dm"
   | "event_starting"
-  | "scheduled_post_published";
+  | "scheduled_post_published"
+  | "poll_closing";
 
 export type NotificationTargetType =
   | "message"
   | "post"
   | "conversation"
   | "user"
-  | "event";
+  | "event"
+  | "poll";
 
 export interface CreateNotificationInput {
   recipientId: string;
@@ -183,6 +185,10 @@ export function buildHref(
   }
   if (targetType === "event" && targetTextId) {
     // targetTextId is the room tag for event notifications.
+    return `/app/rooms/${targetTextId}`;
+  }
+  if (targetType === "poll" && targetTextId) {
+    // targetTextId is the room tag for poll notifications.
     return `/app/rooms/${targetTextId}`;
   }
   return null;
