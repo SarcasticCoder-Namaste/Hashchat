@@ -20,6 +20,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ChatInput } from "@/components/ChatInput";
 import { EmptyState } from "@/components/EmptyState";
 import { MessageBubble } from "@/components/MessageBubble";
+import { OfflineBanner } from "@/components/OfflineBanner";
 import { SparkComposer, SparksRow } from "@/components/SparksPanel";
 import { useColors } from "@/hooks/useColors";
 import {
@@ -96,6 +97,7 @@ export default function RoomScreen() {
         behavior="padding"
         keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
       >
+        <OfflineBanner message="Offline · showing recent messages" />
         <View style={styles.sparkBanner}>
           <View style={{ paddingHorizontal: 12 }}>
             <SparkComposer defaultTag={tag} />

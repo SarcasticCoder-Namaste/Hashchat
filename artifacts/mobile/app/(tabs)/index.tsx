@@ -15,6 +15,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Avatar } from "@/components/Avatar";
 import { EmptyState } from "@/components/EmptyState";
+import { OfflineBanner } from "@/components/OfflineBanner";
 import { QuestsWidget } from "@/components/QuestsWidget";
 import { useColors } from "@/hooks/useColors";
 import {
@@ -40,6 +41,7 @@ export default function HomeScreen() {
       >
         <Text style={[styles.title, { color: colors.foreground }]}>For you</Text>
       </View>
+      <OfflineBanner message="Offline · showing your last feed" />
       {feed.isLoading ? (
         <View style={styles.center}>
           <ActivityIndicator color={colors.primary} />

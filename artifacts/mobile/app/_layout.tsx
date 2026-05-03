@@ -8,8 +8,24 @@ import {
 import { ClerkProvider, useAuth } from "@clerk/clerk-expo";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { QueryClient } from "@tanstack/react-query";
-import { createAsyncStoragePersister } from "@tanstack/query-async-storage-persister";
+import {
+  createAsyncStoragePersister,
+} from "@tanstack/query-async-storage-persister";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
+
+import {
+  boundQueryData,
+  shouldDehydrateQuery,
+} from "@/lib/queryPersistConfig";
+
+type PersistedQuery = {
+  queryKey: readonly unknown[];
+  state: { status: string; data: unknown };
+};
+type PersistedClientLike = {
+  clientState: { queries: PersistedQuery[]; [k: string]: unknown };
+  [k: string]: unknown;
+};
 import {
   setAuthTokenGetter,
   setBaseUrl,
@@ -51,11 +67,37 @@ const queryClient = new QueryClient({
   },
 });
 
-const queryPersister = createAsyncStoragePersister({
+const baseQueryPersister = createAsyncStoragePersister({
   storage: AsyncStorage,
   key: "hashchat-query-cache-v1",
   throttleTime: 1500,
 });
+
+// Wrap the persister so we cap each persisted query's data to a sane number
+// of items before writing to AsyncStorage. This keeps the on-disk cache
+// bounded (last N feed posts / conversations / messages) so storage doesn't
+// grow without limit even after weeks of use.
+const queryPersister: typeof baseQueryPersister = {
+  ...baseQueryPersister,
+  persistClient: async (client) => {
+    const c = client as unknown as PersistedClientLike;
+    const trimmed = {
+      ...c,
+      clientState: {
+        ...c.clientState,
+        queries: c.clientState.queries.map((q) => {
+          if (q.state.status !== "success") return q;
+          const data = boundQueryData(q.queryKey, q.state.data);
+          if (data === q.state.data) return q;
+          return { ...q, state: { ...q.state, data } };
+        }),
+      },
+    };
+    await baseQueryPersister.persistClient(
+      trimmed as unknown as Parameters<typeof baseQueryPersister.persistClient>[0],
+    );
+  },
+};
 
 function AuthBridge({ children }: { children: React.ReactNode }) {
   const { isLoaded, isSignedIn, getToken } = useAuth();
@@ -156,7 +198,8 @@ export default function RootLayout() {
             persistOptions={{
               persister: queryPersister,
               maxAge: 1000 * 60 * 60 * 24,
-              buster: "v1",
+              buster: "v2",
+              dehydrateOptions: { shouldDehydrateQuery },
             }}
           >
             <GestureHandlerRootView style={{ flex: 1 }}>

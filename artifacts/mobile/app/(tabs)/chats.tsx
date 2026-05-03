@@ -15,6 +15,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Avatar } from "@/components/Avatar";
 import { EmptyState } from "@/components/EmptyState";
+import { OfflineBanner } from "@/components/OfflineBanner";
 import { useColors } from "@/hooks/useColors";
 import {
   getGetConversationsQueryKey,
@@ -54,6 +55,7 @@ export default function ChatsScreen() {
       >
         <Text style={[styles.title, { color: colors.foreground }]}>Chats</Text>
       </View>
+      <OfflineBanner message="Offline · showing saved conversations" />
       {convs.isLoading ? (
         <View style={styles.center}>
           <ActivityIndicator color={colors.primary} />
