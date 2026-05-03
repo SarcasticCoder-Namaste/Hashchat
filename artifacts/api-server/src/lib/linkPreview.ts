@@ -12,6 +12,9 @@
 
 import { lookup } from "node:dns/promises";
 import net from "node:net";
+import { db, linkPreviewsTable } from "@workspace/db";
+import { eq } from "drizzle-orm";
+import { logger } from "./logger";
 
 const URL_REGEX = /(https?:\/\/[^\s<>"']+)/gi;
 const MAX_BYTES = 256 * 1024;
@@ -311,6 +314,56 @@ async function fetchLinkPreviewUncached(
   }
 }
 
+async function dbGet(key: string): Promise<LinkPreviewData | null> {
+  try {
+    const rows = await db
+      .select()
+      .from(linkPreviewsTable)
+      .where(eq(linkPreviewsTable.url, key))
+      .limit(1);
+    const row = rows[0];
+    if (!row) return null;
+    const age = Date.now() - row.fetchedAt.getTime();
+    if (age > CACHE_TTL_MS_OK) return null;
+    return {
+      url: row.resolvedUrl,
+      title: row.title,
+      description: row.description,
+      thumbnailUrl: row.thumbnailUrl,
+    };
+  } catch (err) {
+    logger.warn({ err, key }, "link preview db read failed");
+    return null;
+  }
+}
+
+async function dbSet(key: string, data: LinkPreviewData): Promise<void> {
+  try {
+    await db
+      .insert(linkPreviewsTable)
+      .values({
+        url: key,
+        resolvedUrl: data.url,
+        title: data.title,
+        description: data.description,
+        thumbnailUrl: data.thumbnailUrl,
+        fetchedAt: new Date(),
+      })
+      .onConflictDoUpdate({
+        target: linkPreviewsTable.url,
+        set: {
+          resolvedUrl: data.url,
+          title: data.title,
+          description: data.description,
+          thumbnailUrl: data.thumbnailUrl,
+          fetchedAt: new Date(),
+        },
+      });
+  } catch (err) {
+    logger.warn({ err, key }, "link preview db write failed");
+  }
+}
+
 export async function fetchLinkPreview(
   url: string,
 ): Promise<LinkPreviewData | null> {
@@ -321,14 +374,19 @@ export async function fetchLinkPreview(
   const existing = inflight.get(key);
   if (existing) return existing;
 
-  const promise = fetchLinkPreviewUncached(url)
-    .then((data) => {
-      cacheSet(key, data);
-      return data;
-    })
-    .finally(() => {
-      inflight.delete(key);
-    });
+  const promise = (async () => {
+    const persisted = await dbGet(key);
+    if (persisted) {
+      cacheSet(key, persisted);
+      return persisted;
+    }
+    const data = await fetchLinkPreviewUncached(url);
+    cacheSet(key, data);
+    if (data) await dbSet(key, data);
+    return data;
+  })().finally(() => {
+    inflight.delete(key);
+  });
 
   inflight.set(key, promise);
   return promise;

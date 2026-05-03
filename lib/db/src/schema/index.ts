@@ -528,6 +528,17 @@ export const messageAttachmentsTable = pgTable(
   (t) => [index("message_attachments_message_idx").on(t.messageId)],
 );
 
+export const linkPreviewsTable = pgTable("link_previews", {
+  url: text("url").primaryKey(),
+  resolvedUrl: text("resolved_url").notNull(),
+  title: text("title"),
+  description: text("description"),
+  thumbnailUrl: text("thumbnail_url"),
+  fetchedAt: timestamp("fetched_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
 export const userFollowsTable = pgTable(
   "user_follows",
   {
