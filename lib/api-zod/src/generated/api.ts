@@ -2683,6 +2683,30 @@ export const SearchGifsResponse = zod.object({
 });
 
 /**
+ * @summary List GIFs the current user recently sent (deduped, newest first)
+ */
+export const getRecentGifsQueryLimitDefault = 24;
+
+export const GetRecentGifsQueryParams = zod.object({
+  limit: zod.coerce.number().default(getRecentGifsQueryLimitDefault),
+});
+
+export const GetRecentGifsResponse = zod.object({
+  items: zod.array(
+    zod.object({
+      id: zod.string(),
+      title: zod.string(),
+      url: zod.string(),
+      previewUrl: zod.string(),
+      width: zod.number(),
+      height: zod.number(),
+    }),
+  ),
+  nextOffset: zod.number().nullish(),
+  provider: zod.string(),
+});
+
+/**
  * @summary List curated GIF categories
  */
 export const GetGifCategoriesResponse = zod.object({

@@ -1357,6 +1357,10 @@ export type SearchGifsParams = {
   offset?: number;
 };
 
+export type GetRecentGifsParams = {
+  limit?: number;
+};
+
 export type GetYoutubeReelsParams = {
   q?: string;
   max?: number;

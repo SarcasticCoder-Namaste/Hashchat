@@ -1594,6 +1594,23 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/GifConfigError" }
 
+  /gifs/recent:
+    get:
+      operationId: getRecentGifs
+      tags: [gifs]
+      summary: List GIFs the current user recently sent (deduped, newest first)
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          schema: { type: integer, default: 24 }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GifSearchResult" }
+
   /gifs/categories:
     get:
       operationId: getGifCategories

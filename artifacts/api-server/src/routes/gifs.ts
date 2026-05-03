@@ -1,5 +1,7 @@
 import { Router, type IRouter } from "express";
-import { requireAuth } from "../middlewares/requireAuth";
+import { db, messageAttachmentsTable, messagesTable } from "@workspace/db";
+import { and, desc, eq, sql } from "drizzle-orm";
+import { requireAuth, getUserId } from "../middlewares/requireAuth";
 import {
   getGiphyCategories,
   getGiphyTrendingSearches,
@@ -8,6 +10,46 @@ import {
 } from "../lib/giphy";
 
 const router: IRouter = Router();
+
+router.get("/gifs/recent", requireAuth, async (req, res): Promise<void> => {
+  const me = getUserId(req);
+  const rawLimit = parseInt(String(req.query.limit ?? "24"), 10);
+  const limit = Number.isFinite(rawLimit)
+    ? Math.min(Math.max(rawLimit, 1), 50)
+    : 24;
+  // Pull more than `limit` so dedup-by-url still yields up to `limit`
+  // distinct GIFs even when the user keeps sending the same one.
+  const rows = await db
+    .select({
+      url: messageAttachmentsTable.url,
+      createdAt: sql<Date>`max(${messagesTable.createdAt})`,
+    })
+    .from(messageAttachmentsTable)
+    .innerJoin(
+      messagesTable,
+      eq(messagesTable.id, messageAttachmentsTable.messageId),
+    )
+    .where(
+      and(
+        eq(messageAttachmentsTable.kind, "gif"),
+        eq(messagesTable.senderId, me),
+        sql`${messagesTable.deletedAt} IS NULL`,
+      ),
+    )
+    .groupBy(messageAttachmentsTable.url)
+    .orderBy(desc(sql`max(${messagesTable.createdAt})`))
+    .limit(limit);
+
+  const items = rows.map((r) => ({
+    id: r.url,
+    title: "GIF",
+    url: r.url,
+    previewUrl: r.url,
+    width: 0,
+    height: 0,
+  }));
+  res.json({ items, nextOffset: null, provider: "giphy" });
+});
 
 router.get("/gifs/search", requireAuth, async (req, res): Promise<void> => {
   if (!isGiphyConfigured()) {

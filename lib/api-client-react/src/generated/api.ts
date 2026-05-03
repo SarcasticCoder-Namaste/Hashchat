@@ -56,6 +56,7 @@ import type {
   GetMyBookmarksParams,
   GetMyFeedPostsParams,
   GetNotificationsParams,
+  GetRecentGifsParams,
   GetTrendingHashtagsParams,
   GetTrendingRoomsParams,
   GetUpcomingEventsParams,
@@ -9431,6 +9432,100 @@ export function useSearchGifs<
   },
 ): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getSearchGifsQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary List GIFs the current user recently sent (deduped, newest first)
+ */
+export const getGetRecentGifsUrl = (params?: GetRecentGifsParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/gifs/recent?${stringifiedParams}`
+    : `/api/gifs/recent`;
+};
+
+export const getRecentGifs = async (
+  params?: GetRecentGifsParams,
+  options?: RequestInit,
+): Promise<GifSearchResult> => {
+  return customFetch<GifSearchResult>(getGetRecentGifsUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetRecentGifsQueryKey = (params?: GetRecentGifsParams) => {
+  return [`/api/gifs/recent`, ...(params ? [params] : [])] as const;
+};
+
+export const getGetRecentGifsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getRecentGifs>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: GetRecentGifsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getRecentGifs>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetRecentGifsQueryKey(params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getRecentGifs>>> = ({
+    signal,
+  }) => getRecentGifs(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getRecentGifs>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetRecentGifsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getRecentGifs>>
+>;
+export type GetRecentGifsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List GIFs the current user recently sent (deduped, newest first)
+ */
+
+export function useGetRecentGifs<
+  TData = Awaited<ReturnType<typeof getRecentGifs>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: GetRecentGifsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getRecentGifs>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetRecentGifsQueryOptions(params, options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;

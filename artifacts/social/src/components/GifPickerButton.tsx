@@ -1,11 +1,14 @@
 import { useEffect, useRef, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   useSearchGifs,
   useGetGifCategories,
   useGetGifTrendingSearches,
+  useGetRecentGifs,
   getSearchGifsQueryKey,
   getGetGifCategoriesQueryKey,
   getGetGifTrendingSearchesQueryKey,
+  getGetRecentGifsQueryKey,
   type Gif,
 } from "@workspace/api-client-react";
 import {
@@ -53,6 +56,7 @@ export function GifPickerButton({
   onPick: (gif: Gif) => void;
   testId?: string;
 }) {
+  const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [debounced, setDebounced] = useState("");
@@ -106,10 +110,22 @@ export function GifPickerButton({
       staleTime: 5 * 60 * 1000,
     },
   });
+  const recentParams = { limit: 24 };
+  const recentQ = useGetRecentGifs(recentParams, {
+    query: {
+      enabled: open,
+      queryKey: getGetRecentGifsQueryKey(recentParams),
+      staleTime: 30 * 1000,
+    },
+  });
 
   function handlePick(gif: Gif) {
     onPick(gif);
     setOpen(false);
+    // Invalidate so the just-sent GIF surfaces at the top next time.
+    void queryClient.invalidateQueries({
+      queryKey: getGetRecentGifsQueryKey(recentParams),
+    });
   }
 
   function handlePickCategory(cat: ActiveCategory) {
@@ -137,6 +153,7 @@ export function GifPickerButton({
 
   const categories = categoriesQ.data?.items ?? [];
   const trendingTerms = trendingQ.data?.items ?? [];
+  const recentItems = recentQ.data?.items ?? [];
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -224,9 +241,10 @@ export function GifPickerButton({
             <div className="px-3 py-8 text-center text-xs text-destructive">
               Couldn't load GIFs. Try again.
             </div>
-          ) : showBrowse && categories.length > 0 ? (
+          ) : showBrowse && (categories.length > 0 || recentItems.length > 0) ? (
             <GifBrowseSection
               categories={categories}
+              recentItems={recentItems}
               trendingItems={items}
               trendingLoading={gifsQ.isLoading}
               onPickCategory={handlePickCategory}
@@ -258,12 +276,14 @@ export function GifPickerButton({
 
 function GifBrowseSection({
   categories,
+  recentItems,
   trendingItems,
   trendingLoading,
   onPickCategory,
   onPickGif,
 }: {
   categories: { name: string; slug: string; previewUrl?: string | null }[];
+  recentItems: Gif[];
   trendingItems: Gif[];
   trendingLoading: boolean;
   onPickCategory: (cat: ActiveCategory) => void;
@@ -271,6 +291,32 @@ function GifBrowseSection({
 }) {
   return (
     <div className="flex flex-col gap-3">
+      {recentItems.length > 0 && (
+        <div data-testid="gif-recents">
+          <div className="mb-1.5 px-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+            Recents
+          </div>
+          <div className="flex gap-1.5 overflow-x-auto pb-1">
+            {recentItems.map((g) => (
+              <button
+                key={g.id}
+                type="button"
+                onClick={() => onPickGif(g)}
+                className="group relative h-20 w-20 shrink-0 overflow-hidden rounded-md bg-muted/50 transition-shadow hover:ring-2 hover:ring-primary"
+                data-testid={`gif-recent-${g.id}`}
+                aria-label={g.title || "Send recent GIF"}
+              >
+                <img
+                  src={g.previewUrl}
+                  alt={g.title || ""}
+                  loading="lazy"
+                  className="absolute inset-0 h-full w-full object-cover"
+                />
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
       <div data-testid="gif-categories">
         <div className="mb-1.5 px-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
           Categories
