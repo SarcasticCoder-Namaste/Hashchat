@@ -400,7 +400,8 @@ router.post(
     }));
     await db.insert(conversationMembersTable).values(memberRows);
     await insertSystemMessage(created.id, me, "created the group");
-    // Notify other members
+    const groupLabel = title ? `“${title}”` : "a group chat";
+    // Notify other members they were added.
     for (const uid of requestedIds) {
       await createNotification({
         recipientId: uid,
@@ -408,9 +409,18 @@ router.post(
         kind: "dm",
         targetType: "conversation",
         targetId: created.id,
-        snippet: title ?? "added you to a group chat",
+        snippet: `added you to ${groupLabel}`,
       });
     }
+    // Notify the creator that the group was created (no actor → not self-skipped).
+    await createNotification({
+      recipientId: me,
+      actorId: null,
+      kind: "dm",
+      targetType: "conversation",
+      targetId: created.id,
+      snippet: `You created ${groupLabel}`,
+    });
     const view = await buildConversationView(created.id, me);
     res.status(201).json(view);
   },
@@ -463,6 +473,29 @@ router.patch(
       me,
       title ? `renamed the group to “${title}”` : "cleared the group name",
     );
+    // Notify other members of the rename.
+    const otherMembers = await db
+      .select({ userId: conversationMembersTable.userId })
+      .from(conversationMembersTable)
+      .where(
+        and(
+          eq(conversationMembersTable.conversationId, id),
+          ne(conversationMembersTable.userId, me),
+        ),
+      );
+    const renameSnippet = title
+      ? `renamed the group to “${title}”`
+      : "cleared the group name";
+    for (const m of otherMembers) {
+      await createNotification({
+        recipientId: m.userId,
+        actorId: me,
+        kind: "dm",
+        targetType: "conversation",
+        targetId: id,
+        snippet: renameSnippet,
+      });
+    }
     const view = await buildConversationView(id, me);
     res.json(view);
   },
@@ -551,6 +584,7 @@ router.post(
     );
     const names = toAdd.map((u) => nameMap.get(u) ?? "someone").join(", ");
     await insertSystemMessage(id, me, `added ${names}`);
+    const groupLabel = convo.title ? `“${convo.title}”` : "a group chat";
     for (const uid of toAdd) {
       await createNotification({
         recipientId: uid,
@@ -558,7 +592,7 @@ router.post(
         kind: "dm",
         targetType: "conversation",
         targetId: id,
-        snippet: convo.title ?? "added you to a group chat",
+        snippet: `added you to ${groupLabel}`,
       });
     }
     const view = await buildConversationView(id, me);
@@ -630,6 +664,16 @@ router.delete(
       me,
       `removed ${target?.displayName ?? target?.username ?? "a member"}`,
     );
+    // Notify the removed user.
+    const removedLabel = convo.title ? `“${convo.title}”` : "a group chat";
+    await createNotification({
+      recipientId: targetId,
+      actorId: me,
+      kind: "dm",
+      targetType: "conversation",
+      targetId: id,
+      snippet: `removed you from ${removedLabel}`,
+    });
     res.status(204).end();
   },
 );
