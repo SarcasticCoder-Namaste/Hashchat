@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { Avatar } from "@/components/Avatar";
+import { PollCard } from "@/components/PollCard";
 import { useColors } from "@/hooks/useColors";
 import {
   useMuteUserInRoom,
@@ -16,6 +17,9 @@ interface Props {
   isMine: boolean;
   showAvatar: boolean;
   roomTag?: string;
+  onLongPress?: (message: Message) => void;
+  translation?: { language: string; text: string } | null;
+  onClearTranslation?: (messageId: number) => void;
 }
 
 const MUTE_DURATIONS: { label: string; hours: number | null }[] = [
@@ -25,7 +29,15 @@ const MUTE_DURATIONS: { label: string; hours: number | null }[] = [
   { label: "Forever", hours: null },
 ];
 
-export function MessageBubble({ message, isMine, showAvatar, roomTag }: Props) {
+export function MessageBubble({
+  message,
+  isMine,
+  showAvatar,
+  roomTag,
+  onLongPress,
+  translation,
+  onClearTranslation,
+}: Props) {
   const colors = useColors();
   const muteInRoom = useMuteUserInRoom();
   const canMuteInRoom = !!roomTag && !isMine && !!message.senderId;
@@ -72,6 +84,8 @@ export function MessageBubble({ message, isMine, showAvatar, roomTag }: Props) {
     minute: "2-digit",
   });
   const isGif = !!message.imageUrl && /(\.gif$|giphy|tenor)/i.test(message.imageUrl);
+  const hasContent = !!message.content;
+  const hasPoll = !!message.poll;
 
   return (
     <View
@@ -114,8 +128,13 @@ export function MessageBubble({ message, isMine, showAvatar, roomTag }: Props) {
         {message.audioUrl ? (
           <AudioPill url={message.audioUrl} mine={isMine} />
         ) : null}
-        {message.content ? (
-          <View
+        {hasPoll ? <PollCard poll={message.poll!} /> : null}
+        {hasContent ? (
+          <Pressable
+            onLongPress={
+              onLongPress ? () => onLongPress(message) : undefined
+            }
+            delayLongPress={350}
             style={[
               styles.bubble,
               {
@@ -126,6 +145,68 @@ export function MessageBubble({ message, isMine, showAvatar, roomTag }: Props) {
             ]}
           >
             <Text style={[styles.text, { color: fg }]}>{message.content}</Text>
+          </Pressable>
+        ) : null}
+        {translation && hasContent ? (
+          <View
+            style={[
+              styles.translation,
+              {
+                backgroundColor: colors.accent,
+                borderColor: colors.border,
+              },
+            ]}
+          >
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 6,
+              }}
+            >
+              <Feather name="globe" size={11} color={colors.primary} />
+              <Text
+                style={{
+                  color: colors.primary,
+                  fontSize: 10,
+                  fontFamily: "Inter_600SemiBold",
+                  textTransform: "uppercase",
+                  letterSpacing: 0.5,
+                }}
+              >
+                Translated · {translation.language}
+              </Text>
+              {onClearTranslation && (
+                <Pressable
+                  onPress={() => onClearTranslation(message.id)}
+                  hitSlop={6}
+                  style={{ marginLeft: "auto" }}
+                  testID={`button-clear-translation-${message.id}`}
+                >
+                  <Text
+                    style={{
+                      color: colors.mutedForeground,
+                      fontSize: 11,
+                      fontFamily: "Inter_500Medium",
+                    }}
+                  >
+                    Show original
+                  </Text>
+                </Pressable>
+              )}
+            </View>
+            <Text
+              style={{
+                color: colors.foreground,
+                fontSize: 14,
+                fontFamily: "Inter_400Regular",
+                lineHeight: 19,
+                marginTop: 4,
+              }}
+              testID={`translation-text-${message.id}`}
+            >
+              {translation.text}
+            </Text>
           </View>
         ) : null}
         <Text
@@ -232,5 +313,11 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 999,
     minWidth: 160,
+  },
+  translation: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 14,
+    borderWidth: StyleSheet.hairlineWidth,
   },
 });

@@ -5,6 +5,7 @@ import { Stack, useLocalSearchParams } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
   Modal,
   Platform,
@@ -20,9 +21,12 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ChatInput } from "@/components/ChatInput";
 import { EmptyState } from "@/components/EmptyState";
 import { FailedMessages } from "@/components/FailedMessages";
+import { MessageActionsModal } from "@/components/MessageActionsModal";
 import { MessageBubble } from "@/components/MessageBubble";
 import { OfflineBanner } from "@/components/OfflineBanner";
+import { PollsModal } from "@/components/PollsModal";
 import { SparkComposer, SparksRow } from "@/components/SparksPanel";
+import { VoiceRoomModal } from "@/components/VoiceRoomModal";
 import { useColors } from "@/hooks/useColors";
 import { useRoomOutbox } from "@/hooks/useOutboxFlusher";
 import {
@@ -34,7 +38,9 @@ import {
   getGetRoomSummaryQueryKey,
   useGetRoomMessages,
   useGetRoomSummary,
+  useInitiateCall,
   useSendRoomMessage,
+  type Message,
 } from "@workspace/api-client-react";
 
 export default function RoomScreen() {
@@ -106,20 +112,68 @@ export default function RoomScreen() {
     },
   );
 
+  const [actionsFor, setActionsFor] = useState<Message | null>(null);
+  const [translations, setTranslations] = useState<
+    Record<number, { language: string; text: string }>
+  >({});
+  const [pollsOpen, setPollsOpen] = useState(false);
+  const [voiceCallId, setVoiceCallId] = useState<number | null>(null);
+
+  const initiate = useInitiateCall({
+    mutation: {
+      onSuccess: (call) => setVoiceCallId(call.id),
+      onError: () =>
+        Alert.alert(
+          "Couldn't start voice room",
+          "Please try again in a moment.",
+        ),
+    },
+  });
+
+  function startVoiceRoom() {
+    if (!tag) return;
+    initiate.mutate({ data: { kind: "voice", roomTag: tag } });
+  }
+
   return (
     <View style={[styles.wrap, { backgroundColor: colors.background }]}>
       <Stack.Screen
         options={{
           title: `#${tag}`,
           headerRight: () => (
-            <Pressable
-              onPress={() => setSummaryOpen(true)}
-              hitSlop={10}
-              accessibilityLabel="Catch me up"
-              style={{ paddingHorizontal: 8 }}
-            >
-              <Feather name="zap" size={18} color={colors.primary} />
-            </Pressable>
+            <View style={{ flexDirection: "row", gap: 4 }}>
+              <Pressable
+                onPress={startVoiceRoom}
+                hitSlop={10}
+                accessibilityLabel="Start voice room"
+                style={{ paddingHorizontal: 6 }}
+                disabled={initiate.isPending}
+                testID="button-start-voice-room"
+              >
+                {initiate.isPending ? (
+                  <ActivityIndicator size="small" color={colors.primary} />
+                ) : (
+                  <Feather name="mic" size={18} color={colors.primary} />
+                )}
+              </Pressable>
+              <Pressable
+                onPress={() => setPollsOpen(true)}
+                hitSlop={10}
+                accessibilityLabel="Polls"
+                style={{ paddingHorizontal: 6 }}
+                testID="button-open-polls"
+              >
+                <Feather name="bar-chart-2" size={18} color={colors.primary} />
+              </Pressable>
+              <Pressable
+                onPress={() => setSummaryOpen(true)}
+                hitSlop={10}
+                accessibilityLabel="Catch me up"
+                style={{ paddingHorizontal: 6 }}
+              >
+                <Feather name="zap" size={18} color={colors.primary} />
+              </Pressable>
+            </View>
           ),
         }}
       />
@@ -160,6 +214,15 @@ export default function RoomScreen() {
                   isMine={isMine}
                   showAvatar={showAvatar}
                   roomTag={tag}
+                  onLongPress={(m) => setActionsFor(m)}
+                  translation={translations[item.id] ?? null}
+                  onClearTranslation={(mid) =>
+                    setTranslations((t) => {
+                      const next = { ...t };
+                      delete next[mid];
+                      return next;
+                    })
+                  }
                 />
               );
             }}
@@ -306,6 +369,29 @@ export default function RoomScreen() {
           </Pressable>
         </Pressable>
       </Modal>
+
+      <MessageActionsModal
+        visible={actionsFor != null}
+        messageId={actionsFor?.id ?? null}
+        onClose={() => setActionsFor(null)}
+        onTranslated={(mid, lang, text) =>
+          setTranslations((t) => ({
+            ...t,
+            [mid]: { language: lang, text },
+          }))
+        }
+      />
+      <PollsModal
+        visible={pollsOpen}
+        onClose={() => setPollsOpen(false)}
+        scope={{ kind: "room", tag }}
+      />
+      <VoiceRoomModal
+        visible={voiceCallId != null}
+        callId={voiceCallId}
+        onClose={() => setVoiceCallId(null)}
+        title={`#${tag} voice room`}
+      />
     </View>
   );
 }

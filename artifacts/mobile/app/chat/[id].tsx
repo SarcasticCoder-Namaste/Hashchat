@@ -1,11 +1,13 @@
+import { Feather } from "@expo/vector-icons";
 import { useUser } from "@clerk/clerk-expo";
 import { useQueryClient } from "@tanstack/react-query";
 import { Stack, useLocalSearchParams } from "expo-router";
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
   Platform,
+  Pressable,
   StyleSheet,
   Text,
   View,
@@ -16,7 +18,11 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ChatInput } from "@/components/ChatInput";
 import { EmptyState } from "@/components/EmptyState";
 import { FailedMessages } from "@/components/FailedMessages";
+import { MessageActionsModal } from "@/components/MessageActionsModal";
 import { MessageBubble } from "@/components/MessageBubble";
+import { PollsModal } from "@/components/PollsModal";
+import { ScheduleDmModal } from "@/components/ScheduleDmModal";
+import { ScheduledDmsModal } from "@/components/ScheduledDmsModal";
 import { useColors } from "@/hooks/useColors";
 import { useConversationOutbox } from "@/hooks/useOutboxFlusher";
 import {
@@ -30,6 +36,7 @@ import {
   useGetConversations,
   useMarkConversationRead,
   useSendConversationMessage,
+  type Message,
 } from "@workspace/api-client-react";
 
 export default function ConversationChatScreen() {
@@ -100,16 +107,47 @@ export default function ConversationChatScreen() {
     markRead.mutate({ id, data: {} });
   }, [id, markRead]);
 
-  // Reverse for inverted FlatList
   const data = useMemo(() => {
     const list = msgs.data ?? [];
     return [...list].reverse();
   }, [msgs.data]);
 
+  const [actionsFor, setActionsFor] = useState<Message | null>(null);
+  const [translations, setTranslations] = useState<
+    Record<number, { language: string; text: string }>
+  >({});
+  const [pollsOpen, setPollsOpen] = useState(false);
+  const [scheduleOpen, setScheduleOpen] = useState(false);
+  const [scheduledListOpen, setScheduledListOpen] = useState(false);
+
   return (
     <View style={[styles.wrap, { backgroundColor: colors.background }]}>
       <Stack.Screen
-        options={{ title: conv?.otherUser?.displayName ?? "Chat" }}
+        options={{
+          title: conv?.otherUser?.displayName ?? conv?.title ?? "Chat",
+          headerRight: () => (
+            <View style={{ flexDirection: "row", gap: 4 }}>
+              <Pressable
+                onPress={() => setPollsOpen(true)}
+                hitSlop={10}
+                accessibilityLabel="Polls"
+                style={{ paddingHorizontal: 6 }}
+                testID="button-open-polls"
+              >
+                <Feather name="bar-chart-2" size={18} color={colors.primary} />
+              </Pressable>
+              <Pressable
+                onPress={() => setScheduledListOpen(true)}
+                hitSlop={10}
+                accessibilityLabel="Scheduled messages"
+                style={{ paddingHorizontal: 6 }}
+                testID="button-open-scheduled"
+              >
+                <Feather name="clock" size={18} color={colors.primary} />
+              </Pressable>
+            </View>
+          ),
+        }}
       />
       <KeyboardAvoidingView
         style={{ flex: 1 }}
@@ -140,6 +178,15 @@ export default function ConversationChatScreen() {
                   message={item}
                   isMine={isMine}
                   showAvatar={showAvatar}
+                  onLongPress={(m) => setActionsFor(m)}
+                  translation={translations[item.id] ?? null}
+                  onClearTranslation={(mid) =>
+                    setTranslations((t) => {
+                      const next = { ...t };
+                      delete next[mid];
+                      return next;
+                    })
+                  }
                 />
               );
             }}
@@ -169,30 +216,85 @@ export default function ConversationChatScreen() {
           </View>
         )}
         <FailedMessages items={failed} />
-        <View style={{ paddingBottom: insets.bottom }}>
-          <ChatInput
-            sending={send.isPending}
-            onSend={async (data) => {
-              if (!Number.isFinite(id)) return;
-              const payload = {
-                content: data.content,
-                imageUrl: data.imageUrl ?? data.gifUrl ?? null,
-                audioUrl: data.audioUrl ?? null,
-                gifUrl: data.gifUrl ?? null,
-              };
-              if (!online) {
-                await enqueueMessage(id, payload);
-                return;
-              }
-              try {
-                await send.mutateAsync({ id, data: payload });
-              } catch {
-                await enqueueMessage(id, payload);
-              }
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "flex-end",
+            paddingBottom: insets.bottom,
+            gap: 0,
+          }}
+        >
+          <View style={{ flex: 1 }}>
+            <ChatInput
+              sending={send.isPending}
+              onSend={async (data) => {
+                if (!Number.isFinite(id)) return;
+                const payload = {
+                  content: data.content,
+                  imageUrl: data.imageUrl ?? data.gifUrl ?? null,
+                  audioUrl: data.audioUrl ?? null,
+                  gifUrl: data.gifUrl ?? null,
+                };
+                if (!online) {
+                  await enqueueMessage(id, payload);
+                  return;
+                }
+                try {
+                  await send.mutateAsync({ id, data: payload });
+                } catch {
+                  await enqueueMessage(id, payload);
+                }
+              }}
+            />
+          </View>
+          <Pressable
+            onPress={() => setScheduleOpen(true)}
+            hitSlop={6}
+            style={{
+              padding: 12,
+              marginRight: 6,
+              marginBottom: 6,
+              borderRadius: 999,
+              backgroundColor: colors.muted,
             }}
-          />
+            accessibilityLabel="Schedule message"
+            testID="button-schedule-message"
+          >
+            <Feather name="clock" size={18} color={colors.foreground} />
+          </Pressable>
         </View>
       </KeyboardAvoidingView>
+
+      <MessageActionsModal
+        visible={actionsFor != null}
+        messageId={actionsFor?.id ?? null}
+        onClose={() => setActionsFor(null)}
+        onTranslated={(mid, lang, text) =>
+          setTranslations((t) => ({
+            ...t,
+            [mid]: { language: lang, text },
+          }))
+        }
+      />
+      {Number.isFinite(id) && (
+        <>
+          <PollsModal
+            visible={pollsOpen}
+            onClose={() => setPollsOpen(false)}
+            scope={{ kind: "conversation", conversationId: id }}
+          />
+          <ScheduleDmModal
+            visible={scheduleOpen}
+            onClose={() => setScheduleOpen(false)}
+            conversationId={id}
+          />
+          <ScheduledDmsModal
+            visible={scheduledListOpen}
+            onClose={() => setScheduledListOpen(false)}
+            conversationId={id}
+          />
+        </>
+      )}
     </View>
   );
 }
