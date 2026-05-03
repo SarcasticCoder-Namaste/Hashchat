@@ -41,6 +41,13 @@ import {
   TabsTrigger,
 } from "@/components/ui/tabs";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Hash,
   Loader2,
   Save,
@@ -68,6 +75,7 @@ import {
   EyeOff,
   ShieldOff,
   QrCode,
+  Search,
 } from "lucide-react";
 import { ImageUploadButton } from "@/components/ImageUploadButton";
 import { FriendCodeQRDialog } from "@/components/FriendCodeQRDialog";
@@ -1432,10 +1440,80 @@ function PrivacyTab() {
   );
 }
 
+type BlocksMutesSort = "newest" | "oldest" | "alpha";
+
+function sortUserList<
+  T extends { displayName: string; username: string; actedAt: string },
+>(list: readonly T[], sort: BlocksMutesSort): T[] {
+  const arr = [...list];
+  if (sort === "alpha") {
+    arr.sort((a, b) =>
+      (a.displayName || a.username).localeCompare(
+        b.displayName || b.username,
+        undefined,
+        { sensitivity: "base" },
+      ),
+    );
+  } else if (sort === "oldest") {
+    arr.sort((a, b) => a.actedAt.localeCompare(b.actedAt));
+  } else {
+    arr.sort((a, b) => b.actedAt.localeCompare(a.actedAt));
+  }
+  return arr;
+}
+
+function sortHashtagList<T extends { tag: string; actedAt: string }>(
+  list: readonly T[],
+  sort: BlocksMutesSort,
+): T[] {
+  const arr = [...list];
+  if (sort === "alpha") {
+    arr.sort((a, b) =>
+      a.tag.localeCompare(b.tag, undefined, { sensitivity: "base" }),
+    );
+  } else if (sort === "oldest") {
+    arr.sort((a, b) => a.actedAt.localeCompare(b.actedAt));
+  } else {
+    arr.sort((a, b) => b.actedAt.localeCompare(a.actedAt));
+  }
+  return arr;
+}
+
 function BlocksMutesTab() {
   const qc = useQueryClient();
   const { toast } = useToast();
   const { data, isLoading } = useGetMyBlocksAndMutes();
+  const [search, setSearch] = useState("");
+  const [sort, setSort] = useState<BlocksMutesSort>("newest");
+
+  const normalizedSearch = search.trim().toLowerCase();
+  const matchesUser = (u: { displayName: string; username: string }) => {
+    if (!normalizedSearch) return true;
+    return (
+      u.displayName.toLowerCase().includes(normalizedSearch) ||
+      u.username.toLowerCase().includes(normalizedSearch)
+    );
+  };
+  const matchesTag = (h: { tag: string }) => {
+    if (!normalizedSearch) return true;
+    const q = normalizedSearch.startsWith("#")
+      ? normalizedSearch.slice(1)
+      : normalizedSearch;
+    return h.tag.toLowerCase().includes(q);
+  };
+
+  const blockedView = useMemo(() => {
+    if (!data) return [];
+    return sortUserList(data.blocked.filter(matchesUser), sort);
+  }, [data, normalizedSearch, sort]);
+  const mutedView = useMemo(() => {
+    if (!data) return [];
+    return sortUserList(data.muted.filter(matchesUser), sort);
+  }, [data, normalizedSearch, sort]);
+  const mutedHashtagsView = useMemo(() => {
+    if (!data) return [];
+    return sortHashtagList(data.mutedHashtags.filter(matchesTag), sort);
+  }, [data, normalizedSearch, sort]);
 
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: getGetMyBlocksAndMutesQueryKey() });
@@ -1515,6 +1593,46 @@ function BlocksMutesTab() {
         </div>
       </div>
 
+      <div className="rounded-xl border border-border bg-card p-4 shadow-sm">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <div className="relative flex-1">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              type="search"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search by name, @username, or #hashtag"
+              className="pl-9"
+              data-testid="input-blocks-mutes-search"
+              aria-label="Search blocks and mutes"
+            />
+          </div>
+          <Select
+            value={sort}
+            onValueChange={(v) => setSort(v as BlocksMutesSort)}
+          >
+            <SelectTrigger
+              className="sm:w-[180px]"
+              data-testid="select-blocks-mutes-sort"
+              aria-label="Sort blocks and mutes"
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="newest" data-testid="sort-option-newest">
+                Newest first
+              </SelectItem>
+              <SelectItem value="oldest" data-testid="sort-option-oldest">
+                Oldest first
+              </SelectItem>
+              <SelectItem value="alpha" data-testid="sort-option-alpha">
+                A → Z
+              </SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
       <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
         <div className="mb-3 flex items-center justify-between gap-2">
           <h3 className="flex items-center gap-2 text-base font-semibold text-foreground">
@@ -1524,7 +1642,9 @@ function BlocksMutesTab() {
             className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground"
             data-testid="blocks-count"
           >
-            {data.blocked.length}
+            {normalizedSearch
+              ? `${blockedView.length} / ${data.blocked.length}`
+              : data.blocked.length}
           </span>
         </div>
         {data.blocked.length === 0 ? (
@@ -1535,9 +1655,16 @@ function BlocksMutesTab() {
             You haven't blocked anyone. Blocked accounts won't be able to find
             or message you.
           </p>
+        ) : blockedView.length === 0 ? (
+          <p
+            className="rounded-lg border border-dashed border-border px-3 py-6 text-center text-sm text-muted-foreground"
+            data-testid="blocks-empty"
+          >
+            No blocked accounts match "{search}".
+          </p>
         ) : (
           <ul className="divide-y divide-border" data-testid="blocks-list">
-            {data.blocked.map((u) => (
+            {blockedView.map((u) => (
               <BlockMuteUserRow
                 key={u.id}
                 user={u}
@@ -1560,7 +1687,9 @@ function BlocksMutesTab() {
             className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground"
             data-testid="mutes-count"
           >
-            {data.muted.length}
+            {normalizedSearch
+              ? `${mutedView.length} / ${data.muted.length}`
+              : data.muted.length}
           </span>
         </div>
         {data.muted.length === 0 ? (
@@ -1571,9 +1700,16 @@ function BlocksMutesTab() {
             You haven't muted anyone. Muting hides their posts without
             blocking them.
           </p>
+        ) : mutedView.length === 0 ? (
+          <p
+            className="rounded-lg border border-dashed border-border px-3 py-6 text-center text-sm text-muted-foreground"
+            data-testid="mutes-empty"
+          >
+            No muted accounts match "{search}".
+          </p>
         ) : (
           <ul className="divide-y divide-border" data-testid="mutes-list">
-            {data.muted.map((u) => (
+            {mutedView.map((u) => (
               <BlockMuteUserRow
                 key={u.id}
                 user={u}
@@ -1596,7 +1732,9 @@ function BlocksMutesTab() {
             className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground"
             data-testid="muted-tags-count"
           >
-            {data.mutedHashtags.length}
+            {normalizedSearch
+              ? `${mutedHashtagsView.length} / ${data.mutedHashtags.length}`
+              : data.mutedHashtags.length}
           </span>
         </div>
         <form
@@ -1640,12 +1778,19 @@ function BlocksMutesTab() {
             No muted hashtags. Mute a hashtag from any room to hide its posts
             from your feeds.
           </p>
+        ) : mutedHashtagsView.length === 0 ? (
+          <p
+            className="rounded-lg border border-dashed border-border px-3 py-6 text-center text-sm text-muted-foreground"
+            data-testid="muted-tags-empty"
+          >
+            No muted hashtags match "{search}".
+          </p>
         ) : (
           <ul
             className="flex flex-wrap gap-2"
             data-testid="muted-tags-list"
           >
-            {data.mutedHashtags.map((h) => (
+            {mutedHashtagsView.map((h) => (
               <li
                 key={h.tag}
                 className="inline-flex items-center gap-2 rounded-full border border-border bg-muted/40 py-1 pl-3 pr-1 text-sm text-foreground"
