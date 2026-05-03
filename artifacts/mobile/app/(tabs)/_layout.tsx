@@ -1,14 +1,45 @@
 import { BlurView } from "expo-blur";
 import { isLiquidGlassAvailable } from "expo-glass-effect";
 import { Tabs } from "expo-router";
-import { Icon, Label, NativeTabs } from "expo-router/unstable-native-tabs";
+import {
+  Badge,
+  Icon,
+  Label,
+  NativeTabs,
+} from "expo-router/unstable-native-tabs";
 import { Feather } from "@expo/vector-icons";
 import React from "react";
 import { Platform, StyleSheet, View, useColorScheme } from "react-native";
 
 import { useColors } from "@/hooks/useColors";
+import {
+  getGetUnreadNotificationCountQueryKey,
+  useGetUnreadNotificationCount,
+} from "@workspace/api-client-react";
+
+function useUnreadCounts() {
+  const { data } = useGetUnreadNotificationCount({
+    query: {
+      queryKey: getGetUnreadNotificationCountQueryKey(),
+      refetchInterval: 10000,
+      refetchOnWindowFocus: true,
+    },
+  });
+  return {
+    dms: data?.dms ?? 0,
+    notifications: data?.notifications ?? 0,
+  };
+}
+
+function formatBadge(count: number): string | undefined {
+  if (count <= 0) return undefined;
+  return count > 99 ? "99+" : String(count);
+}
 
 function NativeTabLayout() {
+  const { dms, notifications } = useUnreadCounts();
+  const dmsBadge = formatBadge(dms);
+  const notifBadge = formatBadge(notifications);
   return (
     <NativeTabs>
       <NativeTabs.Trigger name="index">
@@ -24,10 +55,12 @@ function NativeTabLayout() {
           sf={{ default: "bubble.left", selected: "bubble.left.fill" }}
         />
         <Label>Chats</Label>
+        {dmsBadge ? <Badge>{dmsBadge}</Badge> : <Badge hidden />}
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="notifications">
         <Icon sf={{ default: "bell", selected: "bell.fill" }} />
         <Label>Activity</Label>
+        {notifBadge ? <Badge>{notifBadge}</Badge> : <Badge hidden />}
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="profile">
         <Icon sf={{ default: "person", selected: "person.fill" }} />
@@ -43,6 +76,9 @@ function ClassicTabLayout() {
   const isDark = colorScheme === "dark";
   const isIOS = Platform.OS === "ios";
   const isWeb = Platform.OS === "web";
+  const { dms, notifications } = useUnreadCounts();
+  const dmsBadge = formatBadge(dms);
+  const notifBadge = formatBadge(notifications);
 
   return (
     <Tabs
@@ -98,6 +134,15 @@ function ClassicTabLayout() {
           tabBarIcon: ({ color }) => (
             <Feather name="message-circle" size={22} color={color} />
           ),
+          tabBarBadge: dmsBadge,
+          tabBarBadgeStyle: {
+            backgroundColor: colors.primary,
+            color: colors.primaryForeground,
+            fontSize: 10,
+            minWidth: 16,
+            height: 16,
+            lineHeight: 16,
+          },
         }}
       />
       <Tabs.Screen
@@ -106,6 +151,15 @@ function ClassicTabLayout() {
           tabBarIcon: ({ color }) => (
             <Feather name="bell" size={22} color={color} />
           ),
+          tabBarBadge: notifBadge,
+          tabBarBadgeStyle: {
+            backgroundColor: colors.primary,
+            color: colors.primaryForeground,
+            fontSize: 10,
+            minWidth: 16,
+            height: 16,
+            lineHeight: 16,
+          },
         }}
       />
       <Tabs.Screen

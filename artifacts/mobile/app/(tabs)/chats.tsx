@@ -1,4 +1,6 @@
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
+import { useQueryClient } from "@tanstack/react-query";
+import { useCallback } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -16,6 +18,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { useColors } from "@/hooks/useColors";
 import {
   getGetConversationsQueryKey,
+  getGetUnreadNotificationCountQueryKey,
   useGetConversations,
 } from "@workspace/api-client-react";
 
@@ -23,12 +26,21 @@ export default function ChatsScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const qc = useQueryClient();
   const convs = useGetConversations({
     query: {
       queryKey: getGetConversationsQueryKey(),
       refetchInterval: 5000,
     },
   });
+
+  useFocusEffect(
+    useCallback(() => {
+      qc.invalidateQueries({
+        queryKey: getGetUnreadNotificationCountQueryKey(),
+      });
+    }, [qc]),
+  );
 
   const data = convs.data ?? [];
 

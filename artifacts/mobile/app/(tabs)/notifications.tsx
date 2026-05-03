@@ -1,4 +1,7 @@
 import { Feather } from "@expo/vector-icons";
+import { useFocusEffect } from "expo-router";
+import { useQueryClient } from "@tanstack/react-query";
+import { useCallback } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -15,6 +18,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { useColors } from "@/hooks/useColors";
 import {
   getGetNotificationsQueryKey,
+  getGetUnreadNotificationCountQueryKey,
   useGetNotifications,
   type Notification,
 } from "@workspace/api-client-react";
@@ -32,12 +36,21 @@ const KIND_LABEL: Record<Notification["kind"], string> = {
 export default function NotificationsScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
+  const qc = useQueryClient();
   const notif = useGetNotifications(undefined, {
     query: {
       queryKey: getGetNotificationsQueryKey(),
       refetchInterval: 10000,
     },
   });
+
+  useFocusEffect(
+    useCallback(() => {
+      qc.invalidateQueries({
+        queryKey: getGetUnreadNotificationCountQueryKey(),
+      });
+    }, [qc]),
+  );
 
   const data = notif.data?.items ?? [];
 
