@@ -1,4 +1,4 @@
-import { Router, type IRouter } from "express";
+import { Router, type IRouter, type Request } from "express";
 import {
   db,
   postsTable,
@@ -294,6 +294,34 @@ router.get("/me/feed/posts", requireAuth, async (req, res): Promise<void> => {
   res.json(await buildPosts(rows, me));
 });
 
+function parsePagination(
+  req: Request,
+): { before: Date | null; limit: number } | { error: string } {
+  const rawBefore = Array.isArray(req.query.before)
+    ? req.query.before[0]
+    : req.query.before;
+  let before: Date | null = null;
+  if (typeof rawBefore === "string" && rawBefore.length > 0) {
+    const parsed = new Date(rawBefore);
+    if (Number.isNaN(parsed.getTime())) {
+      return { error: "Invalid 'before' timestamp" };
+    }
+    before = parsed;
+  }
+  const rawLimit = Array.isArray(req.query.limit)
+    ? req.query.limit[0]
+    : req.query.limit;
+  let limit = 30;
+  if (typeof rawLimit === "string" && rawLimit.length > 0) {
+    const parsed = parseInt(rawLimit, 10);
+    if (Number.isNaN(parsed) || parsed < 1) {
+      return { error: "Invalid 'limit'" };
+    }
+    limit = Math.min(parsed, 100);
+  }
+  return { before, limit };
+}
+
 router.get(
   "/hashtags/:tag/posts",
   requireAuth,
@@ -307,6 +335,18 @@ router.get(
       res.status(400).json({ error: "Invalid tag" });
       return;
     }
+    const pag = parsePagination(req);
+    if ("error" in pag) {
+      res.status(400).json({ error: pag.error });
+      return;
+    }
+    const conditions = [
+      eq(postHashtagsTable.tag, tag),
+      sql`${postsTable.deletedAt} IS NULL`,
+    ];
+    if (pag.before) {
+      conditions.push(lt(postsTable.createdAt, pag.before));
+    }
     const rows = await db
       .select({
         id: postsTable.id,
@@ -317,14 +357,9 @@ router.get(
       })
       .from(postsTable)
       .innerJoin(postHashtagsTable, eq(postHashtagsTable.postId, postsTable.id))
-      .where(
-        and(
-          eq(postHashtagsTable.tag, tag),
-          sql`${postsTable.deletedAt} IS NULL`,
-        ),
-      )
+      .where(and(...conditions))
       .orderBy(desc(postsTable.createdAt))
-      .limit(100);
+      .limit(pag.limit);
     res.json(await buildPosts(rows, me));
   },
 );
@@ -332,14 +367,24 @@ router.get(
 router.get("/users/:id/posts", requireAuth, async (req, res): Promise<void> => {
   const me = getUserId(req);
   const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const pag = parsePagination(req);
+  if ("error" in pag) {
+    res.status(400).json({ error: pag.error });
+    return;
+  }
+  const conditions = [
+    eq(postsTable.authorId, raw),
+    sql`${postsTable.deletedAt} IS NULL`,
+  ];
+  if (pag.before) {
+    conditions.push(lt(postsTable.createdAt, pag.before));
+  }
   const rows = await db
     .select()
     .from(postsTable)
-    .where(
-      and(eq(postsTable.authorId, raw), sql`${postsTable.deletedAt} IS NULL`),
-    )
+    .where(and(...conditions))
     .orderBy(desc(postsTable.createdAt))
-    .limit(100);
+    .limit(pag.limit);
   res.json(await buildPosts(rows, me));
 });
 

@@ -2359,6 +2359,18 @@ export const GetHashtagPostsParams = zod.object({
   tag: zod.coerce.string(),
 });
 
+export const getHashtagPostsQueryLimitDefault = 30;
+export const getHashtagPostsQueryLimitMax = 100;
+
+export const GetHashtagPostsQueryParams = zod.object({
+  before: zod.date().optional(),
+  limit: zod.coerce
+    .number()
+    .min(1)
+    .max(getHashtagPostsQueryLimitMax)
+    .default(getHashtagPostsQueryLimitDefault),
+});
+
 export const GetHashtagPostsResponseItem = zod.object({
   id: zod.number(),
   author: zod.object({
@@ -2397,6 +2409,18 @@ export const GetHashtagPostsResponse = zod.array(GetHashtagPostsResponseItem);
  */
 export const GetUserPostsParams = zod.object({
   id: zod.coerce.string(),
+});
+
+export const getUserPostsQueryLimitDefault = 30;
+export const getUserPostsQueryLimitMax = 100;
+
+export const GetUserPostsQueryParams = zod.object({
+  before: zod.date().optional(),
+  limit: zod.coerce
+    .number()
+    .min(1)
+    .max(getUserPostsQueryLimitMax)
+    .default(getUserPostsQueryLimitDefault),
 });
 
 export const GetUserPostsResponseItem = zod.object({

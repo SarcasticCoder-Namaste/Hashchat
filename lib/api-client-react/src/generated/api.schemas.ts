@@ -1257,6 +1257,24 @@ export type GetMyFeedPostsParams = {
   limit?: number;
 };
 
+export type GetHashtagPostsParams = {
+  before?: string;
+  /**
+   * @minimum 1
+   * @maximum 100
+   */
+  limit?: number;
+};
+
+export type GetUserPostsParams = {
+  before?: string;
+  /**
+   * @minimum 1
+   * @maximum 100
+   */
+  limit?: number;
+};
+
 export type GetLinkPreviewParams = {
   url: string;
 };

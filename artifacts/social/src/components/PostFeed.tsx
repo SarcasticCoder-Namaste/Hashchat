@@ -1,9 +1,9 @@
 import { useEffect, useRef } from "react";
 import { useQueryClient, useInfiniteQuery } from "@tanstack/react-query";
 import {
-  useGetHashtagPosts,
-  useGetUserPosts,
   getMyFeedPosts,
+  getHashtagPosts,
+  getUserPosts,
   getGetHashtagPostsQueryKey,
   getGetUserPostsQueryKey,
   getGetMyFeedPostsQueryKey,
@@ -13,7 +13,7 @@ import { PostCard } from "./PostCard";
 import { Button } from "./ui/button";
 import { Loader2 } from "lucide-react";
 
-const HOME_PAGE_SIZE = 30;
+const PAGE_SIZE = 30;
 
 interface PostFeedProps {
   scope:
@@ -27,35 +27,37 @@ interface PostFeedProps {
 export function PostFeed({ scope, meId, emptyMessage }: PostFeedProps) {
   const qc = useQueryClient();
 
-  const hashtagTag = scope.kind === "hashtag" ? scope.tag : "";
-  const userId = scope.kind === "user" ? scope.userId : "";
-  const hashtagQ = useGetHashtagPosts(hashtagTag, {
-    query: {
-      queryKey: getGetHashtagPostsQueryKey(hashtagTag),
-      enabled: scope.kind === "hashtag",
-      refetchInterval: 8000,
-    },
-  });
-  const userQ = useGetUserPosts(userId, {
-    query: {
-      queryKey: getGetUserPostsQueryKey(userId),
-      enabled: scope.kind === "user",
-    },
-  });
-  const homeQ = useInfiniteQuery({
-    queryKey: getGetMyFeedPostsQueryKey({ limit: HOME_PAGE_SIZE }),
-    enabled: scope.kind === "home",
+  const queryKey =
+    scope.kind === "home"
+      ? getGetMyFeedPostsQueryKey({ limit: PAGE_SIZE })
+      : scope.kind === "hashtag"
+        ? getGetHashtagPostsQueryKey(scope.tag, { limit: PAGE_SIZE })
+        : getGetUserPostsQueryKey(scope.userId, { limit: PAGE_SIZE });
+
+  const refetchInterval =
+    scope.kind === "home" ? 15000 : scope.kind === "hashtag" ? 8000 : false;
+
+  const q = useInfiniteQuery({
+    queryKey,
     initialPageParam: undefined as string | undefined,
-    queryFn: ({ pageParam, signal }) =>
-      getMyFeedPosts(
-        { limit: HOME_PAGE_SIZE, ...(pageParam ? { before: pageParam } : {}) },
-        { signal },
-      ),
+    queryFn: ({ pageParam, signal }) => {
+      const params = {
+        limit: PAGE_SIZE,
+        ...(pageParam ? { before: pageParam } : {}),
+      };
+      if (scope.kind === "home") {
+        return getMyFeedPosts(params, { signal });
+      }
+      if (scope.kind === "hashtag") {
+        return getHashtagPosts(scope.tag, params, { signal });
+      }
+      return getUserPosts(scope.userId, params, { signal });
+    },
     getNextPageParam: (lastPage: Post[]) => {
-      if (!lastPage || lastPage.length < HOME_PAGE_SIZE) return undefined;
+      if (!lastPage || lastPage.length < PAGE_SIZE) return undefined;
       return lastPage[lastPage.length - 1].createdAt;
     },
-    refetchInterval: 15000,
+    refetchInterval,
   });
 
   function invalidate() {
@@ -74,68 +76,20 @@ export function PostFeed({ scope, meId, emptyMessage }: PostFeedProps) {
 
   const sentinelRef = useRef<HTMLDivElement | null>(null);
   useEffect(() => {
-    if (scope.kind !== "home") return;
-    if (!homeQ.hasNextPage || homeQ.isFetchingNextPage) return;
+    if (!q.hasNextPage || q.isFetchingNextPage) return;
     const node = sentinelRef.current;
     if (!node) return;
     const obs = new IntersectionObserver(
       (entries) => {
         if (entries.some((e) => e.isIntersecting)) {
-          homeQ.fetchNextPage();
+          q.fetchNextPage();
         }
       },
       { rootMargin: "300px 0px" },
     );
     obs.observe(node);
     return () => obs.disconnect();
-  }, [scope.kind, homeQ.hasNextPage, homeQ.isFetchingNextPage, homeQ]);
-
-  if (scope.kind === "home") {
-    if (homeQ.isLoading) {
-      return (
-        <div className="flex justify-center py-8">
-          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground/70" />
-        </div>
-      );
-    }
-    const posts = homeQ.data?.pages.flat() ?? [];
-    if (posts.length === 0) {
-      return (
-        <div className="flex justify-center py-8 text-sm text-muted-foreground">
-          {emptyMessage ?? "No posts yet."}
-        </div>
-      );
-    }
-    return (
-      <div className="flex flex-col gap-3" data-testid="post-feed">
-        {posts.map((p) => (
-          <PostCard key={p.id} post={p} meId={meId} onDeleted={invalidate} />
-        ))}
-        {homeQ.hasNextPage ? (
-          <div
-            ref={sentinelRef}
-            className="flex justify-center py-4"
-            data-testid="feed-load-more"
-          >
-            {homeQ.isFetchingNextPage ? (
-              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground/70" />
-            ) : (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => homeQ.fetchNextPage()}
-                data-testid="button-load-more"
-              >
-                Load more
-              </Button>
-            )}
-          </div>
-        ) : null}
-      </div>
-    );
-  }
-
-  const q = scope.kind === "hashtag" ? hashtagQ : userQ;
+  }, [q.hasNextPage, q.isFetchingNextPage, q]);
 
   if (q.isLoading) {
     return (
@@ -144,7 +98,8 @@ export function PostFeed({ scope, meId, emptyMessage }: PostFeedProps) {
       </div>
     );
   }
-  if (!q.data || q.data.length === 0) {
+  const posts = q.data?.pages.flat() ?? [];
+  if (posts.length === 0) {
     return (
       <div className="flex justify-center py-8 text-sm text-muted-foreground">
         {emptyMessage ?? "No posts yet."}
@@ -153,9 +108,29 @@ export function PostFeed({ scope, meId, emptyMessage }: PostFeedProps) {
   }
   return (
     <div className="flex flex-col gap-3" data-testid="post-feed">
-      {q.data.map((p) => (
+      {posts.map((p) => (
         <PostCard key={p.id} post={p} meId={meId} onDeleted={invalidate} />
       ))}
+      {q.hasNextPage ? (
+        <div
+          ref={sentinelRef}
+          className="flex justify-center py-4"
+          data-testid="feed-load-more"
+        >
+          {q.isFetchingNextPage ? (
+            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground/70" />
+          ) : (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => q.fetchNextPage()}
+              data-testid="button-load-more"
+            >
+              Load more
+            </Button>
+          )}
+        </div>
+      ) : null}
     </div>
   );
 }

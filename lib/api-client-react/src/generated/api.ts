@@ -50,6 +50,7 @@ import type {
   GetFollowingFeedParams,
   GetForYouFeedParams,
   GetHashtagAnalyticsParams,
+  GetHashtagPostsParams,
   GetLinkPreviewParams,
   GetMentionSuggestionsParams,
   GetMyBookmarksParams,
@@ -58,6 +59,7 @@ import type {
   GetTrendingHashtagsParams,
   GetTrendingRoomsParams,
   GetUpcomingEventsParams,
+  GetUserPostsParams,
   GetYoutubeReelsParams,
   GifConfigError,
   GifSearchResult,
@@ -8097,22 +8099,41 @@ export function useGetMyFeedPosts<
 /**
  * @summary List posts tagged with this hashtag (most recent first)
  */
-export const getGetHashtagPostsUrl = (tag: string) => {
-  return `/api/hashtags/${tag}/posts`;
+export const getGetHashtagPostsUrl = (
+  tag: string,
+  params?: GetHashtagPostsParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/hashtags/${tag}/posts?${stringifiedParams}`
+    : `/api/hashtags/${tag}/posts`;
 };
 
 export const getHashtagPosts = async (
   tag: string,
+  params?: GetHashtagPostsParams,
   options?: RequestInit,
 ): Promise<Post[]> => {
-  return customFetch<Post[]>(getGetHashtagPostsUrl(tag), {
+  return customFetch<Post[]>(getGetHashtagPostsUrl(tag, params), {
     ...options,
     method: "GET",
   });
 };
 
-export const getGetHashtagPostsQueryKey = (tag: string) => {
-  return [`/api/hashtags/${tag}/posts`] as const;
+export const getGetHashtagPostsQueryKey = (
+  tag: string,
+  params?: GetHashtagPostsParams,
+) => {
+  return [`/api/hashtags/${tag}/posts`, ...(params ? [params] : [])] as const;
 };
 
 export const getGetHashtagPostsQueryOptions = <
@@ -8120,6 +8141,7 @@ export const getGetHashtagPostsQueryOptions = <
   TError = ErrorType<unknown>,
 >(
   tag: string,
+  params?: GetHashtagPostsParams,
   options?: {
     query?: UseQueryOptions<
       Awaited<ReturnType<typeof getHashtagPosts>>,
@@ -8131,11 +8153,12 @@ export const getGetHashtagPostsQueryOptions = <
 ) => {
   const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getGetHashtagPostsQueryKey(tag);
+  const queryKey =
+    queryOptions?.queryKey ?? getGetHashtagPostsQueryKey(tag, params);
 
   const queryFn: QueryFunction<Awaited<ReturnType<typeof getHashtagPosts>>> = ({
     signal,
-  }) => getHashtagPosts(tag, { signal, ...requestOptions });
+  }) => getHashtagPosts(tag, params, { signal, ...requestOptions });
 
   return {
     queryKey,
@@ -8163,6 +8186,7 @@ export function useGetHashtagPosts<
   TError = ErrorType<unknown>,
 >(
   tag: string,
+  params?: GetHashtagPostsParams,
   options?: {
     query?: UseQueryOptions<
       Awaited<ReturnType<typeof getHashtagPosts>>,
@@ -8172,7 +8196,7 @@ export function useGetHashtagPosts<
     request?: SecondParameter<typeof customFetch>;
   },
 ): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
-  const queryOptions = getGetHashtagPostsQueryOptions(tag, options);
+  const queryOptions = getGetHashtagPostsQueryOptions(tag, params, options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;
@@ -8184,22 +8208,38 @@ export function useGetHashtagPosts<
 /**
  * @summary List posts by a user
  */
-export const getGetUserPostsUrl = (id: string) => {
-  return `/api/users/${id}/posts`;
+export const getGetUserPostsUrl = (id: string, params?: GetUserPostsParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/users/${id}/posts?${stringifiedParams}`
+    : `/api/users/${id}/posts`;
 };
 
 export const getUserPosts = async (
   id: string,
+  params?: GetUserPostsParams,
   options?: RequestInit,
 ): Promise<Post[]> => {
-  return customFetch<Post[]>(getGetUserPostsUrl(id), {
+  return customFetch<Post[]>(getGetUserPostsUrl(id, params), {
     ...options,
     method: "GET",
   });
 };
 
-export const getGetUserPostsQueryKey = (id: string) => {
-  return [`/api/users/${id}/posts`] as const;
+export const getGetUserPostsQueryKey = (
+  id: string,
+  params?: GetUserPostsParams,
+) => {
+  return [`/api/users/${id}/posts`, ...(params ? [params] : [])] as const;
 };
 
 export const getGetUserPostsQueryOptions = <
@@ -8207,6 +8247,7 @@ export const getGetUserPostsQueryOptions = <
   TError = ErrorType<unknown>,
 >(
   id: string,
+  params?: GetUserPostsParams,
   options?: {
     query?: UseQueryOptions<
       Awaited<ReturnType<typeof getUserPosts>>,
@@ -8218,11 +8259,12 @@ export const getGetUserPostsQueryOptions = <
 ) => {
   const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getGetUserPostsQueryKey(id);
+  const queryKey =
+    queryOptions?.queryKey ?? getGetUserPostsQueryKey(id, params);
 
   const queryFn: QueryFunction<Awaited<ReturnType<typeof getUserPosts>>> = ({
     signal,
-  }) => getUserPosts(id, { signal, ...requestOptions });
+  }) => getUserPosts(id, params, { signal, ...requestOptions });
 
   return {
     queryKey,
@@ -8250,6 +8292,7 @@ export function useGetUserPosts<
   TError = ErrorType<unknown>,
 >(
   id: string,
+  params?: GetUserPostsParams,
   options?: {
     query?: UseQueryOptions<
       Awaited<ReturnType<typeof getUserPosts>>,
@@ -8259,7 +8302,7 @@ export function useGetUserPosts<
     request?: SecondParameter<typeof customFetch>;
   },
 ): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
-  const queryOptions = getGetUserPostsQueryOptions(id, options);
+  const queryOptions = getGetUserPostsQueryOptions(id, params, options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;
