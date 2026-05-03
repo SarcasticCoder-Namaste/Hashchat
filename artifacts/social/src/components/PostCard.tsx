@@ -64,6 +64,7 @@ export function PostCard({ post, meId, onDeleted, onChanged }: PostCardProps) {
     <article
       className="group flex gap-3 rounded-xl border border-border bg-card p-3"
       data-testid={`post-${post.id}`}
+      aria-label={`Post by ${post.author.displayName}`}
     >
       <Avatar className="h-10 w-10 shrink-0">
         {post.author.avatarUrl ? (
@@ -140,7 +141,7 @@ export function PostCard({ post, meId, onDeleted, onChanged }: PostCardProps) {
               >
                 <img
                   src={u}
-                  alt=""
+                  alt={`Image attached by ${post.author.displayName}`}
                   className="aspect-square w-full object-cover"
                   loading="lazy"
                 />

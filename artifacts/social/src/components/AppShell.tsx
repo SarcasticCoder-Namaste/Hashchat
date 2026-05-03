@@ -33,53 +33,54 @@ import { NotificationsBell } from "@/components/NotificationsBell";
 import { GlobalSearchBar } from "@/components/GlobalSearchBar";
 import { useSyncedPreferences } from "@/lib/serverPreferences";
 import { Bookmark as BookmarkIcon } from "lucide-react";
+import { useTranslation } from "@/lib/i18n";
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
 
 type NavItem = {
   href: string;
-  label: string;
+  labelKey: string;
   icon: typeof Compass;
 };
 
-const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
+const NAV_GROUPS: { labelKey: string; items: NavItem[] }[] = [
   {
-    label: "Explore",
+    labelKey: "nav.explore",
     items: [
-      { href: "/app/home", label: "Home", icon: HomeIcon },
-      { href: "/app/discover", label: "Discover", icon: Compass },
-      { href: "/app/trending", label: "Trending", icon: TrendingUp },
-      { href: "/app/reels", label: "Reels", icon: Film },
+      { href: "/app/home", labelKey: "nav.home", icon: HomeIcon },
+      { href: "/app/discover", labelKey: "nav.discover", icon: Compass },
+      { href: "/app/trending", labelKey: "nav.trending", icon: TrendingUp },
+      { href: "/app/reels", labelKey: "nav.reels", icon: Film },
     ],
   },
   {
-    label: "Chat",
+    labelKey: "nav.chat",
     items: [
-      { href: "/app/rooms", label: "Rooms", icon: Hash },
-      { href: "/app/communities", label: "Communities", icon: Users },
-      { href: "/app/messages", label: "Messages", icon: MessageCircle },
+      { href: "/app/rooms", labelKey: "nav.rooms", icon: Hash },
+      { href: "/app/communities", labelKey: "nav.communities", icon: Users },
+      { href: "/app/messages", labelKey: "nav.messages", icon: MessageCircle },
     ],
   },
   {
-    label: "You",
+    labelKey: "nav.you",
     items: [
-      { href: "/app/friends", label: "Friends", icon: UserPlus },
-      { href: "/app/saved", label: "Saved", icon: BookmarkIcon },
-      { href: "/app/premium", label: "Premium", icon: Sparkles },
-      { href: "/app/settings", label: "Settings", icon: SettingsIcon },
+      { href: "/app/friends", labelKey: "nav.friends", icon: UserPlus },
+      { href: "/app/saved", labelKey: "nav.saved", icon: BookmarkIcon },
+      { href: "/app/premium", labelKey: "nav.premium", icon: Sparkles },
+      { href: "/app/settings", labelKey: "nav.settings", icon: SettingsIcon },
     ],
   },
 ];
 
 const MOBILE_NAV: NavItem[] = [
-  { href: "/app/home", label: "Home", icon: HomeIcon },
-  { href: "/app/discover", label: "Discover", icon: Compass },
-  { href: "/app/reels", label: "Reels", icon: Film },
-  { href: "/app/rooms", label: "Rooms", icon: Hash },
-  { href: "/app/messages", label: "Messages", icon: MessageCircle },
-  { href: "/app/saved", label: "Saved", icon: BookmarkIcon },
-  { href: "/app/friends", label: "Friends", icon: UserPlus },
-  { href: "/app/settings", label: "Settings", icon: SettingsIcon },
+  { href: "/app/home", labelKey: "nav.home", icon: HomeIcon },
+  { href: "/app/discover", labelKey: "nav.discover", icon: Compass },
+  { href: "/app/reels", labelKey: "nav.reels", icon: Film },
+  { href: "/app/rooms", labelKey: "nav.rooms", icon: Hash },
+  { href: "/app/messages", labelKey: "nav.messages", icon: MessageCircle },
+  { href: "/app/saved", labelKey: "nav.saved", icon: BookmarkIcon },
+  { href: "/app/friends", labelKey: "nav.friends", icon: UserPlus },
+  { href: "/app/settings", labelKey: "nav.settings", icon: SettingsIcon },
 ];
 
 function isActive(location: string, href: string): boolean {
@@ -106,12 +107,15 @@ export default function AppShell({ children }: { children: ReactNode }) {
   const isStaff = me?.role === "admin" || me?.role === "moderator";
   useSyncedPreferences();
 
+  const { t } = useTranslation();
   const groups = isStaff
     ? [
         ...NAV_GROUPS.slice(0, 2),
         {
-          label: "Staff",
-          items: [{ href: "/app/admin", label: "Admin", icon: ShieldCheck }],
+          labelKey: "nav.staff",
+          items: [
+            { href: "/app/admin", labelKey: "nav.admin", icon: ShieldCheck },
+          ],
         },
         NAV_GROUPS[2],
       ]
@@ -120,7 +124,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
   const mobileNav = isStaff
     ? [
         ...MOBILE_NAV.slice(0, MOBILE_NAV.length - 1),
-        { href: "/app/admin", label: "Admin", icon: ShieldCheck },
+        { href: "/app/admin", labelKey: "nav.admin", icon: ShieldCheck },
         MOBILE_NAV[MOBILE_NAV.length - 1],
       ]
     : MOBILE_NAV;
@@ -200,21 +204,24 @@ export default function AppShell({ children }: { children: ReactNode }) {
             </span>
           </Link>
 
-          <nav className="flex flex-1 flex-col gap-5">
+          <nav className="flex flex-1 flex-col gap-5" aria-label="Primary">
             {groups.map((group) => (
-              <div key={group.label} className="space-y-1">
+              <div key={group.labelKey} className="space-y-1">
                 <p className="px-3 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
-                  {group.label}
+                  {t(group.labelKey)}
                 </p>
                 <div className="space-y-0.5">
-                  {group.items.map(({ href, label, icon: Icon }) => {
+                  {group.items.map(({ href, labelKey, icon: Icon }) => {
+                    const label = t(labelKey);
                     const active = isActive(location, href);
                     const showBadge = href === "/app/friends" && incomingCount > 0;
                     return (
                       <Link
                         key={href}
                         href={href}
-                        data-testid={`nav-${label.toLowerCase()}`}
+                        data-testid={`nav-${labelKey.split(".").pop()!.toLowerCase()}`}
+                        aria-current={active ? "page" : undefined}
+                        aria-label={label}
                         className={[
                           "relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
                           active
@@ -249,7 +256,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
           </nav>
 
           <div className="mt-4 flex items-center justify-between rounded-lg border border-border/50 bg-card/40 px-3 py-1.5">
-            <span className="text-xs text-muted-foreground">Theme</span>
+            <span className="text-xs text-muted-foreground">{t("common.theme")}</span>
             <ThemeToggle />
           </div>
 
@@ -281,8 +288,9 @@ export default function AppShell({ children }: { children: ReactNode }) {
                 className="mt-2 w-full justify-start text-muted-foreground hover:text-foreground"
                 onClick={() => signOut({ redirectUrl: basePath || "/" })}
                 data-testid="button-signout"
+                aria-label={t("common.signOut")}
               >
-                <LogOut className="mr-2 h-4 w-4" /> Sign out
+                <LogOut className="mr-2 h-4 w-4" /> {t("common.signOut")}
               </Button>
             </div>
           )}
@@ -310,6 +318,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
                 size="sm"
                 onClick={() => signOut({ redirectUrl: basePath || "/" })}
                 data-testid="button-signout-mobile"
+                aria-label={t("common.signOut")}
               >
                 <LogOut className="h-4 w-4" />
               </Button>
@@ -330,15 +339,19 @@ export default function AppShell({ children }: { children: ReactNode }) {
           <nav
             className="sticky bottom-0 z-10 grid border-t border-border bg-card/90 backdrop-blur md:hidden"
             style={{ gridTemplateColumns: `repeat(${mobileNav.length}, minmax(0, 1fr))` }}
+            aria-label="Primary mobile"
           >
-            {mobileNav.map(({ href, label, icon: Icon }) => {
+            {mobileNav.map(({ href, labelKey, icon: Icon }) => {
+              const label = t(labelKey);
               const active = isActive(location, href);
               const showBadge = href === "/app/friends" && incomingCount > 0;
               return (
                 <Link
                   key={href}
                   href={href}
-                  data-testid={`mobnav-${label.toLowerCase()}`}
+                  data-testid={`mobnav-${labelKey.split(".").pop()!.toLowerCase()}`}
+                  aria-current={active ? "page" : undefined}
+                  aria-label={label}
                   className={[
                     "relative flex flex-col items-center gap-0.5 py-2 text-[10px] transition-colors",
                     active ? "text-primary" : "text-muted-foreground hover:text-foreground",

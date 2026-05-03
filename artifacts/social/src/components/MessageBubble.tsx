@@ -147,10 +147,15 @@ export function MessageBubble({
             ].join(" ")}
           >
             {message.imageUrl && (
-              <a href={message.imageUrl} target="_blank" rel="noreferrer">
+              <a
+                href={message.imageUrl}
+                target="_blank"
+                rel="noreferrer"
+                aria-label={`Open image from ${message.senderName}`}
+              >
                 <img
                   src={message.imageUrl}
-                  alt=""
+                  alt={`Image from ${message.senderName}`}
                   className="block max-h-80 w-full object-cover"
                   data-testid={`msg-image-${message.id}`}
                 />
@@ -281,10 +286,16 @@ export function MessageBubble({
           </div>
         )}
         {message.imageUrl && (
-          <a href={message.imageUrl} target="_blank" rel="noreferrer" className="mt-1 block">
+          <a
+            href={message.imageUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="mt-1 block"
+            aria-label={`Open image from ${message.senderName}`}
+          >
             <img
               src={message.imageUrl}
-              alt=""
+              alt={`Image from ${message.senderName}`}
               className="max-h-80 max-w-full rounded-lg object-cover"
               data-testid={`msg-image-${message.id}`}
             />

@@ -13,9 +13,16 @@ export function Toaster() {
 
   return (
     <ToastProvider>
-      {toasts.map(function ({ id, title, description, action, ...props }) {
+      {toasts.map(function ({ id, title, description, action, variant, ...props }) {
+        const isError = variant === "destructive"
         return (
-          <Toast key={id} {...props}>
+          <Toast
+            key={id}
+            variant={variant}
+            role={isError ? "alert" : "status"}
+            aria-live={isError ? "assertive" : "polite"}
+            {...props}
+          >
             <div className="grid gap-1">
               {title && <ToastTitle>{title}</ToastTitle>}
               {description && (

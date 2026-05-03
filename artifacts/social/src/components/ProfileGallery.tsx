@@ -79,7 +79,7 @@ export function ProfileGallery() {
             >
               <img
                 src={p.imageUrl}
-                alt=""
+                alt="Photo from your gallery"
                 className="h-full w-full object-cover transition-transform group-hover:scale-105"
               />
               <button

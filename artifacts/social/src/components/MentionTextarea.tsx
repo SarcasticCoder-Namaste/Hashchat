@@ -27,6 +27,7 @@ interface Props {
   disabled?: boolean;
   autoFocus?: boolean;
   onUserActivity?: () => void;
+  ariaLabel?: string;
 }
 
 export type MentionFieldHandle = {
@@ -47,6 +48,7 @@ export const MentionTextarea = forwardRef<MentionFieldHandle, Props>(
       disabled,
       autoFocus,
       onUserActivity,
+      ariaLabel,
     },
     ref,
   ) {
@@ -159,6 +161,11 @@ export const MentionTextarea = forwardRef<MentionFieldHandle, Props>(
           return;
         }
       }
+      if (e.key === "Enter" && (e.metaKey || e.ctrlKey) && onSubmit) {
+        e.preventDefault();
+        onSubmit();
+        return;
+      }
       if (e.key === "Enter" && !e.shiftKey && variant === "input" && onSubmit) {
         e.preventDefault();
         onSubmit();
@@ -173,6 +180,7 @@ export const MentionTextarea = forwardRef<MentionFieldHandle, Props>(
       placeholder,
       disabled,
       autoFocus,
+      "aria-label": ariaLabel ?? placeholder,
       "data-testid": testId,
     };
 

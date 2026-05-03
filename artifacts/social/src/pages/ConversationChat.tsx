@@ -484,12 +484,14 @@ export default function ConversationChat({ id }: { id: number }) {
               }
             }}
             onUserActivity={pingTyping}
+            ariaLabel="Type a message"
             testId="input-dm-message"
           />
           <Button
             type="submit"
             disabled={!draft.trim() || send.isPending}
             data-testid="button-send-dm"
+            aria-label="Send message"
           >
             {send.isPending ? (
               <Loader2 className="h-4 w-4 animate-spin" />

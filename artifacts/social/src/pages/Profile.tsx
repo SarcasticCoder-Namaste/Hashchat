@@ -45,6 +45,11 @@ import { Kbd } from "@/components/ui/kbd";
 import { ProfileGallery } from "@/components/ProfileGallery";
 import { useToast } from "@/hooks/use-toast";
 import { PREF_KEYS, usePref } from "@/lib/preferences";
+import { useTranslation, SUPPORTED_LOCALES } from "@/lib/i18n";
+import {
+  getReducedMotionPref,
+  setReducedMotionPref,
+} from "@/hooks/useReducedMotion";
 import {
   Tabs,
   TabsContent,
@@ -1125,7 +1130,87 @@ function AppearanceTab() {
           );
         })}
       </div>
+
+      <LanguageAndMotionSection />
     </div>
+  );
+}
+
+function LanguageAndMotionSection() {
+  const { locale, setLocale, t } = useTranslation();
+  const [motionPref, setMotionPrefState] = useState<"system" | "always">(
+    () => getReducedMotionPref(),
+  );
+  return (
+    <section className="space-y-4 border-t border-border pt-5">
+      <div>
+        <h3 className="mb-1 text-sm font-semibold text-foreground">
+          {t("settings.language")}
+        </h3>
+        <p className="text-xs text-muted-foreground">
+          {t("settings.languageDescription")}
+        </p>
+        <div className="mt-2">
+          <Select
+            value={locale}
+            onValueChange={(v) => setLocale(v as "en" | "es")}
+          >
+            <SelectTrigger
+              className="w-full sm:w-72"
+              data-testid="select-language"
+              aria-label={t("settings.language")}
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {SUPPORTED_LOCALES.map((l) => (
+                <SelectItem
+                  key={l.code}
+                  value={l.code}
+                  data-testid={`option-language-${l.code}`}
+                >
+                  {t(l.nameKey)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+      <div>
+        <h3 className="mb-1 text-sm font-semibold text-foreground">
+          {t("settings.reducedMotion")}
+        </h3>
+        <p className="text-xs text-muted-foreground">
+          {t("settings.reducedMotionDescription")}
+        </p>
+        <div className="mt-2">
+          <Select
+            value={motionPref}
+            onValueChange={(v) => {
+              const next = v as "system" | "always";
+              setMotionPrefState(next);
+              setReducedMotionPref(next);
+            }}
+          >
+            <SelectTrigger
+              className="w-full sm:w-72"
+              data-testid="select-reduced-motion"
+              aria-label={t("settings.reducedMotion")}
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="system" data-testid="option-motion-system">
+                {t("settings.followSystem")}
+              </SelectItem>
+              <SelectItem value="always" data-testid="option-motion-always">
+                {t("settings.alwaysOn")}
+              </SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+    </section>
   );
 }
 

@@ -416,12 +416,14 @@ export default function RoomChat({ tag }: { tag: string }) {
               }
             }}
             onUserActivity={pingTyping}
+            ariaLabel={`Message room ${cleanTag}`}
             testId="input-room-message"
           />
           <Button
             type="submit"
             disabled={!draft.trim() || send.isPending}
             data-testid="button-send-room"
+            aria-label="Send message"
           >
             {send.isPending ? (
               <Loader2 className="h-4 w-4 animate-spin" />
