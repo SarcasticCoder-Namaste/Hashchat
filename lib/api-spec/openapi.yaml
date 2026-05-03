@@ -3477,7 +3477,26 @@ components:
         text: { type: string }
         votes: { type: integer }
         votedByMe: { type: boolean }
+        myRank:
+          type: ["integer", "null"]
       required: [id, text, votes, votedByMe]
+
+    PollRound:
+      type: object
+      properties:
+        round: { type: integer }
+        tallies:
+          type: array
+          items:
+            type: object
+            properties:
+              optionId: { type: integer }
+              votes: { type: integer }
+            required: [optionId, votes]
+        eliminated:
+          type: array
+          items: { type: integer }
+      required: [round, tallies, eliminated]
 
     Poll:
       type: object
@@ -3487,18 +3506,28 @@ components:
         creatorId: { type: string }
         creatorName: { type: string }
         question: { type: string }
+        mode: { type: string, enum: [single, multi, ranked] }
+        maxSelections: { type: integer }
         options:
           type: array
           items: { $ref: "#/components/schemas/PollOption" }
         totalVotes: { type: integer }
         myVoteOptionId:
           type: ["integer", "null"]
+        myVoteOptionIds:
+          type: array
+          items: { type: integer }
+        rounds:
+          type: array
+          items: { $ref: "#/components/schemas/PollRound" }
+        winnerOptionId:
+          type: ["integer", "null"]
         expiresAt:
           type: ["string", "null"]
           format: date-time
         isExpired: { type: boolean }
         createdAt: { type: string, format: date-time }
-      required: [id, roomTag, creatorId, creatorName, question, options, totalVotes, isExpired, createdAt]
+      required: [id, roomTag, creatorId, creatorName, question, mode, maxSelections, options, totalVotes, myVoteOptionIds, isExpired, createdAt]
 
     CreatePollBody:
       type: object
@@ -3509,6 +3538,8 @@ components:
           minItems: 2
           maxItems: 6
           items: { type: string, minLength: 1, maxLength: 80 }
+        mode: { type: string, enum: [single, multi, ranked] }
+        maxSelections: { type: integer, minimum: 1, maximum: 6 }
         expiresAt:
           type: ["string", "null"]
           format: date-time
@@ -3518,7 +3549,12 @@ components:
       type: object
       properties:
         optionId: { type: integer }
-      required: [optionId]
+        optionIds:
+          type: array
+          items: { type: integer }
+        rankedOptionIds:
+          type: array
+          items: { type: integer }
 
     LinkPreview:
       type: object

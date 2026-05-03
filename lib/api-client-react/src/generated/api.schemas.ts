@@ -316,11 +316,32 @@ export interface MentionedUser {
   displayName: string;
 }
 
+export type PollMode = (typeof PollMode)[keyof typeof PollMode];
+
+export const PollMode = {
+  single: "single",
+  multi: "multi",
+  ranked: "ranked",
+} as const;
+
 export interface PollOption {
   id: number;
   text: string;
   votes: number;
   votedByMe: boolean;
+  /** @nullable */
+  myRank?: number | null;
+}
+
+export type PollRoundTalliesItem = {
+  optionId: number;
+  votes: number;
+};
+
+export interface PollRound {
+  round: number;
+  tallies: PollRoundTalliesItem[];
+  eliminated: number[];
 }
 
 export interface Poll {
@@ -329,10 +350,16 @@ export interface Poll {
   creatorId: string;
   creatorName: string;
   question: string;
+  mode: PollMode;
+  maxSelections: number;
   options: PollOption[];
   totalVotes: number;
   /** @nullable */
   myVoteOptionId?: number | null;
+  myVoteOptionIds: number[];
+  rounds?: PollRound[];
+  /** @nullable */
+  winnerOptionId?: number | null;
   /** @nullable */
   expiresAt?: string | null;
   isExpired: boolean;
@@ -991,6 +1018,15 @@ export interface PostDraftBody {
   quotedPostId?: number | null;
 }
 
+export type CreatePollBodyMode =
+  (typeof CreatePollBodyMode)[keyof typeof CreatePollBodyMode];
+
+export const CreatePollBodyMode = {
+  single: "single",
+  multi: "multi",
+  ranked: "ranked",
+} as const;
+
 export interface CreatePollBody {
   /**
    * @minLength 1
@@ -1002,12 +1038,20 @@ export interface CreatePollBody {
    * @maxItems 6
    */
   options: string[];
+  mode?: CreatePollBodyMode;
+  /**
+   * @minimum 1
+   * @maximum 6
+   */
+  maxSelections?: number;
   /** @nullable */
   expiresAt?: string | null;
 }
 
 export interface VotePollBody {
-  optionId: number;
+  optionId?: number;
+  optionIds?: number[];
+  rankedOptionIds?: number[];
 }
 
 export interface LinkPreview {

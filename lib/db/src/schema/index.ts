@@ -518,6 +518,8 @@ export const pollsTable = pgTable(
       .notNull()
       .references(() => usersTable.id, { onDelete: "cascade" }),
     question: text("question").notNull(),
+    mode: text("mode").notNull().default("single"),
+    maxSelections: integer("max_selections").notNull().default(1),
     expiresAt: timestamp("expires_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
@@ -551,11 +553,12 @@ export const pollVotesTable = pgTable(
     userId: text("user_id")
       .notNull()
       .references(() => usersTable.id, { onDelete: "cascade" }),
+    rank: integer("rank").notNull().default(1),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
   },
-  (t) => [primaryKey({ columns: [t.pollId, t.userId] })],
+  (t) => [primaryKey({ columns: [t.pollId, t.userId, t.optionId] })],
 );
 
 export const messageAttachmentsTable = pgTable(

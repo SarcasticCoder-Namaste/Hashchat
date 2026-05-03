@@ -485,16 +485,35 @@ export const GetForYouFeedResponseItem = zod.object({
                     creatorId: zod.string(),
                     creatorName: zod.string(),
                     question: zod.string(),
+                    mode: zod.enum(["single", "multi", "ranked"]),
+                    maxSelections: zod.number(),
                     options: zod.array(
                       zod.object({
                         id: zod.number(),
                         text: zod.string(),
                         votes: zod.number(),
                         votedByMe: zod.boolean(),
+                        myRank: zod.number().nullish(),
                       }),
                     ),
                     totalVotes: zod.number(),
                     myVoteOptionId: zod.number().nullish(),
+                    myVoteOptionIds: zod.array(zod.number()),
+                    rounds: zod
+                      .array(
+                        zod.object({
+                          round: zod.number(),
+                          tallies: zod.array(
+                            zod.object({
+                              optionId: zod.number(),
+                              votes: zod.number(),
+                            }),
+                          ),
+                          eliminated: zod.array(zod.number()),
+                        }),
+                      )
+                      .optional(),
+                    winnerOptionId: zod.number().nullish(),
                     expiresAt: zod.coerce.date().nullish(),
                     isExpired: zod.boolean(),
                     createdAt: zod.coerce.date(),
@@ -1440,16 +1459,35 @@ export const GetConversationsResponseItem = zod.object({
               creatorId: zod.string(),
               creatorName: zod.string(),
               question: zod.string(),
+              mode: zod.enum(["single", "multi", "ranked"]),
+              maxSelections: zod.number(),
               options: zod.array(
                 zod.object({
                   id: zod.number(),
                   text: zod.string(),
                   votes: zod.number(),
                   votedByMe: zod.boolean(),
+                  myRank: zod.number().nullish(),
                 }),
               ),
               totalVotes: zod.number(),
               myVoteOptionId: zod.number().nullish(),
+              myVoteOptionIds: zod.array(zod.number()),
+              rounds: zod
+                .array(
+                  zod.object({
+                    round: zod.number(),
+                    tallies: zod.array(
+                      zod.object({
+                        optionId: zod.number(),
+                        votes: zod.number(),
+                      }),
+                    ),
+                    eliminated: zod.array(zod.number()),
+                  }),
+                )
+                .optional(),
+              winnerOptionId: zod.number().nullish(),
               expiresAt: zod.coerce.date().nullish(),
               isExpired: zod.boolean(),
               createdAt: zod.coerce.date(),
@@ -1566,16 +1604,35 @@ export const OpenConversationResponse = zod.object({
               creatorId: zod.string(),
               creatorName: zod.string(),
               question: zod.string(),
+              mode: zod.enum(["single", "multi", "ranked"]),
+              maxSelections: zod.number(),
               options: zod.array(
                 zod.object({
                   id: zod.number(),
                   text: zod.string(),
                   votes: zod.number(),
                   votedByMe: zod.boolean(),
+                  myRank: zod.number().nullish(),
                 }),
               ),
               totalVotes: zod.number(),
               myVoteOptionId: zod.number().nullish(),
+              myVoteOptionIds: zod.array(zod.number()),
+              rounds: zod
+                .array(
+                  zod.object({
+                    round: zod.number(),
+                    tallies: zod.array(
+                      zod.object({
+                        optionId: zod.number(),
+                        votes: zod.number(),
+                      }),
+                    ),
+                    eliminated: zod.array(zod.number()),
+                  }),
+                )
+                .optional(),
+              winnerOptionId: zod.number().nullish(),
               expiresAt: zod.coerce.date().nullish(),
               isExpired: zod.boolean(),
               createdAt: zod.coerce.date(),
@@ -1659,16 +1716,35 @@ export const GetConversationMessagesResponseItem = zod.object({
         creatorId: zod.string(),
         creatorName: zod.string(),
         question: zod.string(),
+        mode: zod.enum(["single", "multi", "ranked"]),
+        maxSelections: zod.number(),
         options: zod.array(
           zod.object({
             id: zod.number(),
             text: zod.string(),
             votes: zod.number(),
             votedByMe: zod.boolean(),
+            myRank: zod.number().nullish(),
           }),
         ),
         totalVotes: zod.number(),
         myVoteOptionId: zod.number().nullish(),
+        myVoteOptionIds: zod.array(zod.number()),
+        rounds: zod
+          .array(
+            zod.object({
+              round: zod.number(),
+              tallies: zod.array(
+                zod.object({
+                  optionId: zod.number(),
+                  votes: zod.number(),
+                }),
+              ),
+              eliminated: zod.array(zod.number()),
+            }),
+          )
+          .optional(),
+        winnerOptionId: zod.number().nullish(),
         expiresAt: zod.coerce.date().nullish(),
         isExpired: zod.boolean(),
         createdAt: zod.coerce.date(),
@@ -1800,16 +1876,35 @@ export const GetMessageRepliesResponse = zod.object({
           creatorId: zod.string(),
           creatorName: zod.string(),
           question: zod.string(),
+          mode: zod.enum(["single", "multi", "ranked"]),
+          maxSelections: zod.number(),
           options: zod.array(
             zod.object({
               id: zod.number(),
               text: zod.string(),
               votes: zod.number(),
               votedByMe: zod.boolean(),
+              myRank: zod.number().nullish(),
             }),
           ),
           totalVotes: zod.number(),
           myVoteOptionId: zod.number().nullish(),
+          myVoteOptionIds: zod.array(zod.number()),
+          rounds: zod
+            .array(
+              zod.object({
+                round: zod.number(),
+                tallies: zod.array(
+                  zod.object({
+                    optionId: zod.number(),
+                    votes: zod.number(),
+                  }),
+                ),
+                eliminated: zod.array(zod.number()),
+              }),
+            )
+            .optional(),
+          winnerOptionId: zod.number().nullish(),
           expiresAt: zod.coerce.date().nullish(),
           isExpired: zod.boolean(),
           createdAt: zod.coerce.date(),
@@ -1876,16 +1971,35 @@ export const GetMessageRepliesResponse = zod.object({
             creatorId: zod.string(),
             creatorName: zod.string(),
             question: zod.string(),
+            mode: zod.enum(["single", "multi", "ranked"]),
+            maxSelections: zod.number(),
             options: zod.array(
               zod.object({
                 id: zod.number(),
                 text: zod.string(),
                 votes: zod.number(),
                 votedByMe: zod.boolean(),
+                myRank: zod.number().nullish(),
               }),
             ),
             totalVotes: zod.number(),
             myVoteOptionId: zod.number().nullish(),
+            myVoteOptionIds: zod.array(zod.number()),
+            rounds: zod
+              .array(
+                zod.object({
+                  round: zod.number(),
+                  tallies: zod.array(
+                    zod.object({
+                      optionId: zod.number(),
+                      votes: zod.number(),
+                    }),
+                  ),
+                  eliminated: zod.array(zod.number()),
+                }),
+              )
+              .optional(),
+            winnerOptionId: zod.number().nullish(),
             expiresAt: zod.coerce.date().nullish(),
             isExpired: zod.boolean(),
             createdAt: zod.coerce.date(),
@@ -2140,16 +2254,35 @@ export const GetRoomsResponseItem = zod.object({
               creatorId: zod.string(),
               creatorName: zod.string(),
               question: zod.string(),
+              mode: zod.enum(["single", "multi", "ranked"]),
+              maxSelections: zod.number(),
               options: zod.array(
                 zod.object({
                   id: zod.number(),
                   text: zod.string(),
                   votes: zod.number(),
                   votedByMe: zod.boolean(),
+                  myRank: zod.number().nullish(),
                 }),
               ),
               totalVotes: zod.number(),
               myVoteOptionId: zod.number().nullish(),
+              myVoteOptionIds: zod.array(zod.number()),
+              rounds: zod
+                .array(
+                  zod.object({
+                    round: zod.number(),
+                    tallies: zod.array(
+                      zod.object({
+                        optionId: zod.number(),
+                        votes: zod.number(),
+                      }),
+                    ),
+                    eliminated: zod.array(zod.number()),
+                  }),
+                )
+                .optional(),
+              winnerOptionId: zod.number().nullish(),
               expiresAt: zod.coerce.date().nullish(),
               isExpired: zod.boolean(),
               createdAt: zod.coerce.date(),
@@ -2244,16 +2377,35 @@ export const GetTrendingRoomsResponseItem = zod.object({
               creatorId: zod.string(),
               creatorName: zod.string(),
               question: zod.string(),
+              mode: zod.enum(["single", "multi", "ranked"]),
+              maxSelections: zod.number(),
               options: zod.array(
                 zod.object({
                   id: zod.number(),
                   text: zod.string(),
                   votes: zod.number(),
                   votedByMe: zod.boolean(),
+                  myRank: zod.number().nullish(),
                 }),
               ),
               totalVotes: zod.number(),
               myVoteOptionId: zod.number().nullish(),
+              myVoteOptionIds: zod.array(zod.number()),
+              rounds: zod
+                .array(
+                  zod.object({
+                    round: zod.number(),
+                    tallies: zod.array(
+                      zod.object({
+                        optionId: zod.number(),
+                        votes: zod.number(),
+                      }),
+                    ),
+                    eliminated: zod.array(zod.number()),
+                  }),
+                )
+                .optional(),
+              winnerOptionId: zod.number().nullish(),
               expiresAt: zod.coerce.date().nullish(),
               isExpired: zod.boolean(),
               createdAt: zod.coerce.date(),
@@ -2338,16 +2490,35 @@ export const GetRoomMessagesResponseItem = zod.object({
         creatorId: zod.string(),
         creatorName: zod.string(),
         question: zod.string(),
+        mode: zod.enum(["single", "multi", "ranked"]),
+        maxSelections: zod.number(),
         options: zod.array(
           zod.object({
             id: zod.number(),
             text: zod.string(),
             votes: zod.number(),
             votedByMe: zod.boolean(),
+            myRank: zod.number().nullish(),
           }),
         ),
         totalVotes: zod.number(),
         myVoteOptionId: zod.number().nullish(),
+        myVoteOptionIds: zod.array(zod.number()),
+        rounds: zod
+          .array(
+            zod.object({
+              round: zod.number(),
+              tallies: zod.array(
+                zod.object({
+                  optionId: zod.number(),
+                  votes: zod.number(),
+                }),
+              ),
+              eliminated: zod.array(zod.number()),
+            }),
+          )
+          .optional(),
+        winnerOptionId: zod.number().nullish(),
         expiresAt: zod.coerce.date().nullish(),
         isExpired: zod.boolean(),
         createdAt: zod.coerce.date(),
@@ -3722,16 +3893,35 @@ export const GetRoomPollsResponseItem = zod.object({
   creatorId: zod.string(),
   creatorName: zod.string(),
   question: zod.string(),
+  mode: zod.enum(["single", "multi", "ranked"]),
+  maxSelections: zod.number(),
   options: zod.array(
     zod.object({
       id: zod.number(),
       text: zod.string(),
       votes: zod.number(),
       votedByMe: zod.boolean(),
+      myRank: zod.number().nullish(),
     }),
   ),
   totalVotes: zod.number(),
   myVoteOptionId: zod.number().nullish(),
+  myVoteOptionIds: zod.array(zod.number()),
+  rounds: zod
+    .array(
+      zod.object({
+        round: zod.number(),
+        tallies: zod.array(
+          zod.object({
+            optionId: zod.number(),
+            votes: zod.number(),
+          }),
+        ),
+        eliminated: zod.array(zod.number()),
+      }),
+    )
+    .optional(),
+  winnerOptionId: zod.number().nullish(),
   expiresAt: zod.coerce.date().nullish(),
   isExpired: zod.boolean(),
   createdAt: zod.coerce.date(),
@@ -3752,12 +3942,20 @@ export const createRoomPollBodyOptionsItemMax = 80;
 export const createRoomPollBodyOptionsMin = 2;
 export const createRoomPollBodyOptionsMax = 6;
 
+export const createRoomPollBodyMaxSelectionsMax = 6;
+
 export const CreateRoomPollBody = zod.object({
   question: zod.string().min(1).max(createRoomPollBodyQuestionMax),
   options: zod
     .array(zod.string().min(1).max(createRoomPollBodyOptionsItemMax))
     .min(createRoomPollBodyOptionsMin)
     .max(createRoomPollBodyOptionsMax),
+  mode: zod.enum(["single", "multi", "ranked"]).optional(),
+  maxSelections: zod
+    .number()
+    .min(1)
+    .max(createRoomPollBodyMaxSelectionsMax)
+    .optional(),
   expiresAt: zod.coerce.date().nullish(),
 });
 
@@ -3769,7 +3967,9 @@ export const VotePollParams = zod.object({
 });
 
 export const VotePollBody = zod.object({
-  optionId: zod.number(),
+  optionId: zod.number().optional(),
+  optionIds: zod.array(zod.number()).optional(),
+  rankedOptionIds: zod.array(zod.number()).optional(),
 });
 
 export const VotePollResponse = zod.object({
@@ -3778,16 +3978,35 @@ export const VotePollResponse = zod.object({
   creatorId: zod.string(),
   creatorName: zod.string(),
   question: zod.string(),
+  mode: zod.enum(["single", "multi", "ranked"]),
+  maxSelections: zod.number(),
   options: zod.array(
     zod.object({
       id: zod.number(),
       text: zod.string(),
       votes: zod.number(),
       votedByMe: zod.boolean(),
+      myRank: zod.number().nullish(),
     }),
   ),
   totalVotes: zod.number(),
   myVoteOptionId: zod.number().nullish(),
+  myVoteOptionIds: zod.array(zod.number()),
+  rounds: zod
+    .array(
+      zod.object({
+        round: zod.number(),
+        tallies: zod.array(
+          zod.object({
+            optionId: zod.number(),
+            votes: zod.number(),
+          }),
+        ),
+        eliminated: zod.array(zod.number()),
+      }),
+    )
+    .optional(),
+  winnerOptionId: zod.number().nullish(),
   expiresAt: zod.coerce.date().nullish(),
   isExpired: zod.boolean(),
   createdAt: zod.coerce.date(),
@@ -4099,16 +4318,35 @@ export const GetCommunityResponse = zod.object({
                   creatorId: zod.string(),
                   creatorName: zod.string(),
                   question: zod.string(),
+                  mode: zod.enum(["single", "multi", "ranked"]),
+                  maxSelections: zod.number(),
                   options: zod.array(
                     zod.object({
                       id: zod.number(),
                       text: zod.string(),
                       votes: zod.number(),
                       votedByMe: zod.boolean(),
+                      myRank: zod.number().nullish(),
                     }),
                   ),
                   totalVotes: zod.number(),
                   myVoteOptionId: zod.number().nullish(),
+                  myVoteOptionIds: zod.array(zod.number()),
+                  rounds: zod
+                    .array(
+                      zod.object({
+                        round: zod.number(),
+                        tallies: zod.array(
+                          zod.object({
+                            optionId: zod.number(),
+                            votes: zod.number(),
+                          }),
+                        ),
+                        eliminated: zod.array(zod.number()),
+                      }),
+                    )
+                    .optional(),
+                  winnerOptionId: zod.number().nullish(),
                   expiresAt: zod.coerce.date().nullish(),
                   isExpired: zod.boolean(),
                   createdAt: zod.coerce.date(),
@@ -4279,16 +4517,35 @@ export const JoinCommunityResponse = zod.object({
                   creatorId: zod.string(),
                   creatorName: zod.string(),
                   question: zod.string(),
+                  mode: zod.enum(["single", "multi", "ranked"]),
+                  maxSelections: zod.number(),
                   options: zod.array(
                     zod.object({
                       id: zod.number(),
                       text: zod.string(),
                       votes: zod.number(),
                       votedByMe: zod.boolean(),
+                      myRank: zod.number().nullish(),
                     }),
                   ),
                   totalVotes: zod.number(),
                   myVoteOptionId: zod.number().nullish(),
+                  myVoteOptionIds: zod.array(zod.number()),
+                  rounds: zod
+                    .array(
+                      zod.object({
+                        round: zod.number(),
+                        tallies: zod.array(
+                          zod.object({
+                            optionId: zod.number(),
+                            votes: zod.number(),
+                          }),
+                        ),
+                        eliminated: zod.array(zod.number()),
+                      }),
+                    )
+                    .optional(),
+                  winnerOptionId: zod.number().nullish(),
                   expiresAt: zod.coerce.date().nullish(),
                   isExpired: zod.boolean(),
                   createdAt: zod.coerce.date(),
@@ -4459,16 +4716,35 @@ export const LeaveCommunityResponse = zod.object({
                   creatorId: zod.string(),
                   creatorName: zod.string(),
                   question: zod.string(),
+                  mode: zod.enum(["single", "multi", "ranked"]),
+                  maxSelections: zod.number(),
                   options: zod.array(
                     zod.object({
                       id: zod.number(),
                       text: zod.string(),
                       votes: zod.number(),
                       votedByMe: zod.boolean(),
+                      myRank: zod.number().nullish(),
                     }),
                   ),
                   totalVotes: zod.number(),
                   myVoteOptionId: zod.number().nullish(),
+                  myVoteOptionIds: zod.array(zod.number()),
+                  rounds: zod
+                    .array(
+                      zod.object({
+                        round: zod.number(),
+                        tallies: zod.array(
+                          zod.object({
+                            optionId: zod.number(),
+                            votes: zod.number(),
+                          }),
+                        ),
+                        eliminated: zod.array(zod.number()),
+                      }),
+                    )
+                    .optional(),
+                  winnerOptionId: zod.number().nullish(),
                   expiresAt: zod.coerce.date().nullish(),
                   isExpired: zod.boolean(),
                   createdAt: zod.coerce.date(),

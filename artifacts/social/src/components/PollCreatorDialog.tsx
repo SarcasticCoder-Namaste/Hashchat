@@ -27,8 +27,16 @@ import { Loader2, Plus, Trash2 } from "lucide-react";
 const EXPIRY_OPTIONS = [
   { value: "0", label: "No expiration" },
   { value: "1", label: "1 hour" },
+  { value: "6", label: "6 hours" },
   { value: "24", label: "1 day" },
+  { value: "72", label: "3 days" },
   { value: "168", label: "1 week" },
+];
+
+const MODE_OPTIONS = [
+  { value: "single", label: "Single choice" },
+  { value: "multi", label: "Multi-select" },
+  { value: "ranked", label: "Ranked choice" },
 ];
 
 interface PollCreatorDialogProps {
@@ -42,6 +50,8 @@ export function PollCreatorDialog({ tag, trigger }: PollCreatorDialogProps) {
   const [question, setQuestion] = useState("");
   const [options, setOptions] = useState<string[]>(["", ""]);
   const [expiresHours, setExpiresHours] = useState("0");
+  const [mode, setMode] = useState<"single" | "multi" | "ranked">("single");
+  const [maxSelections, setMaxSelections] = useState("2");
 
   const create = useCreateRoomPoll({
     mutation: {
@@ -51,6 +61,8 @@ export function PollCreatorDialog({ tag, trigger }: PollCreatorDialogProps) {
         setQuestion("");
         setOptions(["", ""]);
         setExpiresHours("0");
+        setMode("single");
+        setMaxSelections("2");
       },
     },
   });
@@ -61,16 +73,29 @@ export function PollCreatorDialog({ tag, trigger }: PollCreatorDialogProps) {
     if (!question.trim() || cleaned.length < 2) return;
     const hours = parseInt(expiresHours, 10);
     const expiresAt =
-      hours > 0 ? new Date(Date.now() + hours * 3600 * 1000).toISOString() : undefined;
+      hours > 0
+        ? new Date(Date.now() + hours * 3600 * 1000).toISOString()
+        : undefined;
+    const ms = parseInt(maxSelections, 10);
     create.mutate({
       tag,
       data: {
         question: question.trim(),
         options: cleaned,
+        mode,
+        ...(mode === "multi"
+          ? { maxSelections: Math.min(ms, cleaned.length) }
+          : {}),
         ...(expiresAt ? { expiresAt } : {}),
       },
     });
   }
+
+  const cleanedCount = options.filter((o) => o.trim()).length;
+  const maxSelOptions = Array.from(
+    { length: Math.max(2, Math.min(6, cleanedCount || 2) - 1) },
+    (_, i) => String(i + 2),
+  );
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -140,6 +165,47 @@ export function PollCreatorDialog({ tag, trigger }: PollCreatorDialogProps) {
               </Button>
             )}
           </div>
+          <div className="flex flex-col gap-1">
+            <Label htmlFor="poll-mode">Voting mode</Label>
+            <Select
+              value={mode}
+              onValueChange={(v) => setMode(v as typeof mode)}
+            >
+              <SelectTrigger id="poll-mode" data-testid="select-poll-mode">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {MODE_OPTIONS.map((o) => (
+                  <SelectItem key={o.value} value={o.value}>
+                    {o.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          {mode === "multi" && (
+            <div className="flex flex-col gap-1">
+              <Label htmlFor="poll-max-selections">Max selectable</Label>
+              <Select
+                value={maxSelections}
+                onValueChange={setMaxSelections}
+              >
+                <SelectTrigger
+                  id="poll-max-selections"
+                  data-testid="select-poll-max-selections"
+                >
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {maxSelOptions.map((v) => (
+                    <SelectItem key={v} value={v}>
+                      Up to {v}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
           <div className="flex flex-col gap-1">
             <Label htmlFor="poll-expires">Expires</Label>
             <Select value={expiresHours} onValueChange={setExpiresHours}>
