@@ -466,6 +466,12 @@ export interface Message {
   /** @nullable */
   readByOther?: boolean | null;
   poll?: Poll | null;
+  /** @nullable */
+  pinnedAt?: string | null;
+  /** @nullable */
+  lockedAt?: string | null;
+  /** @nullable */
+  removedAt?: string | null;
   createdAt: string;
   /** user | system */
   kind: string;
@@ -1093,6 +1099,19 @@ export const PostStatus = {
   published: "published",
 } as const;
 
+export type PostPinnedInScopesItemScopeType =
+  (typeof PostPinnedInScopesItemScopeType)[keyof typeof PostPinnedInScopesItemScopeType];
+
+export const PostPinnedInScopesItemScopeType = {
+  room: "room",
+  community: "community",
+} as const;
+
+export type PostPinnedInScopesItem = {
+  scopeType: PostPinnedInScopesItemScopeType;
+  scopeKey: string;
+};
+
 export interface QuotedPost {
   id: number;
   author?: PostAuthor;
@@ -1132,6 +1151,11 @@ export interface Post {
   replyToAuthorDisplayName?: string | null;
   /** @nullable */
   replyToContent?: string | null;
+  /** @nullable */
+  lockedAt?: string | null;
+  /** @nullable */
+  removedAt?: string | null;
+  pinnedInScopes?: PostPinnedInScopesItem[];
   createdAt: string;
 }
 
@@ -1354,8 +1378,23 @@ export interface Community {
   memberCount: number;
   hashtags: string[];
   isMember: boolean;
+  slowModeSeconds: number;
   createdAt: string;
 }
+
+/**
+ * @nullable
+ */
+export type CommunityDetailMyRole =
+  | (typeof CommunityDetailMyRole)[keyof typeof CommunityDetailMyRole]
+  | null;
+
+export const CommunityDetailMyRole = {
+  owner: "owner",
+  moderator: "moderator",
+  member: "member",
+  null: "null",
+} as const;
 
 export interface CommunityDetail {
   id: number;
@@ -1373,6 +1412,11 @@ export interface CommunityDetail {
   rooms: Room[];
   isMember: boolean;
   canEdit: boolean;
+  canModerate: boolean;
+  /** @nullable */
+  myRole?: CommunityDetailMyRole;
+  slowModeSeconds: number;
+  moderators: MatchUser[];
   createdAt: string;
 }
 
@@ -1399,7 +1443,9 @@ export interface RoomVisibility {
   /** @nullable */
   ownerId?: string | null;
   canManage: boolean;
+  canModerate: boolean;
   isMember: boolean;
+  slowModeSeconds: number;
 }
 
 export interface SetRoomVisibilityBody {
@@ -1580,6 +1626,10 @@ export const NotificationKind = {
   event_starting: "event_starting",
   scheduled_post_published: "scheduled_post_published",
   post_milestone: "post_milestone",
+  report_resolved: "report_resolved",
+  moderation_action: "moderation_action",
+  mod_promoted: "mod_promoted",
+  post_pinned: "post_pinned",
 } as const;
 
 /**
@@ -1595,6 +1645,9 @@ export const NotificationTargetType = {
   conversation: "conversation",
   user: "user",
   event: "event",
+  room: "room",
+  community: "community",
+  report: "report",
   null: "null",
 } as const;
 
@@ -1725,6 +1778,111 @@ export interface TypingResponse {
 export interface MarkConversationReadBody {
   /** @nullable */
   messageId?: number | null;
+}
+
+export type SetSlowModeBodySeconds =
+  (typeof SetSlowModeBodySeconds)[keyof typeof SetSlowModeBodySeconds];
+
+export const SetSlowModeBodySeconds = {
+  NUMBER_0: 0,
+  NUMBER_10: 10,
+  NUMBER_30: 30,
+  NUMBER_60: 60,
+  NUMBER_300: 300,
+} as const;
+
+export interface SetSlowModeBody {
+  seconds: SetSlowModeBodySeconds;
+}
+
+export interface AddModeratorBody {
+  userId: string;
+}
+
+export type ModerationScopeBodyScopeType =
+  (typeof ModerationScopeBodyScopeType)[keyof typeof ModerationScopeBodyScopeType];
+
+export const ModerationScopeBodyScopeType = {
+  room: "room",
+  community: "community",
+} as const;
+
+export interface ModerationScopeBody {
+  scopeType: ModerationScopeBodyScopeType;
+  scopeKey: string;
+}
+
+export type CreateReportBodyScopeType =
+  (typeof CreateReportBodyScopeType)[keyof typeof CreateReportBodyScopeType];
+
+export const CreateReportBodyScopeType = {
+  room: "room",
+  community: "community",
+} as const;
+
+export type CreateReportBodyTargetType =
+  (typeof CreateReportBodyTargetType)[keyof typeof CreateReportBodyTargetType];
+
+export const CreateReportBodyTargetType = {
+  post: "post",
+  message: "message",
+} as const;
+
+export interface CreateReportBody {
+  scopeType: CreateReportBodyScopeType;
+  scopeKey: string;
+  targetType: CreateReportBodyTargetType;
+  targetId: number;
+  /**
+   * @minLength 1
+   * @maxLength 280
+   */
+  reason: string;
+}
+
+export type ResolveReportBodyAction =
+  (typeof ResolveReportBodyAction)[keyof typeof ResolveReportBodyAction];
+
+export const ResolveReportBodyAction = {
+  dismiss: "dismiss",
+  remove: "remove",
+  lock: "lock",
+} as const;
+
+export interface ResolveReportBody {
+  action: ResolveReportBodyAction;
+  /** @nullable */
+  note?: string | null;
+}
+
+export type ReportStatus = (typeof ReportStatus)[keyof typeof ReportStatus];
+
+export const ReportStatus = {
+  open: "open",
+  resolved: "resolved",
+  dismissed: "dismissed",
+} as const;
+
+export interface Report {
+  id: number;
+  scopeType: string;
+  scopeKey: string;
+  targetType: string;
+  targetId: number;
+  reason: string;
+  status: ReportStatus;
+  reporter?: NotificationActor | null;
+  /** @nullable */
+  targetSnippet?: string | null;
+  /** @nullable */
+  targetAuthorName?: string | null;
+  /** @nullable */
+  resolvedBy?: string | null;
+  /** @nullable */
+  resolvedAt?: string | null;
+  /** @nullable */
+  resolution?: string | null;
+  createdAt: string;
 }
 
 export type GetTrendingHashtagsParams = {

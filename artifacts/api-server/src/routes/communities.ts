@@ -19,6 +19,7 @@ import {
   publicCurrentRoom,
   publicLastSeenAt,
 } from "../lib/presence";
+import { getCommunityModerationAccess } from "../lib/moderation";
 
 const router: IRouter = Router();
 
@@ -272,6 +273,12 @@ async function buildCommunityDetail(
   const creator = members.find((m) => m.id === c.creatorId) ?? null;
   const isMember = members.some((m) => m.id === myId);
   const canEdit = c.creatorId === myId;
+  const modAccess = await getCommunityModerationAccess(c.slug, myId);
+  const moderators = members.filter((m) => {
+    if (m.id === c.creatorId) return true;
+    const row = memberRows.find((r) => r.id === m.id);
+    return row?.role === "moderator";
+  });
 
   // Build rooms
   const privateTags = await loadPrivateTags(tags);
@@ -332,6 +339,10 @@ async function buildCommunityDetail(
     rooms,
     isMember,
     canEdit,
+    canModerate: modAccess.canModerate,
+    myRole: modAccess.myRole,
+    slowModeSeconds: c.slowModeSeconds ?? 0,
+    moderators,
     createdAt: c.createdAt.toISOString(),
   };
 }

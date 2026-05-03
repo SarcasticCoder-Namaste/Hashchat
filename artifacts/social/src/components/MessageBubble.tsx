@@ -12,13 +12,14 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { Reply, Smile, CornerDownRight, MessageSquare, Check, CheckCheck } from "lucide-react";
+import { Reply, Smile, CornerDownRight, MessageSquare, Check, CheckCheck, Lock } from "lucide-react";
 import { GifMedia, isGifUrl } from "./GifMedia";
 import { LinkPreviewCard } from "./LinkPreviewCard";
 import { PollCard } from "./PollCard";
 import { WaveformPlayer } from "./WaveformPlayer";
 import { BookmarkButton } from "./BookmarkButton";
 import { renderRichContent } from "@/lib/mentions";
+import { ModerationMenu, type ModerationScope } from "./ModerationMenu";
 
 const QUICK_REACTIONS = ["👍", "❤️", "😂", "😮", "😢", "🔥", "🎉", "🙌"];
 
@@ -30,6 +31,8 @@ interface MessageBubbleProps {
   onInvalidate: () => void;
   onOpenThread?: (m: Message) => void;
   showReadReceipt?: boolean;
+  scope?: ModerationScope;
+  canModerate?: boolean;
 }
 
 export function MessageBubble({
@@ -40,6 +43,8 @@ export function MessageBubble({
   onInvalidate,
   onOpenThread,
   showReadReceipt,
+  scope,
+  canModerate,
 }: MessageBubbleProps) {
   const [pickerOpen, setPickerOpen] = useState(false);
   const add = useAddMessageReaction({
@@ -49,7 +54,25 @@ export function MessageBubble({
     mutation: { onSuccess: onInvalidate },
   });
 
+  const isRemoved = !!message.removedAt;
+  const isLocked = !!message.lockedAt;
+
+  if (isRemoved && !canModerate) {
+    return (
+      <div
+        className={[
+          "text-xs italic text-muted-foreground",
+          variant === "dm" ? (isMine ? "text-right" : "text-left") : "px-3",
+        ].join(" ")}
+        data-testid={`msg-removed-${message.id}`}
+      >
+        [Message removed by moderator]
+      </div>
+    );
+  }
+
   function toggleEmoji(emoji: string, mine: boolean) {
+    if (isLocked) return;
     if (mine) {
       remove.mutate({ id: message.id, params: { emoji } });
     } else {
@@ -283,6 +306,11 @@ export function MessageBubble({
           setPickerOpen={setPickerOpen}
           onReply={() => onReply(message)}
           onPick={(e) => toggleEmoji(e, false)}
+          scope={scope}
+          canModerate={canModerate}
+          isLocked={isLocked}
+          isRemoved={isRemoved}
+          onChanged={onInvalidate}
         />
       </motion.div>
     );
@@ -415,6 +443,11 @@ export function MessageBubble({
         setPickerOpen={setPickerOpen}
         onReply={() => onReply(message)}
         onPick={(e) => toggleEmoji(e, false)}
+        scope={scope}
+        canModerate={canModerate}
+        isLocked={isLocked}
+        isRemoved={isRemoved}
+        onChanged={onInvalidate}
       />
     </motion.div>
   );
@@ -463,15 +496,30 @@ function MessageActions({
   setPickerOpen,
   onReply,
   onPick,
+  scope,
+  canModerate,
+  isLocked,
+  isRemoved,
+  onChanged,
 }: {
   messageId: number;
   pickerOpen: boolean;
   setPickerOpen: (v: boolean) => void;
   onReply: () => void;
   onPick: (emoji: string) => void;
+  scope?: ModerationScope;
+  canModerate?: boolean;
+  isLocked?: boolean;
+  isRemoved?: boolean;
+  onChanged?: () => void;
 }) {
   return (
     <div className="flex items-start gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
+      {isLocked && (
+        <span title="Locked" className="px-1 pt-1 text-amber-500" data-testid={`msg-lock-badge-${messageId}`}>
+          <Lock className="h-3 w-3" />
+        </span>
+      )}
       <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
         <PopoverTrigger asChild>
           <Button
@@ -479,6 +527,7 @@ function MessageActions({
             variant="ghost"
             size="icon"
             className="h-7 w-7"
+            disabled={isLocked}
             data-testid="button-react"
             aria-label="Add reaction"
           >
@@ -509,12 +558,22 @@ function MessageActions({
         size="icon"
         className="h-7 w-7"
         onClick={onReply}
+        disabled={isLocked}
         data-testid="button-reply"
         aria-label="Reply"
       >
         <Reply className="h-3.5 w-3.5" />
       </Button>
       <BookmarkButton kind="message" targetId={messageId} />
+      <ModerationMenu
+        kind="message"
+        targetId={messageId}
+        scope={scope}
+        canModerate={canModerate}
+        isLocked={isLocked}
+        isRemoved={isRemoved}
+        onChanged={onChanged}
+      />
     </div>
   );
 }

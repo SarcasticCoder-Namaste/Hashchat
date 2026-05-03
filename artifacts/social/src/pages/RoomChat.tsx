@@ -11,12 +11,15 @@ import {
   useRequestRoomJoin,
   useGetRoomTyping,
   usePingRoomTyping,
+  useGetRoomVisibility,
+  useGetRoomPinnedPosts,
   getGetRoomMessagesQueryKey,
   getGetRoomTypingQueryKey,
   getGetHashtagQueryKey,
   getGetMyFollowedHashtagsQueryKey,
   getGetRoomsQueryKey,
   getGetHashtagPostsQueryKey,
+  getGetRoomPinnedPostsQueryKey,
   type Message,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -47,7 +50,10 @@ import {
   BarChart3,
   Settings as SettingsIcon,
   Lock,
+  Pin,
+  Timer,
 } from "lucide-react";
+import { PostCard } from "@/components/PostCard";
 
 export default function RoomChat({ tag }: { tag: string }) {
   const cleanTag = decodeURIComponent(tag).toLowerCase().replace(/^#/, "");
@@ -66,6 +72,28 @@ export default function RoomChat({ tag }: { tag: string }) {
   const isPrivate = detail?.isPrivate ?? false;
   const isMember = detail?.isMember ?? false;
   const isLocked = isPrivate && !isMember;
+
+  const visibilityQ = useGetRoomVisibility(cleanTag, {
+    query: {
+      queryKey: ["roomVisibility", cleanTag] as const,
+      enabled: !isLocked,
+    },
+  });
+  const canModerate = visibilityQ.data?.canModerate ?? false;
+  const slowModeSeconds = visibilityQ.data?.slowModeSeconds ?? 0;
+  const [slowCooldown, setSlowCooldown] = useState(0);
+  useEffect(() => {
+    if (slowCooldown <= 0) return;
+    const t = setInterval(() => setSlowCooldown((v) => Math.max(0, v - 1)), 1000);
+    return () => clearInterval(t);
+  }, [slowCooldown]);
+
+  const pinnedQ = useGetRoomPinnedPosts(cleanTag, {
+    query: {
+      queryKey: getGetRoomPinnedPostsQueryKey(cleanTag),
+      enabled: !isLocked,
+    },
+  });
 
   const messagesQ = useGetRoomMessages(cleanTag, {
     query: {
@@ -97,6 +125,28 @@ export default function RoomChat({ tag }: { tag: string }) {
         setDraft("");
         setReplyTo(null);
         invalidateMessages();
+        if (slowModeSeconds > 0 && !canModerate) {
+          setSlowCooldown(slowModeSeconds);
+        }
+      },
+      onError: (err: unknown) => {
+        const e = err as {
+          status?: number;
+          data?: { message?: string; retryAfterSeconds?: number };
+        };
+        if (e?.status === 429) {
+          const wait = e.data?.retryAfterSeconds ?? slowModeSeconds;
+          setSlowCooldown(wait);
+          toast({
+            title: "Slow mode",
+            description: `Please wait ${wait}s before sending another message.`,
+            variant: "destructive",
+          });
+        } else if (e?.status === 403 && e.data?.message?.toLowerCase().includes("lock")) {
+          toast({ title: "This thread is locked", variant: "destructive" });
+        } else {
+          toast({ title: e?.data?.message ?? "Could not send", variant: "destructive" });
+        }
       },
     },
   });
@@ -148,10 +198,12 @@ export default function RoomChat({ tag }: { tag: string }) {
     setDraft("");
   }, [cleanTag]);
 
+  const sendDisabled = slowCooldown > 0 && !canModerate;
+
   function submit(e: React.FormEvent) {
     e.preventDefault();
     const content = draft.trim();
-    if (!content || send.isPending) return;
+    if (!content || send.isPending || sendDisabled) return;
     send.mutate({
       tag: cleanTag,
       data: { content, replyToId: replyTo?.id ?? null },
@@ -227,6 +279,15 @@ export default function RoomChat({ tag }: { tag: string }) {
             {detail && detail.recentMessages > 0 && (
               <span className="rounded-full bg-pink-500/15 px-1.5 py-0.5 text-pink-500">
                 {detail.recentMessages} new
+              </span>
+            )}
+            {slowModeSeconds > 0 && (
+              <span
+                className="inline-flex items-center gap-0.5 rounded-full bg-amber-500/15 px-1.5 py-0.5 text-amber-600 dark:text-amber-400"
+                data-testid="slow-mode-badge"
+                title={`Slow mode: ${slowModeSeconds}s between messages`}
+              >
+                <Timer className="h-3 w-3" /> {slowModeSeconds}s
               </span>
             )}
           </p>
@@ -348,6 +409,8 @@ export default function RoomChat({ tag }: { tag: string }) {
                 onReply={startReply}
                 onInvalidate={invalidateMessages}
                 onOpenThread={openThread}
+                scope={{ type: "room", key: cleanTag }}
+                canModerate={canModerate}
               />
             ))}
           </div>
@@ -426,12 +489,18 @@ export default function RoomChat({ tag }: { tag: string }) {
           />
           <Button
             type="submit"
-            disabled={!draft.trim() || send.isPending}
+            disabled={!draft.trim() || send.isPending || sendDisabled}
             data-testid="button-send-room"
             aria-label="Send message"
+            title={sendDisabled ? `Slow mode: wait ${slowCooldown}s` : undefined}
           >
             {send.isPending ? (
               <Loader2 className="h-4 w-4 animate-spin" />
+            ) : sendDisabled ? (
+              <span className="flex items-center gap-1 text-xs">
+                <Timer className="h-3.5 w-3.5" />
+                {slowCooldown}s
+              </span>
             ) : (
               <Send className="h-4 w-4" />
             )}
@@ -467,10 +536,31 @@ export default function RoomChat({ tag }: { tag: string }) {
                     })
                   }
                 />
+                {pinnedQ.data && pinnedQ.data.length > 0 && (
+                  <div className="space-y-2" data-testid="pinned-posts-strip">
+                    <p className="flex items-center gap-1 text-xs font-semibold uppercase text-muted-foreground">
+                      <Pin className="h-3 w-3" /> Pinned
+                    </p>
+                    {pinnedQ.data.map((p) => (
+                      <PostCard
+                        key={`pinned-${p.id}`}
+                        post={p}
+                        meId={meId}
+                        scope={{ type: "room", key: cleanTag }}
+                        canModerate={canModerate}
+                        onChanged={() => {
+                          qc.invalidateQueries({ queryKey: getGetRoomPinnedPostsQueryKey(cleanTag) });
+                          qc.invalidateQueries({ queryKey: getGetHashtagPostsQueryKey(cleanTag) });
+                        }}
+                      />
+                    ))}
+                  </div>
+                )}
                 <PostFeed
                   scope={{ kind: "hashtag", tag: cleanTag }}
                   meId={meId}
                   emptyMessage={`No posts in #${cleanTag} yet — be the first!`}
+                  canModerate={canModerate}
                 />
               </div>
             </div>

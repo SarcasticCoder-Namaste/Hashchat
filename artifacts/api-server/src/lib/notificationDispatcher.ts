@@ -37,6 +37,11 @@ const PREF_KEY_BY_KIND: Record<
   poll_closing: { email: "emailMentions", push: "pushMentions" },
   // Post impression milestones piggyback on mention preferences.
   post_milestone: { email: "emailMentions", push: "pushMentions" },
+  // Moderation notifications use the mention pref slot for now.
+  report_resolved: { email: "emailMentions", push: "pushMentions" },
+  moderation_action: { email: "emailMentions", push: "pushMentions" },
+  mod_promoted: { email: "emailMentions", push: "pushMentions" },
+  post_pinned: { email: "emailMentions", push: "pushMentions" },
 };
 
 const EMAIL_FIELDS = {
@@ -75,6 +80,14 @@ function titleFor(kind: NotificationKind, actor: string | null): string {
       return `A poll you can vote in is closing soon on HashChat`;
     case "post_milestone":
       return `Your post hit a new milestone on HashChat`;
+    case "report_resolved":
+      return `Your report was resolved`;
+    case "moderation_action":
+      return `Moderator action on your content`;
+    case "mod_promoted":
+      return `You're now a moderator`;
+    case "post_pinned":
+      return `${a} pinned your post`;
   }
 }
 

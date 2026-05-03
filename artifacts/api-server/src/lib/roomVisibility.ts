@@ -6,6 +6,7 @@ export type RoomAccess = {
   ownerId: string | null;
   isMember: boolean;
   canManage: boolean;
+  slowModeSeconds: number;
 };
 
 export async function getRoomAccess(tag: string, userId: string): Promise<RoomAccess> {
@@ -16,6 +17,7 @@ export async function getRoomAccess(tag: string, userId: string): Promise<RoomAc
     .limit(1);
   const isPrivate = !!vis?.isPrivate;
   const ownerId = vis?.ownerId ?? null;
+  const slowModeSeconds = vis?.slowModeSeconds ?? 0;
   let isMember = !isPrivate;
   if (isPrivate) {
     const [member] = await db
@@ -30,6 +32,7 @@ export async function getRoomAccess(tag: string, userId: string): Promise<RoomAc
     ownerId,
     isMember,
     canManage: ownerId === userId,
+    slowModeSeconds,
   };
 }
 

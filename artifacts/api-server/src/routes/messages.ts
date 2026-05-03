@@ -29,8 +29,12 @@ router.post(
       .from(messagesTable)
       .where(eq(messagesTable.id, id))
       .limit(1);
-    if (!exists) {
+    if (!exists || exists.removedAt) {
       res.status(404).json({ error: "Not found" });
+      return;
+    }
+    if (exists.lockedAt) {
+      res.status(403).json({ error: "This message is locked" });
       return;
     }
     await db

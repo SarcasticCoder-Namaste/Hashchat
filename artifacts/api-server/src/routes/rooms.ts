@@ -42,6 +42,7 @@ import {
   loadPrivateTags,
   loadMyRoomMemberships,
 } from "../lib/roomVisibility";
+import { getRoomModerationAccess } from "../lib/moderation";
 
 const router: IRouter = Router();
 
@@ -236,6 +237,35 @@ router.post("/rooms/:tag/messages", requireAuth, async (req, res): Promise<void>
     res.status(403).json({ error: "This is a private room. You need an invite to post." });
     return;
   }
+  const modAccess = await getRoomModerationAccess(tag, me);
+  if (access.slowModeSeconds > 0 && !modAccess.canModerate) {
+    const cutoff = new Date(Date.now() - access.slowModeSeconds * 1000);
+    const [last] = await db
+      .select({ createdAt: messagesTable.createdAt })
+      .from(messagesTable)
+      .where(
+        and(
+          eq(messagesTable.roomTag, tag),
+          eq(messagesTable.senderId, me),
+          gt(messagesTable.createdAt, cutoff),
+          sql`${messagesTable.deletedAt} IS NULL`,
+        ),
+      )
+      .orderBy(desc(messagesTable.createdAt))
+      .limit(1);
+    if (last) {
+      const remainingMs =
+        last.createdAt.getTime() + access.slowModeSeconds * 1000 - Date.now();
+      const retryAfterSeconds = Math.max(1, Math.ceil(remainingMs / 1000));
+      res
+        .status(429)
+        .json({
+          error: `Slow mode is on. Try again in ${retryAfterSeconds}s.`,
+          retryAfterSeconds,
+        });
+      return;
+    }
+  }
   const replyToId = parsed.data.replyToId ?? null;
   if (parsed.data.imageUrl != null && !isValidStorageUrl(parsed.data.imageUrl)) {
     res.status(400).json({ error: "imageUrl must reference an uploaded object" });
@@ -256,12 +286,21 @@ router.post("/rooms/:tag/messages", requireAuth, async (req, res): Promise<void>
   }
   if (replyToId !== null) {
     const [refMsg] = await db
-      .select({ id: messagesTable.id, roomTag: messagesTable.roomTag })
+      .select({
+        id: messagesTable.id,
+        roomTag: messagesTable.roomTag,
+        lockedAt: messagesTable.lockedAt,
+        removedAt: messagesTable.removedAt,
+      })
       .from(messagesTable)
       .where(and(eq(messagesTable.id, replyToId), sql`${messagesTable.deletedAt} IS NULL`))
       .limit(1);
-    if (!refMsg || refMsg.roomTag !== tag) {
+    if (!refMsg || refMsg.roomTag !== tag || refMsg.removedAt) {
       res.status(400).json({ error: "Invalid replyToId" });
+      return;
+    }
+    if (refMsg.lockedAt && !modAccess.canModerate) {
+      res.status(403).json({ error: "This thread is locked" });
       return;
     }
   }
@@ -423,12 +462,15 @@ router.get("/rooms/:tag/visibility", requireAuth, async (req, res): Promise<void
   }
   const me = getUserId(req);
   const access = await getRoomAccess(tag, me);
+  const modAccess = await getRoomModerationAccess(tag, me);
   res.json({
     tag,
     isPrivate: access.isPrivate,
     ownerId: access.ownerId,
     canManage: access.canManage,
+    canModerate: modAccess.canModerate,
     isMember: access.isMember,
+    slowModeSeconds: access.slowModeSeconds,
   });
 });
 
@@ -496,12 +538,15 @@ router.put("/rooms/:tag/visibility", requireAuth, async (req, res): Promise<void
       .onConflictDoNothing();
   }
   const access = await getRoomAccess(tag, me);
+  const modAccess = await getRoomModerationAccess(tag, me);
   res.json({
     tag,
     isPrivate: access.isPrivate,
     ownerId: access.ownerId,
     canManage: access.canManage,
+    canModerate: modAccess.canModerate,
     isMember: access.isMember,
+    slowModeSeconds: access.slowModeSeconds,
   });
 });
 

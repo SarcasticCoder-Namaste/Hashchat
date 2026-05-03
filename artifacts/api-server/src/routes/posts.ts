@@ -7,6 +7,7 @@ import {
   postReactionsTable,
   postEditsTable,
   postDraftsTable,
+  pinnedPostsTable,
   hashtagsTable,
   usersTable,
   userFollowedHashtagsTable,
@@ -341,19 +342,31 @@ async function buildPosts(rows: PostRow[], myUserId: string) {
     }
   }
 
+  const pinnedRows = await db
+    .select()
+    .from(pinnedPostsTable)
+    .where(inArray(pinnedPostsTable.postId, ids));
+  const pinnedByPost = new Map<number, { scopeType: string; scopeKey: string }[]>();
+  for (const p of pinnedRows) {
+    const list = pinnedByPost.get(p.postId) ?? [];
+    list.push({ scopeType: p.scopeType, scopeKey: p.scopeKey });
+    pinnedByPost.set(p.postId, list);
+  }
+
   return rows.map((r) => {
     const a = authorMap.get(r.authorId);
     const eu = editableUntil(r);
     const reply = r.replyToId != null ? replyMap.get(r.replyToId) : undefined;
+    const removed = r.removedAt != null;
     return {
       id: r.id,
       author: serializeAuthor(a, r.authorId),
-      content: r.content,
+      content: removed ? "" : r.content,
       hashtags: tagsByPost.get(r.id) ?? [],
-      imageUrls: mediaByPost.get(r.id) ?? [],
-      imageAlts: altsByPost.get(r.id) ?? [],
-      reactions: reactionsByPost.get(r.id) ?? [],
-      mentions: mentionsByPost.get(r.id) ?? [],
+      imageUrls: removed ? [] : (mediaByPost.get(r.id) ?? []),
+      imageAlts: removed ? [] : (altsByPost.get(r.id) ?? []),
+      reactions: removed ? [] : (reactionsByPost.get(r.id) ?? []),
+      mentions: removed ? [] : (mentionsByPost.get(r.id) ?? []),
       status: r.status === "scheduled" ? "scheduled" : "published",
       scheduledFor: r.scheduledFor ? r.scheduledFor.toISOString() : null,
       editedAt: r.editedAt ? r.editedAt.toISOString() : null,
@@ -367,6 +380,9 @@ async function buildPosts(rows: PostRow[], myUserId: string) {
       replyToAuthorUsername: reply?.authorUsername ?? null,
       replyToAuthorDisplayName: reply?.authorDisplayName ?? null,
       replyToContent: reply?.content ?? null,
+      lockedAt: r.lockedAt ? r.lockedAt.toISOString() : null,
+      removedAt: r.removedAt ? r.removedAt.toISOString() : null,
+      pinnedInScopes: pinnedByPost.get(r.id) ?? [],
       createdAt: r.createdAt.toISOString(),
     };
   });
@@ -689,6 +705,9 @@ router.get("/me/feed/posts", requireAuth, async (req, res): Promise<void> => {
       isPinned: postsTable.isPinned,
       pinnedAt: postsTable.pinnedAt,
       deletedAt: postsTable.deletedAt,
+      lockedAt: postsTable.lockedAt,
+      removedAt: postsTable.removedAt,
+      removedBy: postsTable.removedBy,
       createdAt: postsTable.createdAt,
     })
     .from(postsTable)
@@ -770,6 +789,9 @@ router.get(
         isPinned: postsTable.isPinned,
         pinnedAt: postsTable.pinnedAt,
         deletedAt: postsTable.deletedAt,
+        lockedAt: postsTable.lockedAt,
+        removedAt: postsTable.removedAt,
+        removedBy: postsTable.removedBy,
         createdAt: postsTable.createdAt,
       })
       .from(postsTable)
@@ -858,6 +880,9 @@ router.get("/users/:id/posts", requireAuth, async (req, res): Promise<void> => {
         isPinned: postsTable.isPinned,
         pinnedAt: postsTable.pinnedAt,
         deletedAt: postsTable.deletedAt,
+        lockedAt: postsTable.lockedAt,
+        removedAt: postsTable.removedAt,
+        removedBy: postsTable.removedBy,
         createdAt: postsTable.createdAt,
       })
       .from(postsTable)
@@ -900,6 +925,9 @@ router.get("/users/:id/posts", requireAuth, async (req, res): Promise<void> => {
         isPinned: postsTable.isPinned,
         pinnedAt: postsTable.pinnedAt,
         deletedAt: postsTable.deletedAt,
+        lockedAt: postsTable.lockedAt,
+        removedAt: postsTable.removedAt,
+        removedBy: postsTable.removedBy,
         createdAt: postsTable.createdAt,
       })
       .from(postsTable)
@@ -1041,8 +1069,12 @@ router.post(
       .from(postsTable)
       .where(eq(postsTable.id, id))
       .limit(1);
-    if (!post || post.deletedAt || post.status !== "published") {
+    if (!post || post.deletedAt || post.removedAt || post.status !== "published") {
       res.status(404).json({ error: "Not found" });
+      return;
+    }
+    if (post.lockedAt) {
+      res.status(403).json({ error: "This post is locked" });
       return;
     }
     await db

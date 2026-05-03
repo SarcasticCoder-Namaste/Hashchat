@@ -2232,6 +2232,259 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/OkResponse" }
 
+  /rooms/{tag}/slow-mode:
+    put:
+      operationId: setRoomSlowMode
+      tags: [moderation]
+      parameters:
+        - { name: tag, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SetSlowModeBody" }
+      responses:
+        "200": { description: OK, content: { application/json: { schema: { $ref: "#/components/schemas/RoomVisibility" } } } }
+
+  /communities/{slug}/slow-mode:
+    put:
+      operationId: setCommunitySlowMode
+      tags: [moderation]
+      parameters:
+        - { name: slug, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SetSlowModeBody" }
+      responses:
+        "200": { description: OK, content: { application/json: { schema: { $ref: "#/components/schemas/CommunityDetail" } } } }
+
+  /rooms/{tag}/moderators:
+    get:
+      operationId: listRoomModerators
+      tags: [moderation]
+      parameters:
+        - { name: tag, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: OK, content: { application/json: { schema: { type: array, items: { $ref: "#/components/schemas/MatchUser" } } } } }
+    post:
+      operationId: addRoomModerator
+      tags: [moderation]
+      parameters:
+        - { name: tag, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AddModeratorBody" }
+      responses:
+        "200": { description: OK, content: { application/json: { schema: { type: array, items: { $ref: "#/components/schemas/MatchUser" } } } } }
+
+  /rooms/{tag}/moderators/{userId}:
+    delete:
+      operationId: removeRoomModerator
+      tags: [moderation]
+      parameters:
+        - { name: tag, in: path, required: true, schema: { type: string } }
+        - { name: userId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: OK, content: { application/json: { schema: { $ref: "#/components/schemas/OkResponse" } } } }
+
+  /communities/{slug}/moderators:
+    get:
+      operationId: listCommunityModerators
+      tags: [moderation]
+      parameters:
+        - { name: slug, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: OK, content: { application/json: { schema: { type: array, items: { $ref: "#/components/schemas/MatchUser" } } } } }
+    post:
+      operationId: addCommunityModerator
+      tags: [moderation]
+      parameters:
+        - { name: slug, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AddModeratorBody" }
+      responses:
+        "200": { description: OK, content: { application/json: { schema: { type: array, items: { $ref: "#/components/schemas/MatchUser" } } } } }
+
+  /communities/{slug}/moderators/{userId}:
+    delete:
+      operationId: removeCommunityModerator
+      tags: [moderation]
+      parameters:
+        - { name: slug, in: path, required: true, schema: { type: string } }
+        - { name: userId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: OK, content: { application/json: { schema: { $ref: "#/components/schemas/OkResponse" } } } }
+
+  /rooms/{tag}/pinned:
+    get:
+      operationId: getRoomPinnedPosts
+      tags: [moderation]
+      parameters:
+        - { name: tag, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: OK, content: { application/json: { schema: { type: array, items: { $ref: "#/components/schemas/Post" } } } } }
+
+  /communities/{slug}/pinned:
+    get:
+      operationId: getCommunityPinnedPosts
+      tags: [moderation]
+      parameters:
+        - { name: slug, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: OK, content: { application/json: { schema: { type: array, items: { $ref: "#/components/schemas/Post" } } } } }
+
+  /rooms/{tag}/posts/{id}/pin:
+    post:
+      operationId: pinRoomPost
+      tags: [moderation]
+      parameters:
+        - { name: tag, in: path, required: true, schema: { type: string } }
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      responses:
+        "200": { description: OK, content: { application/json: { schema: { $ref: "#/components/schemas/OkResponse" } } } }
+    delete:
+      operationId: unpinRoomPost
+      tags: [moderation]
+      parameters:
+        - { name: tag, in: path, required: true, schema: { type: string } }
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      responses:
+        "200": { description: OK, content: { application/json: { schema: { $ref: "#/components/schemas/OkResponse" } } } }
+
+  /communities/{slug}/posts/{id}/pin:
+    post:
+      operationId: pinCommunityPost
+      tags: [moderation]
+      parameters:
+        - { name: slug, in: path, required: true, schema: { type: string } }
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      responses:
+        "200": { description: OK, content: { application/json: { schema: { $ref: "#/components/schemas/OkResponse" } } } }
+    delete:
+      operationId: unpinCommunityPost
+      tags: [moderation]
+      parameters:
+        - { name: slug, in: path, required: true, schema: { type: string } }
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      responses:
+        "200": { description: OK, content: { application/json: { schema: { $ref: "#/components/schemas/OkResponse" } } } }
+
+  /moderation/posts/{id}/lock:
+    post:
+      operationId: lockPost
+      tags: [moderation]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ModerationScopeBody" }
+      responses:
+        "200": { description: OK, content: { application/json: { schema: { $ref: "#/components/schemas/OkResponse" } } } }
+    delete:
+      operationId: unlockPost
+      tags: [moderation]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ModerationScopeBody" }
+      responses:
+        "200": { description: OK, content: { application/json: { schema: { $ref: "#/components/schemas/OkResponse" } } } }
+
+  /moderation/messages/{id}/lock:
+    post:
+      operationId: lockMessage
+      tags: [moderation]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      responses:
+        "200": { description: OK, content: { application/json: { schema: { $ref: "#/components/schemas/OkResponse" } } } }
+    delete:
+      operationId: unlockMessage
+      tags: [moderation]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      responses:
+        "200": { description: OK, content: { application/json: { schema: { $ref: "#/components/schemas/OkResponse" } } } }
+
+  /moderation/posts/{id}/remove:
+    post:
+      operationId: removePost
+      tags: [moderation]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ModerationScopeBody" }
+      responses:
+        "200": { description: OK, content: { application/json: { schema: { $ref: "#/components/schemas/OkResponse" } } } }
+
+  /moderation/messages/{id}/remove:
+    post:
+      operationId: removeMessage
+      tags: [moderation]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      responses:
+        "200": { description: OK, content: { application/json: { schema: { $ref: "#/components/schemas/OkResponse" } } } }
+
+  /reports:
+    post:
+      operationId: createReport
+      tags: [moderation]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateReportBody" }
+      responses:
+        "200": { description: OK, content: { application/json: { schema: { $ref: "#/components/schemas/OkResponse" } } } }
+
+  /rooms/{tag}/reports:
+    get:
+      operationId: listRoomReports
+      tags: [moderation]
+      parameters:
+        - { name: tag, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: OK, content: { application/json: { schema: { type: array, items: { $ref: "#/components/schemas/Report" } } } } }
+
+  /communities/{slug}/reports:
+    get:
+      operationId: listCommunityReports
+      tags: [moderation]
+      parameters:
+        - { name: slug, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: OK, content: { application/json: { schema: { type: array, items: { $ref: "#/components/schemas/Report" } } } } }
+
+  /reports/{id}/resolve:
+    post:
+      operationId: resolveReport
+      tags: [moderation]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ResolveReportBody" }
+      responses:
+        "200": { description: OK, content: { application/json: { schema: { $ref: "#/components/schemas/OkResponse" } } } }
+
   /premium/status:
     get:
       operationId: getPremiumStatus
@@ -3169,6 +3422,15 @@ components:
           oneOf:
             - { $ref: "#/components/schemas/Poll" }
             - { type: "null" }
+        pinnedAt:
+          type: ["string", "null"]
+          format: date-time
+        lockedAt:
+          type: ["string", "null"]
+          format: date-time
+        removedAt:
+          type: ["string", "null"]
+          format: date-time
         createdAt: { type: string, format: date-time }
         kind: { type: string, description: "user | system" }
       required: [id, senderId, senderName, content, kind, reactions, attachments, mentions, replyCount, createdAt]
@@ -3770,6 +4032,20 @@ components:
           type: ["string", "null"]
         replyToContent:
           type: ["string", "null"]
+        lockedAt:
+          type: ["string", "null"]
+          format: date-time
+        removedAt:
+          type: ["string", "null"]
+          format: date-time
+        pinnedInScopes:
+          type: array
+          items:
+            type: object
+            properties:
+              scopeType: { type: string, enum: [room, community] }
+              scopeKey: { type: string }
+            required: [scopeType, scopeKey]
         createdAt: { type: string, format: date-time }
       required: [id, author, content, hashtags, imageUrls, reactions, mentions, status, quoteCount, isPinned, createdAt]
 
@@ -4140,8 +4416,9 @@ components:
           type: array
           items: { type: string }
         isMember: { type: boolean }
+        slowModeSeconds: { type: integer }
         createdAt: { type: string, format: date-time }
-      required: [id, slug, name, creatorId, memberCount, hashtags, isMember, createdAt]
+      required: [id, slug, name, creatorId, memberCount, hashtags, isMember, slowModeSeconds, createdAt]
 
     CommunityDetail:
       type: object
@@ -4170,8 +4447,16 @@ components:
           items: { $ref: "#/components/schemas/Room" }
         isMember: { type: boolean }
         canEdit: { type: boolean }
+        canModerate: { type: boolean }
+        myRole:
+          type: ["string", "null"]
+          enum: [owner, moderator, member, "null"]
+        slowModeSeconds: { type: integer }
+        moderators:
+          type: array
+          items: { $ref: "#/components/schemas/MatchUser" }
         createdAt: { type: string, format: date-time }
-      required: [id, slug, name, creatorId, memberCount, members, hashtags, rooms, isMember, canEdit, createdAt]
+      required: [id, slug, name, creatorId, memberCount, members, hashtags, rooms, isMember, canEdit, canModerate, slowModeSeconds, moderators, createdAt]
 
     CreateCommunityBody:
       type: object
@@ -4196,8 +4481,10 @@ components:
         ownerId:
           type: ["string", "null"]
         canManage: { type: boolean }
+        canModerate: { type: boolean }
         isMember: { type: boolean }
-      required: [tag, isPrivate, canManage, isMember]
+        slowModeSeconds: { type: integer }
+      required: [tag, isPrivate, canManage, canModerate, isMember, slowModeSeconds]
 
     SetRoomVisibilityBody:
       type: object
@@ -4340,14 +4627,14 @@ components:
       type: object
       properties:
         id: { type: integer }
-        kind: { type: string, enum: [mention, reply, reaction, follow, dm, event_starting, scheduled_post_published, post_milestone] }
+        kind: { type: string, enum: [mention, reply, reaction, follow, dm, event_starting, scheduled_post_published, post_milestone, report_resolved, moderation_action, mod_promoted, post_pinned] }
         actor:
           oneOf:
             - { $ref: "#/components/schemas/NotificationActor" }
             - { type: "null" }
         targetType:
           type: ["string", "null"]
-          enum: [message, post, conversation, user, event, "null"]
+          enum: [message, post, conversation, user, event, room, community, report, "null"]
         targetId:
           type: ["integer", "null"]
         targetTextId:
@@ -4509,3 +4796,70 @@ components:
       properties:
         messageId:
           type: ["integer", "null"]
+
+    SetSlowModeBody:
+      type: object
+      properties:
+        seconds: { type: integer, enum: [0, 10, 30, 60, 300] }
+      required: [seconds]
+
+    AddModeratorBody:
+      type: object
+      properties:
+        userId: { type: string }
+      required: [userId]
+
+    ModerationScopeBody:
+      type: object
+      properties:
+        scopeType: { type: string, enum: [room, community] }
+        scopeKey: { type: string }
+      required: [scopeType, scopeKey]
+
+    CreateReportBody:
+      type: object
+      properties:
+        scopeType: { type: string, enum: [room, community] }
+        scopeKey: { type: string }
+        targetType: { type: string, enum: [post, message] }
+        targetId: { type: integer }
+        reason: { type: string, minLength: 1, maxLength: 280 }
+      required: [scopeType, scopeKey, targetType, targetId, reason]
+
+    ResolveReportBody:
+      type: object
+      properties:
+        action:
+          type: string
+          enum: [dismiss, remove, lock]
+        note:
+          type: ["string", "null"]
+      required: [action]
+
+    Report:
+      type: object
+      properties:
+        id: { type: integer }
+        scopeType: { type: string }
+        scopeKey: { type: string }
+        targetType: { type: string }
+        targetId: { type: integer }
+        reason: { type: string }
+        status: { type: string, enum: [open, resolved, dismissed] }
+        reporter:
+          oneOf:
+            - { $ref: "#/components/schemas/NotificationActor" }
+            - { type: "null" }
+        targetSnippet:
+          type: ["string", "null"]
+        targetAuthorName:
+          type: ["string", "null"]
+        resolvedBy:
+          type: ["string", "null"]
+        resolvedAt:
+          type: ["string", "null"]
+          format: date-time
+        resolution:
+          type: ["string", "null"]
+        createdAt: { type: string, format: date-time }
+      required: [id, scopeType, scopeKey, targetType, targetId, reason, status, createdAt]

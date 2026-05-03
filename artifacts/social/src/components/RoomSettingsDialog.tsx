@@ -26,6 +26,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Loader2, Copy, Check, X, Sparkles, BarChart3 } from "lucide-react";
 import { RoomAnalyticsPanel } from "./RoomAnalyticsPanel";
 import { useToast } from "@/hooks/use-toast";
+import { ModerationPanel, ReportsPanel } from "./moderation-panels";
 
 export function RoomSettingsDialog({
   tag,
@@ -90,7 +91,7 @@ export function RoomSettingsDialog({
           </div>
         ) : (
           <Tabs defaultValue="visibility">
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-6">
               <TabsTrigger value="visibility" data-testid="tab-visibility">
                 Visibility
               </TabsTrigger>
@@ -107,6 +108,12 @@ export function RoomSettingsDialog({
                 className="gap-1"
               >
                 <BarChart3 className="h-3.5 w-3.5" /> Stats
+              </TabsTrigger>
+              <TabsTrigger value="moderation" data-testid="tab-moderation">
+                Mods
+              </TabsTrigger>
+              <TabsTrigger value="reports" data-testid="tab-reports">
+                Reports
               </TabsTrigger>
             </TabsList>
 
@@ -155,6 +162,24 @@ export function RoomSettingsDialog({
 
             <TabsContent value="analytics" className="space-y-3 pt-4">
               <RoomAnalyticsPanel tag={tag} canManage={canManage} />
+            </TabsContent>
+
+            <TabsContent value="moderation" className="space-y-4 pt-4">
+              <ModerationPanel
+                scopeType="room"
+                scopeKey={tag}
+                canEditSettings={canManage}
+                canModerate={v.canModerate}
+                slowModeSeconds={v.slowModeSeconds}
+              />
+            </TabsContent>
+
+            <TabsContent value="reports" className="space-y-3 pt-4">
+              <ReportsPanel
+                scopeType="room"
+                scopeKey={tag}
+                canModerate={v.canModerate}
+              />
             </TabsContent>
           </Tabs>
         )}

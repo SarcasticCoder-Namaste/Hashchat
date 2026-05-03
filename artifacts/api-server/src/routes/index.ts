@@ -30,6 +30,7 @@ import preferencesRouter from "./preferences";
 import pushRouter from "./push";
 import walletsRouter from "./wallets";
 import presenceRouter from "./presence";
+import moderationRouter from "./moderation";
 
 const router: IRouter = Router();
 
@@ -70,5 +71,6 @@ router.use(pushRouter);
 // more specific path first.
 router.use(walletsRouter);
 router.use(presenceRouter);
+router.use(moderationRouter);
 
 export default router;

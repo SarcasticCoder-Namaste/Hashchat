@@ -447,6 +447,16 @@ export const GetForYouFeedResponseItem = zod.object({
         replyToAuthorUsername: zod.string().nullish(),
         replyToAuthorDisplayName: zod.string().nullish(),
         replyToContent: zod.string().nullish(),
+        lockedAt: zod.coerce.date().nullish(),
+        removedAt: zod.coerce.date().nullish(),
+        pinnedInScopes: zod
+          .array(
+            zod.object({
+              scopeType: zod.enum(["room", "community"]),
+              scopeKey: zod.string(),
+            }),
+          )
+          .optional(),
         createdAt: zod.coerce.date(),
       }),
       zod.null(),
@@ -560,6 +570,9 @@ export const GetForYouFeedResponseItem = zod.object({
                   zod.null(),
                 ])
                 .optional(),
+              pinnedAt: zod.coerce.date().nullish(),
+              lockedAt: zod.coerce.date().nullish(),
+              removedAt: zod.coerce.date().nullish(),
               createdAt: zod.coerce.date(),
               kind: zod.string().describe("user | system"),
             }),
@@ -768,6 +781,9 @@ export const GetExploreResponse = zod.object({
                 zod.null(),
               ])
               .optional(),
+            pinnedAt: zod.coerce.date().nullish(),
+            lockedAt: zod.coerce.date().nullish(),
+            removedAt: zod.coerce.date().nullish(),
             createdAt: zod.coerce.date(),
             kind: zod.string().describe("user | system"),
           }),
@@ -893,6 +909,16 @@ export const GetExploreResponse = zod.object({
         replyToAuthorUsername: zod.string().nullish(),
         replyToAuthorDisplayName: zod.string().nullish(),
         replyToContent: zod.string().nullish(),
+        lockedAt: zod.coerce.date().nullish(),
+        removedAt: zod.coerce.date().nullish(),
+        pinnedInScopes: zod
+          .array(
+            zod.object({
+              scopeType: zod.enum(["room", "community"]),
+              scopeKey: zod.string(),
+            }),
+          )
+          .optional(),
         createdAt: zod.coerce.date(),
       }),
       engagement: zod.number(),
@@ -977,6 +1003,16 @@ export const GetExploreResponse = zod.object({
             replyToAuthorUsername: zod.string().nullish(),
             replyToAuthorDisplayName: zod.string().nullish(),
             replyToContent: zod.string().nullish(),
+            lockedAt: zod.coerce.date().nullish(),
+            removedAt: zod.coerce.date().nullish(),
+            pinnedInScopes: zod
+              .array(
+                zod.object({
+                  scopeType: zod.enum(["room", "community"]),
+                  scopeKey: zod.string(),
+                }),
+              )
+              .optional(),
             createdAt: zod.coerce.date(),
           }),
           zod.null(),
@@ -1090,6 +1126,9 @@ export const GetExploreResponse = zod.object({
                       zod.null(),
                     ])
                     .optional(),
+                  pinnedAt: zod.coerce.date().nullish(),
+                  lockedAt: zod.coerce.date().nullish(),
+                  removedAt: zod.coerce.date().nullish(),
                   createdAt: zod.coerce.date(),
                   kind: zod.string().describe("user | system"),
                 }),
@@ -1235,6 +1274,16 @@ export const GetHotInYourHashtagsResponseItem = zod.object({
     replyToAuthorUsername: zod.string().nullish(),
     replyToAuthorDisplayName: zod.string().nullish(),
     replyToContent: zod.string().nullish(),
+    lockedAt: zod.coerce.date().nullish(),
+    removedAt: zod.coerce.date().nullish(),
+    pinnedInScopes: zod
+      .array(
+        zod.object({
+          scopeType: zod.enum(["room", "community"]),
+          scopeKey: zod.string(),
+        }),
+      )
+      .optional(),
     createdAt: zod.coerce.date(),
   }),
   engagement: zod.number(),
@@ -1688,6 +1737,9 @@ export const GetConversationsResponseItem = zod.object({
             zod.null(),
           ])
           .optional(),
+        pinnedAt: zod.coerce.date().nullish(),
+        lockedAt: zod.coerce.date().nullish(),
+        removedAt: zod.coerce.date().nullish(),
         createdAt: zod.coerce.date(),
         kind: zod.string().describe("user | system"),
       }),
@@ -1868,6 +1920,9 @@ export const OpenConversationResponse = zod.object({
             zod.null(),
           ])
           .optional(),
+        pinnedAt: zod.coerce.date().nullish(),
+        lockedAt: zod.coerce.date().nullish(),
+        removedAt: zod.coerce.date().nullish(),
         createdAt: zod.coerce.date(),
         kind: zod.string().describe("user | system"),
       }),
@@ -2067,6 +2122,9 @@ export const RenameConversationResponse = zod.object({
             zod.null(),
           ])
           .optional(),
+        pinnedAt: zod.coerce.date().nullish(),
+        lockedAt: zod.coerce.date().nullish(),
+        removedAt: zod.coerce.date().nullish(),
         createdAt: zod.coerce.date(),
         kind: zod.string().describe("user | system"),
       }),
@@ -2254,6 +2312,9 @@ export const AddConversationMembersResponse = zod.object({
             zod.null(),
           ])
           .optional(),
+        pinnedAt: zod.coerce.date().nullish(),
+        lockedAt: zod.coerce.date().nullish(),
+        removedAt: zod.coerce.date().nullish(),
         createdAt: zod.coerce.date(),
         kind: zod.string().describe("user | system"),
       }),
@@ -2384,6 +2445,9 @@ export const GetConversationMessagesResponseItem = zod.object({
       zod.null(),
     ])
     .optional(),
+  pinnedAt: zod.coerce.date().nullish(),
+  lockedAt: zod.coerce.date().nullish(),
+  removedAt: zod.coerce.date().nullish(),
   createdAt: zod.coerce.date(),
   kind: zod.string().describe("user | system"),
 });
@@ -2548,6 +2612,9 @@ export const GetMessageRepliesResponse = zod.object({
         zod.null(),
       ])
       .optional(),
+    pinnedAt: zod.coerce.date().nullish(),
+    lockedAt: zod.coerce.date().nullish(),
+    removedAt: zod.coerce.date().nullish(),
     createdAt: zod.coerce.date(),
     kind: zod.string().describe("user | system"),
   }),
@@ -2646,6 +2713,9 @@ export const GetMessageRepliesResponse = zod.object({
           zod.null(),
         ])
         .optional(),
+      pinnedAt: zod.coerce.date().nullish(),
+      lockedAt: zod.coerce.date().nullish(),
+      removedAt: zod.coerce.date().nullish(),
       createdAt: zod.coerce.date(),
       kind: zod.string().describe("user | system"),
     }),
@@ -2714,6 +2784,10 @@ export const GetNotificationsResponse = zod.object({
         "event_starting",
         "scheduled_post_published",
         "post_milestone",
+        "report_resolved",
+        "moderation_action",
+        "mod_promoted",
+        "post_pinned",
       ]),
       actor: zod
         .union([
@@ -2727,7 +2801,17 @@ export const GetNotificationsResponse = zod.object({
         ])
         .optional(),
       targetType: zod
-        .enum(["message", "post", "conversation", "user", "event", "null"])
+        .enum([
+          "message",
+          "post",
+          "conversation",
+          "user",
+          "event",
+          "room",
+          "community",
+          "report",
+          "null",
+        ])
         .nullish(),
       targetId: zod.number().nullish(),
       targetTextId: zod.string().nullish(),
@@ -2934,6 +3018,9 @@ export const GetRoomsResponseItem = zod.object({
             zod.null(),
           ])
           .optional(),
+        pinnedAt: zod.coerce.date().nullish(),
+        lockedAt: zod.coerce.date().nullish(),
+        removedAt: zod.coerce.date().nullish(),
         createdAt: zod.coerce.date(),
         kind: zod.string().describe("user | system"),
       }),
@@ -3060,6 +3147,9 @@ export const GetTrendingRoomsResponseItem = zod.object({
             zod.null(),
           ])
           .optional(),
+        pinnedAt: zod.coerce.date().nullish(),
+        lockedAt: zod.coerce.date().nullish(),
+        removedAt: zod.coerce.date().nullish(),
         createdAt: zod.coerce.date(),
         kind: zod.string().describe("user | system"),
       }),
@@ -3176,6 +3266,9 @@ export const GetRoomMessagesResponseItem = zod.object({
       zod.null(),
     ])
     .optional(),
+  pinnedAt: zod.coerce.date().nullish(),
+  lockedAt: zod.coerce.date().nullish(),
+  removedAt: zod.coerce.date().nullish(),
   createdAt: zod.coerce.date(),
   kind: zod.string().describe("user | system"),
 });
@@ -4210,6 +4303,16 @@ export const UpdatePostResponse = zod.object({
   replyToAuthorUsername: zod.string().nullish(),
   replyToAuthorDisplayName: zod.string().nullish(),
   replyToContent: zod.string().nullish(),
+  lockedAt: zod.coerce.date().nullish(),
+  removedAt: zod.coerce.date().nullish(),
+  pinnedInScopes: zod
+    .array(
+      zod.object({
+        scopeType: zod.enum(["room", "community"]),
+        scopeKey: zod.string(),
+      }),
+    )
+    .optional(),
   createdAt: zod.coerce.date(),
 });
 
@@ -4297,6 +4400,16 @@ export const GetPostQuotesResponseItem = zod.object({
   replyToAuthorUsername: zod.string().nullish(),
   replyToAuthorDisplayName: zod.string().nullish(),
   replyToContent: zod.string().nullish(),
+  lockedAt: zod.coerce.date().nullish(),
+  removedAt: zod.coerce.date().nullish(),
+  pinnedInScopes: zod
+    .array(
+      zod.object({
+        scopeType: zod.enum(["room", "community"]),
+        scopeKey: zod.string(),
+      }),
+    )
+    .optional(),
   createdAt: zod.coerce.date(),
 });
 export const GetPostQuotesResponse = zod.array(GetPostQuotesResponseItem);
@@ -4502,6 +4615,16 @@ export const GetMyScheduledPostsResponseItem = zod.object({
   replyToAuthorUsername: zod.string().nullish(),
   replyToAuthorDisplayName: zod.string().nullish(),
   replyToContent: zod.string().nullish(),
+  lockedAt: zod.coerce.date().nullish(),
+  removedAt: zod.coerce.date().nullish(),
+  pinnedInScopes: zod
+    .array(
+      zod.object({
+        scopeType: zod.enum(["room", "community"]),
+        scopeKey: zod.string(),
+      }),
+    )
+    .optional(),
   createdAt: zod.coerce.date(),
 });
 export const GetMyScheduledPostsResponse = zod.array(
@@ -4650,6 +4773,16 @@ export const GetMyAnalyticsResponse = zod.object({
         replyToAuthorUsername: zod.string().nullish(),
         replyToAuthorDisplayName: zod.string().nullish(),
         replyToContent: zod.string().nullish(),
+        lockedAt: zod.coerce.date().nullish(),
+        removedAt: zod.coerce.date().nullish(),
+        pinnedInScopes: zod
+          .array(
+            zod.object({
+              scopeType: zod.enum(["room", "community"]),
+              scopeKey: zod.string(),
+            }),
+          )
+          .optional(),
         createdAt: zod.coerce.date(),
       }),
       impressions: zod.number(),
@@ -4763,6 +4896,16 @@ export const GetRoomAnalyticsResponse = zod.object({
         replyToAuthorUsername: zod.string().nullish(),
         replyToAuthorDisplayName: zod.string().nullish(),
         replyToContent: zod.string().nullish(),
+        lockedAt: zod.coerce.date().nullish(),
+        removedAt: zod.coerce.date().nullish(),
+        pinnedInScopes: zod
+          .array(
+            zod.object({
+              scopeType: zod.enum(["room", "community"]),
+              scopeKey: zod.string(),
+            }),
+          )
+          .optional(),
         createdAt: zod.coerce.date(),
       }),
       impressions: zod.number(),
@@ -4857,6 +5000,16 @@ export const GetMyFeedPostsResponseItem = zod.object({
   replyToAuthorUsername: zod.string().nullish(),
   replyToAuthorDisplayName: zod.string().nullish(),
   replyToContent: zod.string().nullish(),
+  lockedAt: zod.coerce.date().nullish(),
+  removedAt: zod.coerce.date().nullish(),
+  pinnedInScopes: zod
+    .array(
+      zod.object({
+        scopeType: zod.enum(["room", "community"]),
+        scopeKey: zod.string(),
+      }),
+    )
+    .optional(),
   createdAt: zod.coerce.date(),
 });
 export const GetMyFeedPostsResponse = zod.array(GetMyFeedPostsResponseItem);
@@ -4950,6 +5103,16 @@ export const GetHashtagPostsResponseItem = zod.object({
   replyToAuthorUsername: zod.string().nullish(),
   replyToAuthorDisplayName: zod.string().nullish(),
   replyToContent: zod.string().nullish(),
+  lockedAt: zod.coerce.date().nullish(),
+  removedAt: zod.coerce.date().nullish(),
+  pinnedInScopes: zod
+    .array(
+      zod.object({
+        scopeType: zod.enum(["room", "community"]),
+        scopeKey: zod.string(),
+      }),
+    )
+    .optional(),
   createdAt: zod.coerce.date(),
 });
 export const GetHashtagPostsResponse = zod.array(GetHashtagPostsResponseItem);
@@ -5048,6 +5211,16 @@ export const GetUserPostsResponseItem = zod.object({
   replyToAuthorUsername: zod.string().nullish(),
   replyToAuthorDisplayName: zod.string().nullish(),
   replyToContent: zod.string().nullish(),
+  lockedAt: zod.coerce.date().nullish(),
+  removedAt: zod.coerce.date().nullish(),
+  pinnedInScopes: zod
+    .array(
+      zod.object({
+        scopeType: zod.enum(["room", "community"]),
+        scopeKey: zod.string(),
+      }),
+    )
+    .optional(),
   createdAt: zod.coerce.date(),
 });
 export const GetUserPostsResponse = zod.array(GetUserPostsResponseItem);
@@ -5129,6 +5302,16 @@ export const GetUserPinnedPostsResponseItem = zod.object({
   replyToAuthorUsername: zod.string().nullish(),
   replyToAuthorDisplayName: zod.string().nullish(),
   replyToContent: zod.string().nullish(),
+  lockedAt: zod.coerce.date().nullish(),
+  removedAt: zod.coerce.date().nullish(),
+  pinnedInScopes: zod
+    .array(
+      zod.object({
+        scopeType: zod.enum(["room", "community"]),
+        scopeKey: zod.string(),
+      }),
+    )
+    .optional(),
   createdAt: zod.coerce.date(),
 });
 export const GetUserPinnedPostsResponse = zod.array(
@@ -5414,6 +5597,7 @@ export const ListCommunitiesResponseItem = zod.object({
   memberCount: zod.number(),
   hashtags: zod.array(zod.string()),
   isMember: zod.boolean(),
+  slowModeSeconds: zod.number(),
   createdAt: zod.coerce.date(),
 });
 export const ListCommunitiesResponse = zod.array(ListCommunitiesResponseItem);
@@ -5649,6 +5833,9 @@ export const GetCommunityResponse = zod.object({
                 zod.null(),
               ])
               .optional(),
+            pinnedAt: zod.coerce.date().nullish(),
+            lockedAt: zod.coerce.date().nullish(),
+            removedAt: zod.coerce.date().nullish(),
             createdAt: zod.coerce.date(),
             kind: zod.string().describe("user | system"),
           }),
@@ -5662,6 +5849,51 @@ export const GetCommunityResponse = zod.object({
   ),
   isMember: zod.boolean(),
   canEdit: zod.boolean(),
+  canModerate: zod.boolean(),
+  myRole: zod.enum(["owner", "moderator", "member", "null"]).nullish(),
+  slowModeSeconds: zod.number(),
+  moderators: zod.array(
+    zod.object({
+      id: zod.string(),
+      username: zod.string(),
+      displayName: zod.string(),
+      bio: zod.string().nullish(),
+      avatarUrl: zod.string().nullish(),
+      status: zod.string(),
+      featuredHashtag: zod.string().nullish(),
+      discriminator: zod.string().nullish(),
+      role: zod.string(),
+      mvpPlan: zod.boolean(),
+      verified: zod.boolean(),
+      tier: zod.enum(["free", "premium", "pro"]).optional(),
+      animatedAvatarUrl: zod.string().nullish(),
+      bannerGifUrl: zod.string().nullish(),
+      lastSeenAt: zod.coerce.date(),
+      presenceState: zod
+        .enum(["online", "away", "offline"])
+        .optional()
+        .describe(
+          "Derived presence state — 'online' if active in the last 60s, 'away' within 10 min, otherwise 'offline'. Always 'offline' for users who hide their presence.",
+        ),
+      currentRoomTag: zod
+        .string()
+        .nullish()
+        .describe(
+          "Hashtag of the room the user is currently active in, if any. Null when hidden or not in a room.",
+        ),
+      hashtags: zod.array(zod.string()),
+      sharedHashtags: zod.array(zod.string()),
+      matchScore: zod.number(),
+      friendStatus: zod
+        .string()
+        .nullish()
+        .describe("One of: friends, request_sent, request_received, none"),
+      isFollowing: zod.boolean().optional(),
+      followsMe: zod.boolean().optional(),
+      isMuted: zod.boolean().optional(),
+      isBlocked: zod.boolean().optional(),
+    }),
+  ),
   createdAt: zod.coerce.date(),
 });
 
@@ -5875,6 +6107,9 @@ export const JoinCommunityResponse = zod.object({
                 zod.null(),
               ])
               .optional(),
+            pinnedAt: zod.coerce.date().nullish(),
+            lockedAt: zod.coerce.date().nullish(),
+            removedAt: zod.coerce.date().nullish(),
             createdAt: zod.coerce.date(),
             kind: zod.string().describe("user | system"),
           }),
@@ -5888,6 +6123,51 @@ export const JoinCommunityResponse = zod.object({
   ),
   isMember: zod.boolean(),
   canEdit: zod.boolean(),
+  canModerate: zod.boolean(),
+  myRole: zod.enum(["owner", "moderator", "member", "null"]).nullish(),
+  slowModeSeconds: zod.number(),
+  moderators: zod.array(
+    zod.object({
+      id: zod.string(),
+      username: zod.string(),
+      displayName: zod.string(),
+      bio: zod.string().nullish(),
+      avatarUrl: zod.string().nullish(),
+      status: zod.string(),
+      featuredHashtag: zod.string().nullish(),
+      discriminator: zod.string().nullish(),
+      role: zod.string(),
+      mvpPlan: zod.boolean(),
+      verified: zod.boolean(),
+      tier: zod.enum(["free", "premium", "pro"]).optional(),
+      animatedAvatarUrl: zod.string().nullish(),
+      bannerGifUrl: zod.string().nullish(),
+      lastSeenAt: zod.coerce.date(),
+      presenceState: zod
+        .enum(["online", "away", "offline"])
+        .optional()
+        .describe(
+          "Derived presence state — 'online' if active in the last 60s, 'away' within 10 min, otherwise 'offline'. Always 'offline' for users who hide their presence.",
+        ),
+      currentRoomTag: zod
+        .string()
+        .nullish()
+        .describe(
+          "Hashtag of the room the user is currently active in, if any. Null when hidden or not in a room.",
+        ),
+      hashtags: zod.array(zod.string()),
+      sharedHashtags: zod.array(zod.string()),
+      matchScore: zod.number(),
+      friendStatus: zod
+        .string()
+        .nullish()
+        .describe("One of: friends, request_sent, request_received, none"),
+      isFollowing: zod.boolean().optional(),
+      followsMe: zod.boolean().optional(),
+      isMuted: zod.boolean().optional(),
+      isBlocked: zod.boolean().optional(),
+    }),
+  ),
   createdAt: zod.coerce.date(),
 });
 
@@ -6101,6 +6381,9 @@ export const LeaveCommunityResponse = zod.object({
                 zod.null(),
               ])
               .optional(),
+            pinnedAt: zod.coerce.date().nullish(),
+            lockedAt: zod.coerce.date().nullish(),
+            removedAt: zod.coerce.date().nullish(),
             createdAt: zod.coerce.date(),
             kind: zod.string().describe("user | system"),
           }),
@@ -6114,6 +6397,51 @@ export const LeaveCommunityResponse = zod.object({
   ),
   isMember: zod.boolean(),
   canEdit: zod.boolean(),
+  canModerate: zod.boolean(),
+  myRole: zod.enum(["owner", "moderator", "member", "null"]).nullish(),
+  slowModeSeconds: zod.number(),
+  moderators: zod.array(
+    zod.object({
+      id: zod.string(),
+      username: zod.string(),
+      displayName: zod.string(),
+      bio: zod.string().nullish(),
+      avatarUrl: zod.string().nullish(),
+      status: zod.string(),
+      featuredHashtag: zod.string().nullish(),
+      discriminator: zod.string().nullish(),
+      role: zod.string(),
+      mvpPlan: zod.boolean(),
+      verified: zod.boolean(),
+      tier: zod.enum(["free", "premium", "pro"]).optional(),
+      animatedAvatarUrl: zod.string().nullish(),
+      bannerGifUrl: zod.string().nullish(),
+      lastSeenAt: zod.coerce.date(),
+      presenceState: zod
+        .enum(["online", "away", "offline"])
+        .optional()
+        .describe(
+          "Derived presence state — 'online' if active in the last 60s, 'away' within 10 min, otherwise 'offline'. Always 'offline' for users who hide their presence.",
+        ),
+      currentRoomTag: zod
+        .string()
+        .nullish()
+        .describe(
+          "Hashtag of the room the user is currently active in, if any. Null when hidden or not in a room.",
+        ),
+      hashtags: zod.array(zod.string()),
+      sharedHashtags: zod.array(zod.string()),
+      matchScore: zod.number(),
+      friendStatus: zod
+        .string()
+        .nullish()
+        .describe("One of: friends, request_sent, request_received, none"),
+      isFollowing: zod.boolean().optional(),
+      followsMe: zod.boolean().optional(),
+      isMuted: zod.boolean().optional(),
+      isBlocked: zod.boolean().optional(),
+    }),
+  ),
   createdAt: zod.coerce.date(),
 });
 
@@ -6126,7 +6454,9 @@ export const GetRoomVisibilityResponse = zod.object({
   isPrivate: zod.boolean(),
   ownerId: zod.string().nullish(),
   canManage: zod.boolean(),
+  canModerate: zod.boolean(),
   isMember: zod.boolean(),
+  slowModeSeconds: zod.number(),
 });
 
 export const SetRoomVisibilityParams = zod.object({
@@ -6142,7 +6472,9 @@ export const SetRoomVisibilityResponse = zod.object({
   isPrivate: zod.boolean(),
   ownerId: zod.string().nullish(),
   canManage: zod.boolean(),
+  canModerate: zod.boolean(),
   isMember: zod.boolean(),
+  slowModeSeconds: zod.number(),
 });
 
 export const ListRoomInvitesParams = zod.object({
@@ -6319,6 +6651,902 @@ export const DecideRoomJoinRequestBody = zod.object({
 });
 
 export const DecideRoomJoinRequestResponse = zod.object({
+  ok: zod.boolean(),
+});
+
+export const SetRoomSlowModeParams = zod.object({
+  tag: zod.coerce.string(),
+});
+
+export const SetRoomSlowModeBody = zod.object({
+  seconds: zod.union([
+    zod.literal(0),
+    zod.literal(10),
+    zod.literal(30),
+    zod.literal(60),
+    zod.literal(300),
+  ]),
+});
+
+export const SetRoomSlowModeResponse = zod.object({
+  tag: zod.string(),
+  isPrivate: zod.boolean(),
+  ownerId: zod.string().nullish(),
+  canManage: zod.boolean(),
+  canModerate: zod.boolean(),
+  isMember: zod.boolean(),
+  slowModeSeconds: zod.number(),
+});
+
+export const SetCommunitySlowModeParams = zod.object({
+  slug: zod.coerce.string(),
+});
+
+export const SetCommunitySlowModeBody = zod.object({
+  seconds: zod.union([
+    zod.literal(0),
+    zod.literal(10),
+    zod.literal(30),
+    zod.literal(60),
+    zod.literal(300),
+  ]),
+});
+
+export const setCommunitySlowModeResponseRoomsItemLastMessageOneAudioWaveformItemMin = 0;
+export const setCommunitySlowModeResponseRoomsItemLastMessageOneAudioWaveformItemMax = 100;
+
+export const SetCommunitySlowModeResponse = zod.object({
+  id: zod.number(),
+  slug: zod.string(),
+  name: zod.string(),
+  description: zod.string().nullish(),
+  bannerUrl: zod.string().nullish(),
+  creatorId: zod.string(),
+  creator: zod
+    .union([
+      zod.object({
+        id: zod.string(),
+        username: zod.string(),
+        displayName: zod.string(),
+        bio: zod.string().nullish(),
+        avatarUrl: zod.string().nullish(),
+        status: zod.string(),
+        featuredHashtag: zod.string().nullish(),
+        discriminator: zod.string().nullish(),
+        role: zod.string(),
+        mvpPlan: zod.boolean(),
+        verified: zod.boolean(),
+        tier: zod.enum(["free", "premium", "pro"]).optional(),
+        animatedAvatarUrl: zod.string().nullish(),
+        bannerGifUrl: zod.string().nullish(),
+        lastSeenAt: zod.coerce.date(),
+        presenceState: zod
+          .enum(["online", "away", "offline"])
+          .optional()
+          .describe(
+            "Derived presence state — 'online' if active in the last 60s, 'away' within 10 min, otherwise 'offline'. Always 'offline' for users who hide their presence.",
+          ),
+        currentRoomTag: zod
+          .string()
+          .nullish()
+          .describe(
+            "Hashtag of the room the user is currently active in, if any. Null when hidden or not in a room.",
+          ),
+        hashtags: zod.array(zod.string()),
+        sharedHashtags: zod.array(zod.string()),
+        matchScore: zod.number(),
+        friendStatus: zod
+          .string()
+          .nullish()
+          .describe("One of: friends, request_sent, request_received, none"),
+        isFollowing: zod.boolean().optional(),
+        followsMe: zod.boolean().optional(),
+        isMuted: zod.boolean().optional(),
+        isBlocked: zod.boolean().optional(),
+      }),
+      zod.null(),
+    ])
+    .optional(),
+  memberCount: zod.number(),
+  members: zod.array(
+    zod.object({
+      id: zod.string(),
+      username: zod.string(),
+      displayName: zod.string(),
+      bio: zod.string().nullish(),
+      avatarUrl: zod.string().nullish(),
+      status: zod.string(),
+      featuredHashtag: zod.string().nullish(),
+      discriminator: zod.string().nullish(),
+      role: zod.string(),
+      mvpPlan: zod.boolean(),
+      verified: zod.boolean(),
+      tier: zod.enum(["free", "premium", "pro"]).optional(),
+      animatedAvatarUrl: zod.string().nullish(),
+      bannerGifUrl: zod.string().nullish(),
+      lastSeenAt: zod.coerce.date(),
+      presenceState: zod
+        .enum(["online", "away", "offline"])
+        .optional()
+        .describe(
+          "Derived presence state — 'online' if active in the last 60s, 'away' within 10 min, otherwise 'offline'. Always 'offline' for users who hide their presence.",
+        ),
+      currentRoomTag: zod
+        .string()
+        .nullish()
+        .describe(
+          "Hashtag of the room the user is currently active in, if any. Null when hidden or not in a room.",
+        ),
+      hashtags: zod.array(zod.string()),
+      sharedHashtags: zod.array(zod.string()),
+      matchScore: zod.number(),
+      friendStatus: zod
+        .string()
+        .nullish()
+        .describe("One of: friends, request_sent, request_received, none"),
+      isFollowing: zod.boolean().optional(),
+      followsMe: zod.boolean().optional(),
+      isMuted: zod.boolean().optional(),
+      isBlocked: zod.boolean().optional(),
+    }),
+  ),
+  hashtags: zod.array(zod.string()),
+  rooms: zod.array(
+    zod.object({
+      tag: zod.string(),
+      memberCount: zod.number(),
+      messageCount: zod.number(),
+      followerCount: zod.number(),
+      recentMessages: zod.number(),
+      lastMessage: zod
+        .union([
+          zod.object({
+            id: zod.number(),
+            conversationId: zod.number().nullish(),
+            roomTag: zod.string().nullish(),
+            senderId: zod.string(),
+            senderName: zod.string(),
+            senderAvatarUrl: zod.string().nullish(),
+            senderAnimatedAvatarUrl: zod.string().nullish(),
+            content: zod.string(),
+            replyToId: zod.number().nullish(),
+            replyToContent: zod.string().nullish(),
+            replyToSenderName: zod.string().nullish(),
+            replyCount: zod.number(),
+            imageUrl: zod.string().nullish(),
+            imageAlt: zod.string().nullish(),
+            audioUrl: zod.string().nullish(),
+            audioWaveform: zod
+              .array(
+                zod
+                  .number()
+                  .min(
+                    setCommunitySlowModeResponseRoomsItemLastMessageOneAudioWaveformItemMin,
+                  )
+                  .max(
+                    setCommunitySlowModeResponseRoomsItemLastMessageOneAudioWaveformItemMax,
+                  ),
+              )
+              .nullish(),
+            audioTranscript: zod.string().nullish(),
+            reactions: zod.array(
+              zod.object({
+                emoji: zod.string(),
+                count: zod.number(),
+                reactedByMe: zod.boolean(),
+              }),
+            ),
+            attachments: zod.array(
+              zod.object({
+                id: zod.number(),
+                kind: zod.enum(["image", "gif", "link_preview", "poll"]),
+                url: zod.string(),
+                title: zod.string().nullish(),
+                description: zod.string().nullish(),
+                thumbnailUrl: zod.string().nullish(),
+              }),
+            ),
+            mentions: zod.array(
+              zod.object({
+                id: zod.string(),
+                username: zod.string(),
+                displayName: zod.string(),
+              }),
+            ),
+            readByOther: zod.boolean().nullish(),
+            poll: zod
+              .union([
+                zod.object({
+                  id: zod.number(),
+                  roomTag: zod.string(),
+                  creatorId: zod.string(),
+                  creatorName: zod.string(),
+                  question: zod.string(),
+                  mode: zod.enum(["single", "multi", "ranked"]),
+                  maxSelections: zod.number(),
+                  options: zod.array(
+                    zod.object({
+                      id: zod.number(),
+                      text: zod.string(),
+                      votes: zod.number(),
+                      votedByMe: zod.boolean(),
+                      myRank: zod.number().nullish(),
+                    }),
+                  ),
+                  totalVotes: zod.number(),
+                  myVoteOptionId: zod.number().nullish(),
+                  myVoteOptionIds: zod.array(zod.number()),
+                  rounds: zod
+                    .array(
+                      zod.object({
+                        round: zod.number(),
+                        tallies: zod.array(
+                          zod.object({
+                            optionId: zod.number(),
+                            votes: zod.number(),
+                          }),
+                        ),
+                        eliminated: zod.array(zod.number()),
+                      }),
+                    )
+                    .optional(),
+                  winnerOptionId: zod.number().nullish(),
+                  expiresAt: zod.coerce.date().nullish(),
+                  isExpired: zod.boolean(),
+                  createdAt: zod.coerce.date(),
+                }),
+                zod.null(),
+              ])
+              .optional(),
+            pinnedAt: zod.coerce.date().nullish(),
+            lockedAt: zod.coerce.date().nullish(),
+            removedAt: zod.coerce.date().nullish(),
+            createdAt: zod.coerce.date(),
+            kind: zod.string().describe("user | system"),
+          }),
+          zod.null(),
+        ])
+        .optional(),
+      isFollowed: zod.boolean(),
+      isPrivate: zod.boolean(),
+      isMember: zod.boolean(),
+    }),
+  ),
+  isMember: zod.boolean(),
+  canEdit: zod.boolean(),
+  canModerate: zod.boolean(),
+  myRole: zod.enum(["owner", "moderator", "member", "null"]).nullish(),
+  slowModeSeconds: zod.number(),
+  moderators: zod.array(
+    zod.object({
+      id: zod.string(),
+      username: zod.string(),
+      displayName: zod.string(),
+      bio: zod.string().nullish(),
+      avatarUrl: zod.string().nullish(),
+      status: zod.string(),
+      featuredHashtag: zod.string().nullish(),
+      discriminator: zod.string().nullish(),
+      role: zod.string(),
+      mvpPlan: zod.boolean(),
+      verified: zod.boolean(),
+      tier: zod.enum(["free", "premium", "pro"]).optional(),
+      animatedAvatarUrl: zod.string().nullish(),
+      bannerGifUrl: zod.string().nullish(),
+      lastSeenAt: zod.coerce.date(),
+      presenceState: zod
+        .enum(["online", "away", "offline"])
+        .optional()
+        .describe(
+          "Derived presence state — 'online' if active in the last 60s, 'away' within 10 min, otherwise 'offline'. Always 'offline' for users who hide their presence.",
+        ),
+      currentRoomTag: zod
+        .string()
+        .nullish()
+        .describe(
+          "Hashtag of the room the user is currently active in, if any. Null when hidden or not in a room.",
+        ),
+      hashtags: zod.array(zod.string()),
+      sharedHashtags: zod.array(zod.string()),
+      matchScore: zod.number(),
+      friendStatus: zod
+        .string()
+        .nullish()
+        .describe("One of: friends, request_sent, request_received, none"),
+      isFollowing: zod.boolean().optional(),
+      followsMe: zod.boolean().optional(),
+      isMuted: zod.boolean().optional(),
+      isBlocked: zod.boolean().optional(),
+    }),
+  ),
+  createdAt: zod.coerce.date(),
+});
+
+export const ListRoomModeratorsParams = zod.object({
+  tag: zod.coerce.string(),
+});
+
+export const ListRoomModeratorsResponseItem = zod.object({
+  id: zod.string(),
+  username: zod.string(),
+  displayName: zod.string(),
+  bio: zod.string().nullish(),
+  avatarUrl: zod.string().nullish(),
+  status: zod.string(),
+  featuredHashtag: zod.string().nullish(),
+  discriminator: zod.string().nullish(),
+  role: zod.string(),
+  mvpPlan: zod.boolean(),
+  verified: zod.boolean(),
+  tier: zod.enum(["free", "premium", "pro"]).optional(),
+  animatedAvatarUrl: zod.string().nullish(),
+  bannerGifUrl: zod.string().nullish(),
+  lastSeenAt: zod.coerce.date(),
+  presenceState: zod
+    .enum(["online", "away", "offline"])
+    .optional()
+    .describe(
+      "Derived presence state — 'online' if active in the last 60s, 'away' within 10 min, otherwise 'offline'. Always 'offline' for users who hide their presence.",
+    ),
+  currentRoomTag: zod
+    .string()
+    .nullish()
+    .describe(
+      "Hashtag of the room the user is currently active in, if any. Null when hidden or not in a room.",
+    ),
+  hashtags: zod.array(zod.string()),
+  sharedHashtags: zod.array(zod.string()),
+  matchScore: zod.number(),
+  friendStatus: zod
+    .string()
+    .nullish()
+    .describe("One of: friends, request_sent, request_received, none"),
+  isFollowing: zod.boolean().optional(),
+  followsMe: zod.boolean().optional(),
+  isMuted: zod.boolean().optional(),
+  isBlocked: zod.boolean().optional(),
+});
+export const ListRoomModeratorsResponse = zod.array(
+  ListRoomModeratorsResponseItem,
+);
+
+export const AddRoomModeratorParams = zod.object({
+  tag: zod.coerce.string(),
+});
+
+export const AddRoomModeratorBody = zod.object({
+  userId: zod.string(),
+});
+
+export const AddRoomModeratorResponseItem = zod.object({
+  id: zod.string(),
+  username: zod.string(),
+  displayName: zod.string(),
+  bio: zod.string().nullish(),
+  avatarUrl: zod.string().nullish(),
+  status: zod.string(),
+  featuredHashtag: zod.string().nullish(),
+  discriminator: zod.string().nullish(),
+  role: zod.string(),
+  mvpPlan: zod.boolean(),
+  verified: zod.boolean(),
+  tier: zod.enum(["free", "premium", "pro"]).optional(),
+  animatedAvatarUrl: zod.string().nullish(),
+  bannerGifUrl: zod.string().nullish(),
+  lastSeenAt: zod.coerce.date(),
+  presenceState: zod
+    .enum(["online", "away", "offline"])
+    .optional()
+    .describe(
+      "Derived presence state — 'online' if active in the last 60s, 'away' within 10 min, otherwise 'offline'. Always 'offline' for users who hide their presence.",
+    ),
+  currentRoomTag: zod
+    .string()
+    .nullish()
+    .describe(
+      "Hashtag of the room the user is currently active in, if any. Null when hidden or not in a room.",
+    ),
+  hashtags: zod.array(zod.string()),
+  sharedHashtags: zod.array(zod.string()),
+  matchScore: zod.number(),
+  friendStatus: zod
+    .string()
+    .nullish()
+    .describe("One of: friends, request_sent, request_received, none"),
+  isFollowing: zod.boolean().optional(),
+  followsMe: zod.boolean().optional(),
+  isMuted: zod.boolean().optional(),
+  isBlocked: zod.boolean().optional(),
+});
+export const AddRoomModeratorResponse = zod.array(AddRoomModeratorResponseItem);
+
+export const RemoveRoomModeratorParams = zod.object({
+  tag: zod.coerce.string(),
+  userId: zod.coerce.string(),
+});
+
+export const RemoveRoomModeratorResponse = zod.object({
+  ok: zod.boolean(),
+});
+
+export const ListCommunityModeratorsParams = zod.object({
+  slug: zod.coerce.string(),
+});
+
+export const ListCommunityModeratorsResponseItem = zod.object({
+  id: zod.string(),
+  username: zod.string(),
+  displayName: zod.string(),
+  bio: zod.string().nullish(),
+  avatarUrl: zod.string().nullish(),
+  status: zod.string(),
+  featuredHashtag: zod.string().nullish(),
+  discriminator: zod.string().nullish(),
+  role: zod.string(),
+  mvpPlan: zod.boolean(),
+  verified: zod.boolean(),
+  tier: zod.enum(["free", "premium", "pro"]).optional(),
+  animatedAvatarUrl: zod.string().nullish(),
+  bannerGifUrl: zod.string().nullish(),
+  lastSeenAt: zod.coerce.date(),
+  presenceState: zod
+    .enum(["online", "away", "offline"])
+    .optional()
+    .describe(
+      "Derived presence state — 'online' if active in the last 60s, 'away' within 10 min, otherwise 'offline'. Always 'offline' for users who hide their presence.",
+    ),
+  currentRoomTag: zod
+    .string()
+    .nullish()
+    .describe(
+      "Hashtag of the room the user is currently active in, if any. Null when hidden or not in a room.",
+    ),
+  hashtags: zod.array(zod.string()),
+  sharedHashtags: zod.array(zod.string()),
+  matchScore: zod.number(),
+  friendStatus: zod
+    .string()
+    .nullish()
+    .describe("One of: friends, request_sent, request_received, none"),
+  isFollowing: zod.boolean().optional(),
+  followsMe: zod.boolean().optional(),
+  isMuted: zod.boolean().optional(),
+  isBlocked: zod.boolean().optional(),
+});
+export const ListCommunityModeratorsResponse = zod.array(
+  ListCommunityModeratorsResponseItem,
+);
+
+export const AddCommunityModeratorParams = zod.object({
+  slug: zod.coerce.string(),
+});
+
+export const AddCommunityModeratorBody = zod.object({
+  userId: zod.string(),
+});
+
+export const AddCommunityModeratorResponseItem = zod.object({
+  id: zod.string(),
+  username: zod.string(),
+  displayName: zod.string(),
+  bio: zod.string().nullish(),
+  avatarUrl: zod.string().nullish(),
+  status: zod.string(),
+  featuredHashtag: zod.string().nullish(),
+  discriminator: zod.string().nullish(),
+  role: zod.string(),
+  mvpPlan: zod.boolean(),
+  verified: zod.boolean(),
+  tier: zod.enum(["free", "premium", "pro"]).optional(),
+  animatedAvatarUrl: zod.string().nullish(),
+  bannerGifUrl: zod.string().nullish(),
+  lastSeenAt: zod.coerce.date(),
+  presenceState: zod
+    .enum(["online", "away", "offline"])
+    .optional()
+    .describe(
+      "Derived presence state — 'online' if active in the last 60s, 'away' within 10 min, otherwise 'offline'. Always 'offline' for users who hide their presence.",
+    ),
+  currentRoomTag: zod
+    .string()
+    .nullish()
+    .describe(
+      "Hashtag of the room the user is currently active in, if any. Null when hidden or not in a room.",
+    ),
+  hashtags: zod.array(zod.string()),
+  sharedHashtags: zod.array(zod.string()),
+  matchScore: zod.number(),
+  friendStatus: zod
+    .string()
+    .nullish()
+    .describe("One of: friends, request_sent, request_received, none"),
+  isFollowing: zod.boolean().optional(),
+  followsMe: zod.boolean().optional(),
+  isMuted: zod.boolean().optional(),
+  isBlocked: zod.boolean().optional(),
+});
+export const AddCommunityModeratorResponse = zod.array(
+  AddCommunityModeratorResponseItem,
+);
+
+export const RemoveCommunityModeratorParams = zod.object({
+  slug: zod.coerce.string(),
+  userId: zod.coerce.string(),
+});
+
+export const RemoveCommunityModeratorResponse = zod.object({
+  ok: zod.boolean(),
+});
+
+export const GetRoomPinnedPostsParams = zod.object({
+  tag: zod.coerce.string(),
+});
+
+export const GetRoomPinnedPostsResponseItem = zod.object({
+  id: zod.number(),
+  author: zod.object({
+    id: zod.string(),
+    username: zod.string(),
+    displayName: zod.string(),
+    avatarUrl: zod.string().nullish(),
+    animatedAvatarUrl: zod.string().nullish(),
+    discriminator: zod.string().nullish(),
+    role: zod.string(),
+    mvpPlan: zod.boolean(),
+    verified: zod.boolean(),
+    tier: zod.enum(["free", "premium", "pro"]).optional(),
+  }),
+  content: zod.string(),
+  hashtags: zod.array(zod.string()),
+  imageUrls: zod.array(zod.string()),
+  imageAlts: zod.array(zod.string()).optional(),
+  reactions: zod.array(
+    zod.object({
+      emoji: zod.string(),
+      count: zod.number(),
+      reactedByMe: zod.boolean(),
+    }),
+  ),
+  mentions: zod.array(
+    zod.object({
+      id: zod.string(),
+      username: zod.string(),
+      displayName: zod.string(),
+    }),
+  ),
+  status: zod.enum(["scheduled", "published"]),
+  scheduledFor: zod.coerce.date().nullish(),
+  editedAt: zod.coerce.date().nullish(),
+  editableUntil: zod.coerce.date().nullish(),
+  quotedPost: zod
+    .union([
+      zod.object({
+        id: zod.number(),
+        author: zod
+          .object({
+            id: zod.string(),
+            username: zod.string(),
+            displayName: zod.string(),
+            avatarUrl: zod.string().nullish(),
+            animatedAvatarUrl: zod.string().nullish(),
+            discriminator: zod.string().nullish(),
+            role: zod.string(),
+            mvpPlan: zod.boolean(),
+            verified: zod.boolean(),
+            tier: zod.enum(["free", "premium", "pro"]).optional(),
+          })
+          .optional(),
+        content: zod.string(),
+        imageUrls: zod.array(zod.string()),
+        imageAlts: zod.array(zod.string()).optional(),
+        createdAt: zod.coerce.date(),
+        unavailable: zod.boolean(),
+      }),
+      zod.null(),
+    ])
+    .optional(),
+  quoteCount: zod.number(),
+  isPinned: zod.boolean(),
+  pinnedAt: zod.coerce.date().nullish(),
+  replyToId: zod.number().nullish(),
+  replyToAuthorUsername: zod.string().nullish(),
+  replyToAuthorDisplayName: zod.string().nullish(),
+  replyToContent: zod.string().nullish(),
+  lockedAt: zod.coerce.date().nullish(),
+  removedAt: zod.coerce.date().nullish(),
+  pinnedInScopes: zod
+    .array(
+      zod.object({
+        scopeType: zod.enum(["room", "community"]),
+        scopeKey: zod.string(),
+      }),
+    )
+    .optional(),
+  createdAt: zod.coerce.date(),
+});
+export const GetRoomPinnedPostsResponse = zod.array(
+  GetRoomPinnedPostsResponseItem,
+);
+
+export const GetCommunityPinnedPostsParams = zod.object({
+  slug: zod.coerce.string(),
+});
+
+export const GetCommunityPinnedPostsResponseItem = zod.object({
+  id: zod.number(),
+  author: zod.object({
+    id: zod.string(),
+    username: zod.string(),
+    displayName: zod.string(),
+    avatarUrl: zod.string().nullish(),
+    animatedAvatarUrl: zod.string().nullish(),
+    discriminator: zod.string().nullish(),
+    role: zod.string(),
+    mvpPlan: zod.boolean(),
+    verified: zod.boolean(),
+    tier: zod.enum(["free", "premium", "pro"]).optional(),
+  }),
+  content: zod.string(),
+  hashtags: zod.array(zod.string()),
+  imageUrls: zod.array(zod.string()),
+  imageAlts: zod.array(zod.string()).optional(),
+  reactions: zod.array(
+    zod.object({
+      emoji: zod.string(),
+      count: zod.number(),
+      reactedByMe: zod.boolean(),
+    }),
+  ),
+  mentions: zod.array(
+    zod.object({
+      id: zod.string(),
+      username: zod.string(),
+      displayName: zod.string(),
+    }),
+  ),
+  status: zod.enum(["scheduled", "published"]),
+  scheduledFor: zod.coerce.date().nullish(),
+  editedAt: zod.coerce.date().nullish(),
+  editableUntil: zod.coerce.date().nullish(),
+  quotedPost: zod
+    .union([
+      zod.object({
+        id: zod.number(),
+        author: zod
+          .object({
+            id: zod.string(),
+            username: zod.string(),
+            displayName: zod.string(),
+            avatarUrl: zod.string().nullish(),
+            animatedAvatarUrl: zod.string().nullish(),
+            discriminator: zod.string().nullish(),
+            role: zod.string(),
+            mvpPlan: zod.boolean(),
+            verified: zod.boolean(),
+            tier: zod.enum(["free", "premium", "pro"]).optional(),
+          })
+          .optional(),
+        content: zod.string(),
+        imageUrls: zod.array(zod.string()),
+        imageAlts: zod.array(zod.string()).optional(),
+        createdAt: zod.coerce.date(),
+        unavailable: zod.boolean(),
+      }),
+      zod.null(),
+    ])
+    .optional(),
+  quoteCount: zod.number(),
+  isPinned: zod.boolean(),
+  pinnedAt: zod.coerce.date().nullish(),
+  replyToId: zod.number().nullish(),
+  replyToAuthorUsername: zod.string().nullish(),
+  replyToAuthorDisplayName: zod.string().nullish(),
+  replyToContent: zod.string().nullish(),
+  lockedAt: zod.coerce.date().nullish(),
+  removedAt: zod.coerce.date().nullish(),
+  pinnedInScopes: zod
+    .array(
+      zod.object({
+        scopeType: zod.enum(["room", "community"]),
+        scopeKey: zod.string(),
+      }),
+    )
+    .optional(),
+  createdAt: zod.coerce.date(),
+});
+export const GetCommunityPinnedPostsResponse = zod.array(
+  GetCommunityPinnedPostsResponseItem,
+);
+
+export const PinRoomPostParams = zod.object({
+  tag: zod.coerce.string(),
+  id: zod.coerce.number(),
+});
+
+export const PinRoomPostResponse = zod.object({
+  ok: zod.boolean(),
+});
+
+export const UnpinRoomPostParams = zod.object({
+  tag: zod.coerce.string(),
+  id: zod.coerce.number(),
+});
+
+export const UnpinRoomPostResponse = zod.object({
+  ok: zod.boolean(),
+});
+
+export const PinCommunityPostParams = zod.object({
+  slug: zod.coerce.string(),
+  id: zod.coerce.number(),
+});
+
+export const PinCommunityPostResponse = zod.object({
+  ok: zod.boolean(),
+});
+
+export const UnpinCommunityPostParams = zod.object({
+  slug: zod.coerce.string(),
+  id: zod.coerce.number(),
+});
+
+export const UnpinCommunityPostResponse = zod.object({
+  ok: zod.boolean(),
+});
+
+export const LockPostParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const LockPostBody = zod.object({
+  scopeType: zod.enum(["room", "community"]),
+  scopeKey: zod.string(),
+});
+
+export const LockPostResponse = zod.object({
+  ok: zod.boolean(),
+});
+
+export const UnlockPostParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const UnlockPostBody = zod.object({
+  scopeType: zod.enum(["room", "community"]),
+  scopeKey: zod.string(),
+});
+
+export const UnlockPostResponse = zod.object({
+  ok: zod.boolean(),
+});
+
+export const LockMessageParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const LockMessageResponse = zod.object({
+  ok: zod.boolean(),
+});
+
+export const UnlockMessageParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const UnlockMessageResponse = zod.object({
+  ok: zod.boolean(),
+});
+
+export const RemovePostParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const RemovePostBody = zod.object({
+  scopeType: zod.enum(["room", "community"]),
+  scopeKey: zod.string(),
+});
+
+export const RemovePostResponse = zod.object({
+  ok: zod.boolean(),
+});
+
+export const RemoveMessageParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const RemoveMessageResponse = zod.object({
+  ok: zod.boolean(),
+});
+
+export const createReportBodyReasonMax = 280;
+
+export const CreateReportBody = zod.object({
+  scopeType: zod.enum(["room", "community"]),
+  scopeKey: zod.string(),
+  targetType: zod.enum(["post", "message"]),
+  targetId: zod.number(),
+  reason: zod.string().min(1).max(createReportBodyReasonMax),
+});
+
+export const CreateReportResponse = zod.object({
+  ok: zod.boolean(),
+});
+
+export const ListRoomReportsParams = zod.object({
+  tag: zod.coerce.string(),
+});
+
+export const ListRoomReportsResponseItem = zod.object({
+  id: zod.number(),
+  scopeType: zod.string(),
+  scopeKey: zod.string(),
+  targetType: zod.string(),
+  targetId: zod.number(),
+  reason: zod.string(),
+  status: zod.enum(["open", "resolved", "dismissed"]),
+  reporter: zod
+    .union([
+      zod.object({
+        id: zod.string(),
+        username: zod.string(),
+        displayName: zod.string(),
+        avatarUrl: zod.string().nullish(),
+      }),
+      zod.null(),
+    ])
+    .optional(),
+  targetSnippet: zod.string().nullish(),
+  targetAuthorName: zod.string().nullish(),
+  resolvedBy: zod.string().nullish(),
+  resolvedAt: zod.coerce.date().nullish(),
+  resolution: zod.string().nullish(),
+  createdAt: zod.coerce.date(),
+});
+export const ListRoomReportsResponse = zod.array(ListRoomReportsResponseItem);
+
+export const ListCommunityReportsParams = zod.object({
+  slug: zod.coerce.string(),
+});
+
+export const ListCommunityReportsResponseItem = zod.object({
+  id: zod.number(),
+  scopeType: zod.string(),
+  scopeKey: zod.string(),
+  targetType: zod.string(),
+  targetId: zod.number(),
+  reason: zod.string(),
+  status: zod.enum(["open", "resolved", "dismissed"]),
+  reporter: zod
+    .union([
+      zod.object({
+        id: zod.string(),
+        username: zod.string(),
+        displayName: zod.string(),
+        avatarUrl: zod.string().nullish(),
+      }),
+      zod.null(),
+    ])
+    .optional(),
+  targetSnippet: zod.string().nullish(),
+  targetAuthorName: zod.string().nullish(),
+  resolvedBy: zod.string().nullish(),
+  resolvedAt: zod.coerce.date().nullish(),
+  resolution: zod.string().nullish(),
+  createdAt: zod.coerce.date(),
+});
+export const ListCommunityReportsResponse = zod.array(
+  ListCommunityReportsResponseItem,
+);
+
+export const ResolveReportParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const ResolveReportBody = zod.object({
+  action: zod.enum(["dismiss", "remove", "lock"]),
+  note: zod.string().nullish(),
+});
+
+export const ResolveReportResponse = zod.object({
   ok: zod.boolean(),
 });
 

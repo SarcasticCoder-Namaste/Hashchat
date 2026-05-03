@@ -15,7 +15,11 @@ export type NotificationKind =
   | "event_starting"
   | "scheduled_post_published"
   | "poll_closing"
-  | "post_milestone";
+  | "post_milestone"
+  | "report_resolved"
+  | "moderation_action"
+  | "mod_promoted"
+  | "post_pinned";
 
 export type NotificationTargetType =
   | "message"
@@ -23,7 +27,10 @@ export type NotificationTargetType =
   | "conversation"
   | "user"
   | "event"
-  | "poll";
+  | "poll"
+  | "room"
+  | "community"
+  | "report";
 
 export interface CreateNotificationInput {
   recipientId: string;
@@ -191,6 +198,20 @@ export function buildHref(
   if (targetType === "poll" && targetTextId) {
     // targetTextId is the room tag for poll notifications.
     return `/app/rooms/${targetTextId}`;
+  }
+  if (targetType === "room" && targetTextId) {
+    return `/app/rooms/${targetTextId}`;
+  }
+  if (targetType === "community" && targetTextId) {
+    return `/app/communities/${targetTextId}`;
+  }
+  if (targetType === "report" && targetTextId) {
+    if (targetTextId.startsWith("room:")) {
+      return `/app/rooms/${targetTextId.slice(5)}`;
+    }
+    if (targetTextId.startsWith("community:")) {
+      return `/app/communities/${targetTextId.slice(10)}`;
+    }
   }
   return null;
 }

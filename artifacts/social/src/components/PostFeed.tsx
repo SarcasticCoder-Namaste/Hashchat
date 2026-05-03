@@ -24,9 +24,10 @@ interface PostFeedProps {
     | { kind: "home" };
   meId: string | null;
   emptyMessage?: string;
+  canModerate?: boolean;
 }
 
-export function PostFeed({ scope, meId, emptyMessage }: PostFeedProps) {
+export function PostFeed({ scope, meId, emptyMessage, canModerate }: PostFeedProps) {
   const qc = useQueryClient();
   const { isPremium } = useTier();
   const userTab: GetUserPostsTab | undefined =
@@ -150,6 +151,8 @@ export function PostFeed({ scope, meId, emptyMessage }: PostFeedProps) {
             meId={meId}
             onDeleted={invalidate}
             onChanged={invalidate}
+            scope={scope.kind === "hashtag" ? { type: "room", key: scope.tag } : undefined}
+            canModerate={canModerate}
           />
           {showSponsored && idx === 1 ? (
             <div

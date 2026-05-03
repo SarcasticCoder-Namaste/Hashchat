@@ -229,6 +229,12 @@ export const messagesTable = pgTable(
     audioTranscript: text("audio_transcript"),
     replyToId: integer("reply_to_id"),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
+    pinnedAt: timestamp("pinned_at", { withTimezone: true }),
+    lockedAt: timestamp("locked_at", { withTimezone: true }),
+    removedAt: timestamp("removed_at", { withTimezone: true }),
+    removedBy: text("removed_by").references(() => usersTable.id, {
+      onDelete: "set null",
+    }),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -469,6 +475,11 @@ export const postsTable = pgTable(
     isPinned: boolean("is_pinned").notNull().default(false),
     pinnedAt: timestamp("pinned_at", { withTimezone: true }),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
+    lockedAt: timestamp("locked_at", { withTimezone: true }),
+    removedAt: timestamp("removed_at", { withTimezone: true }),
+    removedBy: text("removed_by").references(() => usersTable.id, {
+      onDelete: "set null",
+    }),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -856,6 +867,7 @@ export const communitiesTable = pgTable(
     creatorId: text("creator_id")
       .notNull()
       .references(() => usersTable.id, { onDelete: "cascade" }),
+    slowModeSeconds: integer("slow_mode_seconds").notNull().default(0),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -907,6 +919,7 @@ export const roomVisibilityTable = pgTable("room_visibility", {
   ownerId: text("owner_id")
     .notNull()
     .references(() => usersTable.id, { onDelete: "cascade" }),
+  slowModeSeconds: integer("slow_mode_seconds").notNull().default(0),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
@@ -914,6 +927,77 @@ export const roomVisibilityTable = pgTable("room_visibility", {
     .notNull()
     .defaultNow(),
 });
+
+export const roomModeratorsTable = pgTable(
+  "room_moderators",
+  {
+    tag: text("tag")
+      .notNull()
+      .references(() => hashtagsTable.tag, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => usersTable.id, { onDelete: "cascade" }),
+    addedBy: text("added_by")
+      .notNull()
+      .references(() => usersTable.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.tag, t.userId] }),
+    index("room_moderators_user_idx").on(t.userId),
+  ],
+);
+
+export const pinnedPostsTable = pgTable(
+  "pinned_posts",
+  {
+    scopeType: text("scope_type").notNull(),
+    scopeKey: text("scope_key").notNull(),
+    postId: integer("post_id")
+      .notNull()
+      .references(() => postsTable.id, { onDelete: "cascade" }),
+    pinnedBy: text("pinned_by")
+      .notNull()
+      .references(() => usersTable.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.scopeType, t.scopeKey, t.postId] }),
+    index("pinned_posts_scope_idx").on(t.scopeType, t.scopeKey),
+  ],
+);
+
+export const reportsTable = pgTable(
+  "reports",
+  {
+    id: serial("id").primaryKey(),
+    reporterId: text("reporter_id")
+      .notNull()
+      .references(() => usersTable.id, { onDelete: "cascade" }),
+    scopeType: text("scope_type").notNull(),
+    scopeKey: text("scope_key").notNull(),
+    targetType: text("target_type").notNull(),
+    targetId: integer("target_id").notNull(),
+    reason: text("reason").notNull(),
+    status: text("status").notNull().default("open"),
+    resolvedBy: text("resolved_by").references(() => usersTable.id, {
+      onDelete: "set null",
+    }),
+    resolvedAt: timestamp("resolved_at", { withTimezone: true }),
+    resolution: text("resolution"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    index("reports_scope_idx").on(t.scopeType, t.scopeKey, t.status),
+    index("reports_reporter_idx").on(t.reporterId, t.createdAt),
+  ],
+);
 
 export const roomMembersTable = pgTable(
   "room_members",

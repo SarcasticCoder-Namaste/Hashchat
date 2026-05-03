@@ -27,6 +27,9 @@ type RawMessage = {
   audioWaveform: string | null;
   audioTranscript: string | null;
   replyToId: number | null;
+  pinnedAt?: Date | null;
+  lockedAt?: Date | null;
+  removedAt?: Date | null;
   createdAt: Date;
 };
 
@@ -371,6 +374,7 @@ export async function buildMessages(rows: RawMessage[], myUserId: string) {
         readByOther = false;
       }
     }
+    const removed = r.removedAt != null;
     return {
       id: r.id,
       conversationId: r.conversationId,
@@ -380,23 +384,26 @@ export async function buildMessages(rows: RawMessage[], myUserId: string) {
       senderAvatarUrl: sender?.avatarUrl ?? null,
       senderAnimatedAvatarUrl:
         sender?.tier === "pro" ? (sender?.animatedAvatarUrl ?? null) : null,
-      content: r.content,
+      content: removed ? "" : r.content,
       kind: r.kind ?? "user",
-      imageUrl: r.imageUrl,
-      imageAlt: r.imageAlt,
-      audioUrl: r.audioUrl,
-      audioWaveform: parseWaveform(r.audioWaveform),
-      audioTranscript: r.audioTranscript,
+      imageUrl: removed ? null : r.imageUrl,
+      imageAlt: removed ? null : r.imageAlt,
+      audioUrl: removed ? null : r.audioUrl,
+      audioWaveform: removed ? null : parseWaveform(r.audioWaveform),
+      audioTranscript: removed ? null : r.audioTranscript,
       replyToId: r.replyToId,
       replyToContent: replyMeta?.content ?? null,
       replyToSenderName:
         replyToSender?.displayName ?? replyToSender?.username ?? null,
       replyCount: replyCountMap.get(r.id) ?? 0,
-      reactions: reactionMap.get(r.id) ?? [],
-      attachments: attachmentMap.get(r.id) ?? [],
-      mentions: mentionMap.get(r.id) ?? [],
+      reactions: removed ? [] : (reactionMap.get(r.id) ?? []),
+      attachments: removed ? [] : (attachmentMap.get(r.id) ?? []),
+      mentions: removed ? [] : (mentionMap.get(r.id) ?? []),
       readByOther,
-      poll,
+      poll: removed ? null : poll,
+      pinnedAt: r.pinnedAt ? r.pinnedAt.toISOString() : null,
+      lockedAt: r.lockedAt ? r.lockedAt.toISOString() : null,
+      removedAt: r.removedAt ? r.removedAt.toISOString() : null,
       createdAt: r.createdAt.toISOString(),
     };
   });

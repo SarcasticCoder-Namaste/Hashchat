@@ -47,6 +47,7 @@ import {
   Pencil,
   Quote,
   Loader2,
+  Lock,
   Pin,
   PinOff,
   CornerUpLeft,
@@ -59,6 +60,7 @@ import { QuotedPostPreview } from "./QuotedPostPreview";
 import { PostComposer } from "./PostComposer";
 import { usePostImpression, recordPostClick } from "@/hooks/usePostImpression";
 import { useToast } from "@/hooks/use-toast";
+import { ModerationMenu, type ModerationScope } from "./ModerationMenu";
 
 const QUICK_REACTIONS = ["👍", "❤️", "😂", "😮", "😢", "🔥", "🎉", "🙌"];
 
@@ -67,6 +69,8 @@ interface PostCardProps {
   meId: string | null;
   onDeleted?: () => void;
   onChanged?: () => void;
+  scope?: ModerationScope;
+  canModerate?: boolean;
 }
 
 function timeAgo(iso: string): string {
@@ -81,10 +85,19 @@ function timeAgo(iso: string): string {
   return new Date(iso).toLocaleDateString();
 }
 
-export function PostCard({ post, meId, onDeleted, onChanged }: PostCardProps) {
+export function PostCard({ post, meId, onDeleted, onChanged, scope, canModerate }: PostCardProps) {
   const isMine = meId === post.author.id;
   const qc = useQueryClient();
   const { toast } = useToast();
+  const isRemoved = !!post.removedAt;
+  const isLocked = !!post.lockedAt;
+  const isPinnedHere =
+    !!scope &&
+    (post.pinnedInScopes ?? []).some(
+      (s) => s.scopeType === scope.type && s.scopeKey === scope.key,
+    );
+
+
   const [pickerOpen, setPickerOpen] = useState(false);
   const [editing, setEditing] = useState(false);
   const [editText, setEditText] = useState(post.content);
@@ -161,6 +174,7 @@ export function PostCard({ post, meId, onDeleted, onChanged }: PostCardProps) {
   });
 
   function toggleEmoji(emoji: string, mine: boolean) {
+    if (isLocked) return;
     if (mine) {
       removeReaction.mutate({ id: post.id, params: { emoji } });
     } else {
@@ -183,12 +197,30 @@ export function PostCard({ post, meId, onDeleted, onChanged }: PostCardProps) {
     unavailable: false,
   };
 
+  if (isRemoved && !canModerate) {
+    return (
+      <article
+        className="rounded-xl border border-dashed border-border bg-muted/30 p-3 text-xs italic text-muted-foreground"
+        data-testid={`post-removed-${post.id}`}
+      >
+        [Removed by moderator]
+      </article>
+    );
+  }
+
   return (
     <article
       ref={articleRef}
-      className="group flex gap-3 rounded-xl border border-border bg-card p-3"
+      className={[
+        "group flex gap-3 rounded-xl border bg-card p-3",
+        isPinnedHere ? "border-violet-500/60" : "border-border",
+        isRemoved ? "opacity-60" : "",
+      ].join(" ")}
       data-testid={`post-${post.id}`}
       aria-label={`Post by ${post.author.displayName}`}
+      data-pinned={isPinnedHere ? "true" : undefined}
+      data-locked={isLocked ? "true" : undefined}
+      data-removed={isRemoved ? "true" : undefined}
     >
       <Avatar className="h-10 w-10 shrink-0">
         {post.author.animatedAvatarUrl || post.author.avatarUrl ? (
@@ -260,6 +292,16 @@ export function PostCard({ post, meId, onDeleted, onChanged }: PostCardProps) {
               </PopoverContent>
             </Popover>
           )}
+          {isPinnedHere && (
+            <span title="Pinned" className="text-violet-500" data-testid={`post-pin-badge-${post.id}`}>
+              <Pin className="h-3 w-3" />
+            </span>
+          )}
+          {isLocked && (
+            <span title="Locked" className="text-amber-500" data-testid={`post-lock-badge-${post.id}`}>
+              <Lock className="h-3 w-3" />
+            </span>
+          )}
           <div className="ml-auto flex items-center gap-0.5">
             <BookmarkButton kind="post" targetId={post.id} />
             {isMine && (
@@ -275,6 +317,16 @@ export function PostCard({ post, meId, onDeleted, onChanged }: PostCardProps) {
                 <BarChart3 className="h-3.5 w-3.5" />
               </Button>
             )}
+            <ModerationMenu
+              kind="post"
+              targetId={post.id}
+              scope={scope}
+              canModerate={canModerate}
+              isPinned={isPinnedHere}
+              isLocked={isLocked}
+              isRemoved={isRemoved}
+              onChanged={onChanged}
+            />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button

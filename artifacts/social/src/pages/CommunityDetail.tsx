@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
 import {
@@ -9,15 +10,28 @@ import {
   getGetMyFollowedHashtagsQueryKey,
   getGetRoomsQueryKey,
 } from "@workspace/api-client-react";
-import { ArrowLeft, Users, Hash, MessageCircle, Loader2, LogOut, UserPlus, Radio } from "lucide-react";
+import {
+  ArrowLeft,
+  Users,
+  Hash,
+  MessageCircle,
+  Loader2,
+  LogOut,
+  UserPlus,
+  Radio,
+  Settings as SettingsIcon,
+  Timer,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PresenceAvatar, UserNameLine } from "@/components/UserBadge";
 import { useToast } from "@/hooks/use-toast";
+import { CommunitySettingsDialog } from "@/components/CommunitySettingsDialog";
 
 export default function CommunityDetail({ slug }: { slug: string }) {
   const community = useGetCommunity(slug);
   const qc = useQueryClient();
   const { toast } = useToast();
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: getGetCommunityQueryKey(slug) });
@@ -98,7 +112,27 @@ export default function CommunityDetail({ slug }: { slug: string }) {
               <p className="mt-2 text-sm text-foreground">{c.description}</p>
             )}
           </div>
-          <div>
+          <div className="flex items-center gap-2">
+            {c.slowModeSeconds > 0 && (
+              <span
+                className="inline-flex items-center gap-0.5 rounded-full bg-amber-500/15 px-2 py-0.5 text-xs text-amber-600 dark:text-amber-400"
+                data-testid="community-slow-mode-badge"
+                title={`Slow mode: ${c.slowModeSeconds}s`}
+              >
+                <Timer className="h-3 w-3" /> {c.slowModeSeconds}s
+              </span>
+            )}
+            {c.canModerate && (
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={() => setSettingsOpen(true)}
+                data-testid="button-community-settings"
+                aria-label="Community settings"
+              >
+                <SettingsIcon className="h-4 w-4" />
+              </Button>
+            )}
             {c.isMember ? (
               <Button
                 variant="secondary"
@@ -176,6 +210,12 @@ export default function CommunityDetail({ slug }: { slug: string }) {
           </div>
         </section>
       )}
+
+      <CommunitySettingsDialog
+        community={c}
+        open={settingsOpen}
+        onOpenChange={setSettingsOpen}
+      />
 
       {c.members.length > 0 && (
         <section>
