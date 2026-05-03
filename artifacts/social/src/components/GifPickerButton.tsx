@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import { useInView } from "@/hooks/useInView";
 import {
   useSearchGifs,
   useGetGifCategories,
@@ -299,20 +300,7 @@ function GifBrowseSection({
           </div>
           <div className="flex gap-1.5 overflow-x-auto pb-1">
             {recentItems.map((g) => (
-              <button
-                key={g.id}
-                type="button"
-                onClick={() => onPickGif(g)}
-                className="group relative h-20 w-20 shrink-0 overflow-hidden rounded-md bg-muted/50 transition-shadow hover:ring-2 hover:ring-primary"
-                data-testid={`gif-recent-${g.id}`}
-                aria-label={g.title || "Send recent GIF"}
-              >
-                <GifMedia
-                  src={g.previewUrl}
-                  alt={g.title || ""}
-                  className="absolute inset-0 h-full w-full object-cover"
-                />
-              </button>
+              <GifRecentTile key={g.id} gif={g} onPick={onPickGif} />
             ))}
           </div>
         </div>
@@ -395,24 +383,60 @@ function GifTile({
   gif: Gif;
   onPick: (g: Gif) => void;
 }) {
-  const ref = useRef<HTMLButtonElement>(null);
+  const [setRef, inView] = useInView<HTMLButtonElement>({
+    rootMargin: "200px",
+  });
   const ratio = gif.height && gif.width ? gif.height / gif.width : 1;
   return (
     <button
-      ref={ref}
+      ref={setRef}
       type="button"
       onClick={() => onPick(gif)}
       className="group relative w-full overflow-hidden rounded-md bg-muted/50 transition-shadow hover:ring-2 hover:ring-primary"
       style={{ aspectRatio: `${gif.width || 1} / ${gif.height || 1}` }}
       data-testid={`gif-tile-${gif.id}`}
+      data-gif-loaded={inView ? "true" : "false"}
       aria-label={gif.title || "Send GIF"}
     >
-      <GifMedia
-        src={gif.previewUrl}
-        alt={gif.title || ""}
-        className="absolute inset-0 h-full w-full object-cover"
-        style={{ aspectRatio: `${gif.width || 1} / ${gif.height || ratio}` }}
-      />
+      {inView && (
+        <GifMedia
+          src={gif.previewUrl}
+          alt={gif.title || ""}
+          className="absolute inset-0 h-full w-full object-cover"
+          style={{ aspectRatio: `${gif.width || 1} / ${gif.height || ratio}` }}
+        />
+      )}
+    </button>
+  );
+}
+
+function GifRecentTile({
+  gif,
+  onPick,
+}: {
+  gif: Gif;
+  onPick: (g: Gif) => void;
+}) {
+  const [setRef, inView] = useInView<HTMLButtonElement>({
+    rootMargin: "200px",
+  });
+  return (
+    <button
+      ref={setRef}
+      type="button"
+      onClick={() => onPick(gif)}
+      className="group relative h-20 w-20 shrink-0 overflow-hidden rounded-md bg-muted/50 transition-shadow hover:ring-2 hover:ring-primary"
+      data-testid={`gif-recent-${gif.id}`}
+      data-gif-loaded={inView ? "true" : "false"}
+      aria-label={gif.title || "Send recent GIF"}
+    >
+      {inView && (
+        <GifMedia
+          src={gif.previewUrl}
+          alt={gif.title || ""}
+          className="absolute inset-0 h-full w-full object-cover"
+        />
+      )}
     </button>
   );
 }
