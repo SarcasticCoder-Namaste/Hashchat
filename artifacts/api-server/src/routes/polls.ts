@@ -13,6 +13,7 @@ import { and, desc, eq, inArray } from "drizzle-orm";
 import { requireAuth, getUserId } from "../middlewares/requireAuth";
 import { normalizeTag } from "../lib/hashtags";
 import { CreateRoomPollBody, VotePollBody } from "@workspace/api-zod";
+import { publishPollUpdate, subscribePollUpdates } from "../lib/pollEvents";
 
 const router: IRouter = Router();
 
@@ -379,7 +380,59 @@ router.post(
     }
 
     const [built] = await buildPolls([poll], me);
+    publishPollUpdate(poll.roomTag, {
+      pollId: poll.id,
+      totalVotes: built.totalVotes,
+      at: Date.now(),
+    });
     res.json(built);
+  },
+);
+
+router.get(
+  "/rooms/:tag/polls/stream",
+  requireAuth,
+  async (req, res): Promise<void> => {
+    const raw = Array.isArray(req.params.tag)
+      ? req.params.tag[0]
+      : req.params.tag;
+    const tag = normalizeTag(raw);
+    if (!tag) {
+      res.status(400).json({ error: "Invalid tag" });
+      return;
+    }
+
+    res.status(200);
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache, no-transform");
+    res.setHeader("Connection", "keep-alive");
+    res.setHeader("X-Accel-Buffering", "no");
+    res.flushHeaders?.();
+
+    res.write(`retry: 3000\n\n`);
+    res.write(`: connected\n\n`);
+
+    const unsubscribe = subscribePollUpdates(tag, (event) => {
+      res.write(`event: poll-update\n`);
+      res.write(`data: ${JSON.stringify(event)}\n\n`);
+    });
+
+    const heartbeat = setInterval(() => {
+      res.write(`: ping\n\n`);
+    }, 25_000);
+
+    const cleanup = () => {
+      clearInterval(heartbeat);
+      unsubscribe();
+      try {
+        res.end();
+      } catch {
+        // ignore
+      }
+    };
+
+    req.on("close", cleanup);
+    req.on("aborted", cleanup);
   },
 );
 

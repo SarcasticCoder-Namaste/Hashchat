@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   useGetRoomPolls,
@@ -23,6 +24,21 @@ export function PollsPanel({ tag }: PollsPanelProps) {
   function invalidate() {
     qc.invalidateQueries({ queryKey: getGetRoomPollsQueryKey(tag) });
   }
+
+  useEffect(() => {
+    if (!tag) return;
+    if (typeof EventSource === "undefined") return;
+    const url = `/api/rooms/${encodeURIComponent(tag)}/polls/stream`;
+    const es = new EventSource(url, { withCredentials: true });
+    const onUpdate = () => {
+      qc.invalidateQueries({ queryKey: getGetRoomPollsQueryKey(tag) });
+    };
+    es.addEventListener("poll-update", onUpdate);
+    return () => {
+      es.removeEventListener("poll-update", onUpdate);
+      es.close();
+    };
+  }, [tag, qc]);
 
   return (
     <div className="flex h-full min-h-0 flex-col bg-background">
