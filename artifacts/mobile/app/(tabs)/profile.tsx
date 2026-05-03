@@ -147,6 +147,66 @@ export default function ProfileScreen() {
 
       <View style={styles.section}>
         <Pressable
+          onPress={() => router.push("/security" as never)}
+          style={[
+            styles.linkRow,
+            { backgroundColor: colors.card, borderColor: colors.border },
+          ]}
+          testID="link-security"
+        >
+          <View
+            style={[
+              styles.linkIcon,
+              { backgroundColor: "rgba(16,185,129,0.15)" },
+            ]}
+          >
+            <Feather name="shield" size={16} color="#10b981" />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.inviteTitle, { color: colors.foreground }]}>
+              Security
+            </Text>
+            <Text
+              style={[styles.inviteSub, { color: colors.mutedForeground }]}
+            >
+              Two-factor authentication & active sessions
+            </Text>
+          </View>
+          <Feather name="chevron-right" size={18} color={colors.mutedForeground} />
+        </Pressable>
+
+        <Pressable
+          onPress={() => router.push("/reports" as never)}
+          style={[
+            styles.linkRow,
+            { backgroundColor: colors.card, borderColor: colors.border },
+          ]}
+          testID="link-my-reports"
+        >
+          <View
+            style={[
+              styles.linkIcon,
+              { backgroundColor: "rgba(14,165,233,0.15)" },
+            ]}
+          >
+            <Feather name="flag" size={16} color="#0ea5e9" />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.inviteTitle, { color: colors.foreground }]}>
+              My reports
+            </Text>
+            <Text
+              style={[styles.inviteSub, { color: colors.mutedForeground }]}
+            >
+              Track report status and appeal decisions
+            </Text>
+          </View>
+          <Feather name="chevron-right" size={18} color={colors.mutedForeground} />
+        </Pressable>
+      </View>
+
+      <View style={styles.section}>
+        <Pressable
           onPress={handleSignOut}
           style={[
             styles.signOut,
@@ -199,6 +259,21 @@ const styles = StyleSheet.create({
   inviteIcon: {
     width: 36,
     height: 36,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  linkRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    padding: 14,
+    borderRadius: 14,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  linkIcon: {
+    width: 32,
+    height: 32,
     borderRadius: 10,
     alignItems: "center",
     justifyContent: "center",

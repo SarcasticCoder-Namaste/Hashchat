@@ -18,6 +18,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { PrePostSafetyWarning } from "@/components/PrePostSafetyWarning";
 import { useColors } from "@/hooks/useColors";
 import { uploadFile } from "@/lib/upload";
 import {
@@ -241,6 +242,8 @@ export default function ComposeScreen() {
             autoFocus
             maxLength={MAX_LEN + 100}
           />
+
+          <PrePostSafetyWarning text={content} />
 
           {imagePreview ? (
             <View style={styles.imageWrap}>

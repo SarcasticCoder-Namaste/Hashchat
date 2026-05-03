@@ -165,6 +165,14 @@ function RootLayoutNav() {
         name="invite"
         options={{ headerShown: true, title: "Invite friends" }}
       />
+      <Stack.Screen
+        name="security"
+        options={{ headerShown: true, title: "Security" }}
+      />
+      <Stack.Screen
+        name="reports"
+        options={{ headerShown: true, title: "My reports" }}
+      />
     </Stack>
   );
 }
