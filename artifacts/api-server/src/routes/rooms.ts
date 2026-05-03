@@ -20,6 +20,11 @@ import { transcribeMessageAudio } from "../lib/transcribeAudio";
 import { isAllowedGifUrl } from "../lib/giphy";
 import { SendRoomMessageBody } from "@workspace/api-zod";
 import { normalizeTag } from "../lib/hashtags";
+import {
+  presenceStateFor,
+  publicCurrentRoom,
+  publicLastSeenAt,
+} from "../lib/presence";
 import { resolveMentions, recordMentions } from "../lib/mentions";
 import { createNotification } from "../lib/notifications";
 import {
@@ -711,6 +716,8 @@ router.get("/rooms/:tag/join-requests", requireAuth, async (req, res): Promise<v
       verified: usersTable.verified,
       status_user: usersTable.status,
       lastSeenAt: usersTable.lastSeenAt,
+      hidePresence: usersTable.hidePresence,
+      currentRoomTag: usersTable.currentRoomTag,
     })
     .from(roomJoinRequestsTable)
     .leftJoin(usersTable, eq(usersTable.id, roomJoinRequestsTable.userId))
@@ -735,7 +742,9 @@ router.get("/rooms/:tag/join-requests", requireAuth, async (req, res): Promise<v
             role: r.role!,
             mvpPlan: r.mvpPlan!,
             verified: r.verified!,
-            lastSeenAt: (r.lastSeenAt ?? new Date(0)).toISOString(),
+            lastSeenAt: publicLastSeenAt(r.lastSeenAt ?? new Date(0), r.hidePresence ?? false),
+            presenceState: presenceStateFor(r.lastSeenAt ?? new Date(0), r.hidePresence ?? false),
+            currentRoomTag: publicCurrentRoom(r.currentRoomTag ?? null, r.lastSeenAt ?? new Date(0), r.hidePresence ?? false),
             hashtags: [],
             sharedHashtags: [],
             matchScore: 0,

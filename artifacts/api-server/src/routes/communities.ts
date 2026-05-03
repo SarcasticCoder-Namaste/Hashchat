@@ -14,6 +14,11 @@ import { eq, and, sql, inArray, desc } from "drizzle-orm";
 import { requireAuth, getUserId } from "../middlewares/requireAuth";
 import { normalizeTag } from "../lib/hashtags";
 import { loadPrivateTags, loadMyRoomMemberships } from "../lib/roomVisibility";
+import {
+  presenceStateFor,
+  publicCurrentRoom,
+  publicLastSeenAt,
+} from "../lib/presence";
 
 const router: IRouter = Router();
 
@@ -229,6 +234,8 @@ async function buildCommunityDetail(
       mvpPlan: usersTable.mvpPlan,
       verified: usersTable.verified,
       lastSeenAt: usersTable.lastSeenAt,
+      hidePresence: usersTable.hidePresence,
+      currentRoomTag: usersTable.currentRoomTag,
     })
     .from(communityMembersTable)
     .leftJoin(usersTable, eq(usersTable.id, communityMembersTable.userId))
@@ -255,7 +262,9 @@ async function buildCommunityDetail(
       role: r.role_user!,
       mvpPlan: r.mvpPlan!,
       verified: r.verified!,
-      lastSeenAt: (r.lastSeenAt ?? new Date(0)).toISOString(),
+      lastSeenAt: publicLastSeenAt(r.lastSeenAt ?? new Date(0), r.hidePresence ?? false),
+      presenceState: presenceStateFor(r.lastSeenAt ?? new Date(0), r.hidePresence ?? false),
+      currentRoomTag: publicCurrentRoom(r.currentRoomTag ?? null, r.lastSeenAt ?? new Date(0), r.hidePresence ?? false),
       hashtags: [],
       sharedHashtags: tags.filter((t) => myTagSet.has(t)),
       matchScore: 0,

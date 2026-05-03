@@ -1515,7 +1515,27 @@ function NotificationsTab() {
 }
 
 function PrivacyTab() {
-  const [online, setOnline] = usePref<boolean>(PREF_KEYS.privShowOnline, true);
+  const qc = useQueryClient();
+  const { toast } = useToast();
+  const meQ = useGetMe();
+  const updateMe = useUpdateMe({
+    mutation: {
+      onSuccess: () => {
+        qc.invalidateQueries({ queryKey: getGetMeQueryKey() });
+      },
+      onError: (e: unknown) => {
+        toast({
+          title: "Couldn't update privacy",
+          description: e instanceof Error ? e.message : "Try again.",
+          variant: "destructive",
+        });
+      },
+    },
+  });
+  const showOnline = !(meQ.data?.hidePresence ?? false);
+  const setShowOnline = (next: boolean) => {
+    updateMe.mutate({ data: { hidePresence: !next } });
+  };
   const [strangers, setStrangers] = usePref<boolean>(
     PREF_KEYS.privDmsFromStrangers,
     true,
@@ -1536,9 +1556,9 @@ function PrivacyTab() {
       <div className="space-y-2">
         <PrefRow
           title="Show online status"
-          description="Let people see a green dot when you're active."
-          checked={online}
-          onCheckedChange={setOnline}
+          description="Let people see a green dot and your active room when you're active."
+          checked={showOnline}
+          onCheckedChange={setShowOnline}
           testId="switch-priv-online"
         />
         <PrefRow

@@ -100,6 +100,8 @@ import type {
   PremiumCheckoutResponse,
   PremiumPortalResponse,
   PremiumStatus,
+  PresencePingBody,
+  PresencePingResponse,
   PublicProfile,
   PushSubscribeBody,
   PushUnsubscribeBody,
@@ -12635,6 +12637,92 @@ export const useDeleteBookmark = <
   TContext
 > => {
   return useMutation(getDeleteBookmarkMutationOptions(options));
+};
+
+/**
+ * @summary Heartbeat updating my last_seen_at and optionally the room I'm currently active in
+ */
+export const getPingPresenceUrl = () => {
+  return `/api/presence/ping`;
+};
+
+export const pingPresence = async (
+  presencePingBody?: PresencePingBody,
+  options?: RequestInit,
+): Promise<PresencePingResponse> => {
+  return customFetch<PresencePingResponse>(getPingPresenceUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(presencePingBody),
+  });
+};
+
+export const getPingPresenceMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof pingPresence>>,
+    TError,
+    { data: BodyType<PresencePingBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof pingPresence>>,
+  TError,
+  { data: BodyType<PresencePingBody> },
+  TContext
+> => {
+  const mutationKey = ["pingPresence"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof pingPresence>>,
+    { data: BodyType<PresencePingBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return pingPresence(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type PingPresenceMutationResult = NonNullable<
+  Awaited<ReturnType<typeof pingPresence>>
+>;
+export type PingPresenceMutationBody = BodyType<PresencePingBody>;
+export type PingPresenceMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Heartbeat updating my last_seen_at and optionally the room I'm currently active in
+ */
+export const usePingPresence = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof pingPresence>>,
+    TError,
+    { data: BodyType<PresencePingBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof pingPresence>>,
+  TError,
+  { data: BodyType<PresencePingBody> },
+  TContext
+> => {
+  return useMutation(getPingPresenceMutationOptions(options));
 };
 
 /**

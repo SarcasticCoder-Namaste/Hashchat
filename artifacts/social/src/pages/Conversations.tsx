@@ -99,6 +99,7 @@ export default function Conversations() {
                     displayName={c.otherUser.displayName}
                     avatarUrl={c.otherUser.avatarUrl}
                     lastSeenAt={c.otherUser.lastSeenAt}
+                    presenceState={c.otherUser.presenceState}
                   />
                   <div className="min-w-0 flex-1">
                     <div className="flex items-baseline justify-between gap-2">
@@ -131,6 +132,23 @@ export default function Conversations() {
                     >
                       {c.lastMessage?.content ?? "Start the conversation"}
                     </p>
+                    {(c.otherUser.presenceState === "online" ||
+                      c.otherUser.currentRoomTag) && (
+                      <p
+                        className="truncate text-[11px] text-muted-foreground/80"
+                        data-testid={`conversation-presence-${c.id}`}
+                      >
+                        {c.otherUser.presenceState === "online"
+                          ? "Active now"
+                          : null}
+                        {c.otherUser.currentRoomTag ? (
+                          <span className="text-primary">
+                            {c.otherUser.presenceState === "online" ? " · " : ""}
+                            in #{c.otherUser.currentRoomTag}
+                          </span>
+                        ) : null}
+                      </p>
+                    )}
                   </div>
                   {c.unreadCount > 0 && (
                     <motion.span

@@ -28,6 +28,7 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
 import { PresenceAvatar, UserNameLine } from "@/components/UserBadge";
+import { formatLastSeen } from "@/lib/userPresence";
 import {
   MessageCircle,
   UserPlus,
@@ -174,17 +175,30 @@ function UserList({
             displayName={u.displayName}
             avatarUrl={u.avatarUrl}
             lastSeenAt={u.lastSeenAt}
+            presenceState={u.presenceState}
           />
-          <UserNameLine
-            displayName={u.displayName}
-            username={u.username}
-            discriminator={u.discriminator}
-            role={u.role}
-            mvpPlan={u.mvpPlan}
-            verified={u.verified}
-            featuredHashtag={u.featuredHashtag}
-            className="flex-1"
-          />
+          <div className="flex-1 min-w-0">
+            <UserNameLine
+              displayName={u.displayName}
+              username={u.username}
+              discriminator={u.discriminator}
+              role={u.role}
+              mvpPlan={u.mvpPlan}
+              verified={u.verified}
+              featuredHashtag={u.featuredHashtag}
+            />
+            <p
+              className="truncate text-[11px] text-muted-foreground"
+              data-testid={`friend-presence-${u.username}`}
+            >
+              {formatLastSeen(u.lastSeenAt, u.presenceState)}
+              {u.currentRoomTag ? (
+                <span className="ml-1 text-primary">
+                  · in #{u.currentRoomTag}
+                </span>
+              ) : null}
+            </p>
+          </div>
           <div className="flex items-center gap-1.5">{renderActions(u)}</div>
         </motion.li>
       ))}

@@ -37,6 +37,8 @@ export const usersTable = pgTable("users", {
   stripeCustomerId: text("stripe_customer_id"),
   stripeSubscriptionId: text("stripe_subscription_id"),
   bannedAt: timestamp("banned_at", { withTimezone: true }),
+  hidePresence: boolean("hide_presence").notNull().default(false),
+  currentRoomTag: text("current_room_tag"),
   lastSeenAt: timestamp("last_seen_at", { withTimezone: true })
     .notNull()
     .defaultNow(),

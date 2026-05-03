@@ -32,6 +32,7 @@ import { FriendCodeSearch } from "@/components/FriendCodeSearch";
 import { NotificationsBell } from "@/components/NotificationsBell";
 import { GlobalSearchBar } from "@/components/GlobalSearchBar";
 import { useSyncedPreferences } from "@/lib/serverPreferences";
+import { usePresenceHeartbeat } from "@/lib/usePresenceHeartbeat";
 import { Bookmark as BookmarkIcon } from "lucide-react";
 import { useTranslation } from "@/lib/i18n";
 
@@ -106,6 +107,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
   const incomingCount = friendReqs?.incoming.length ?? 0;
   const isStaff = me?.role === "admin" || me?.role === "moderator";
   useSyncedPreferences();
+  usePresenceHeartbeat(!!clerkUser && !!me);
 
   const { t } = useTranslation();
   const groups = isStaff

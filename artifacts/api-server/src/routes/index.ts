@@ -28,6 +28,7 @@ import bookmarksRouter from "./bookmarks";
 import preferencesRouter from "./preferences";
 import pushRouter from "./push";
 import walletsRouter from "./wallets";
+import presenceRouter from "./presence";
 
 const router: IRouter = Router();
 
@@ -66,5 +67,6 @@ router.use(pushRouter);
 // we register walletsRouter here so its /users/:id/wallets is matched by the
 // more specific path first.
 router.use(walletsRouter);
+router.use(presenceRouter);
 
 export default router;

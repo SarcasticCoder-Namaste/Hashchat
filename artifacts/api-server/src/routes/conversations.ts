@@ -15,6 +15,11 @@ import { isValidStorageUrl } from "../lib/storageUrls";
 import { serializeWaveform } from "../lib/waveform";
 import { transcribeMessageAudio } from "../lib/transcribeAudio";
 import { loadBlockWall, isBlockedEitherWay } from "../lib/relationships";
+import {
+  presenceStateFor,
+  publicCurrentRoom,
+  publicLastSeenAt,
+} from "../lib/presence";
 import { isAllowedGifUrl } from "../lib/giphy";
 import {
   buildMessages as sharedBuildMessages,
@@ -132,7 +137,9 @@ router.get("/conversations", requireAuth, async (req, res): Promise<void> => {
         tier: other.tier,
         animatedAvatarUrl: other.tier === "pro" ? other.animatedAvatarUrl : null,
         bannerGifUrl: other.tier === "pro" ? other.bannerGifUrl : null,
-        lastSeenAt: other.lastSeenAt.toISOString(),
+        lastSeenAt: publicLastSeenAt(other.lastSeenAt, other.hidePresence),
+        presenceState: presenceStateFor(other.lastSeenAt, other.hidePresence),
+        currentRoomTag: publicCurrentRoom(other.currentRoomTag, other.lastSeenAt, other.hidePresence),
         hashtags: tags,
         sharedHashtags: shared,
         matchScore: shared.length,
@@ -209,7 +216,9 @@ router.post("/conversations", requireAuth, async (req, res): Promise<void> => {
       tier: other.tier,
       animatedAvatarUrl: other.tier === "pro" ? other.animatedAvatarUrl : null,
       bannerGifUrl: other.tier === "pro" ? other.bannerGifUrl : null,
-      lastSeenAt: other.lastSeenAt.toISOString(),
+      lastSeenAt: publicLastSeenAt(other.lastSeenAt, other.hidePresence),
+      presenceState: presenceStateFor(other.lastSeenAt, other.hidePresence),
+      currentRoomTag: publicCurrentRoom(other.currentRoomTag, other.lastSeenAt, other.hidePresence),
       hashtags: otherTags,
       sharedHashtags: shared,
       matchScore: shared.length,

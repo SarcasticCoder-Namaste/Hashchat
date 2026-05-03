@@ -30,6 +30,7 @@ tags:
   - name: preferences
   - name: push
   - name: wallets
+  - name: presence
 paths:
   /healthz:
     get:
@@ -2195,6 +2196,23 @@ paths:
       responses:
         "204": { description: No content }
 
+  /presence/ping:
+    post:
+      operationId: pingPresence
+      tags: [presence]
+      summary: Heartbeat updating my last_seen_at and optionally the room I'm currently active in
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PresencePingBody" }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PresencePingResponse" }
+
   /me/preferences:
     get:
       operationId: getMyPreferences
@@ -2405,6 +2423,7 @@ components:
           type: ["string", "null"]
           format: date-time
         lastSeenAt: { type: string, format: date-time }
+        hidePresence: { type: boolean }
         hashtags:
           type: array
           items: { type: string }
@@ -2412,7 +2431,7 @@ components:
           type: array
           items: { type: string }
         createdAt: { type: string, format: date-time }
-      required: [id, username, displayName, status, role, mvpPlan, verified, tier, lastSeenAt, hashtags, followedHashtags, createdAt]
+      required: [id, username, displayName, status, role, mvpPlan, verified, tier, lastSeenAt, hidePresence, hashtags, followedHashtags, createdAt]
 
     UpdateUserBody:
       type: object
@@ -2441,6 +2460,7 @@ components:
           type: ["string", "null"]
         bannerGifUrl:
           type: ["string", "null"]
+        hidePresence: { type: boolean }
 
     SetHashtagsBody:
       type: object
@@ -2515,6 +2535,13 @@ components:
         bannerGifUrl:
           type: ["string", "null"]
         lastSeenAt: { type: string, format: date-time }
+        presenceState:
+          type: string
+          enum: [online, away, offline]
+          description: "Derived presence state — 'online' if active in the last 60s, 'away' within 10 min, otherwise 'offline'. Always 'offline' for users who hide their presence."
+        currentRoomTag:
+          type: ["string", "null"]
+          description: "Hashtag of the room the user is currently active in, if any. Null when hidden or not in a room."
         hashtags:
           type: array
           items: { type: string }
@@ -3126,6 +3153,22 @@ components:
         [theme, accent, emailMentions, emailReplies, emailDms, emailFollows,
          emailReactions, pushMentions, pushReplies, pushDms, pushFollows,
          pushReactions, emailEnabled, pushEnabled, pushSubscriptionCount]
+
+    PresencePingBody:
+      type: object
+      properties:
+        roomTag:
+          type: ["string", "null"]
+          description: "Hashtag of the room I am currently viewing/active in, without the leading '#'. Pass null when leaving a room."
+
+    PresencePingResponse:
+      type: object
+      properties:
+        lastSeenAt: { type: string, format: date-time }
+        currentRoomTag:
+          type: ["string", "null"]
+        hidePresence: { type: boolean }
+      required: [lastSeenAt, hidePresence]
 
     UpdatePreferencesBody:
       type: object
@@ -3945,7 +3988,7 @@ components:
       type: object
       properties:
         id: { type: integer }
-        kind: { type: string, enum: [mention, reply, reaction, follow, dm, event_starting] }
+        kind: { type: string, enum: [mention, reply, reaction, follow, dm, event_starting, scheduled_post_published] }
         actor:
           oneOf:
             - { $ref: "#/components/schemas/NotificationActor" }

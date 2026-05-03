@@ -13,6 +13,11 @@ import {
   withFriendCodeRetry,
 } from "../middlewares/requireAuth";
 import { isBlockedEitherWay } from "../lib/relationships";
+import {
+  presenceStateFor,
+  publicCurrentRoom,
+  publicLastSeenAt,
+} from "../lib/presence";
 
 const router: IRouter = Router();
 
@@ -55,7 +60,13 @@ async function loadMatchUsers(myId: string, otherIds: string[]) {
       role: o.role,
       mvpPlan: o.mvpPlan,
       verified: o.verified,
-      lastSeenAt: o.lastSeenAt.toISOString(),
+      lastSeenAt: publicLastSeenAt(o.lastSeenAt, o.hidePresence),
+      presenceState: presenceStateFor(o.lastSeenAt, o.hidePresence),
+      currentRoomTag: publicCurrentRoom(
+        o.currentRoomTag,
+        o.lastSeenAt,
+        o.hidePresence,
+      ),
       hashtags: tags,
       sharedHashtags: shared,
       matchScore: shared.length,

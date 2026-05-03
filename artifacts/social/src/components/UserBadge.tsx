@@ -1,7 +1,7 @@
 import { type ReactNode } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { BadgeCheck, Crown, ShieldCheck, Sparkles } from "lucide-react";
-import { isOnline } from "@/lib/userPresence";
+import { getPresenceState, type PresenceState } from "@/lib/userPresence";
 
 function initialsFor(name: string) {
   return (name || "?")
@@ -16,12 +16,14 @@ export function PresenceAvatar({
   displayName,
   avatarUrl,
   lastSeenAt,
+  presenceState,
   size = "md",
   className,
 }: {
   displayName: string;
   avatarUrl?: string | null;
   lastSeenAt?: string | Date | null;
+  presenceState?: PresenceState | null;
   size?: "sm" | "md" | "lg";
   className?: string;
 }) {
@@ -29,7 +31,15 @@ export function PresenceAvatar({
     size === "sm" ? "h-8 w-8" : size === "lg" ? "h-14 w-14" : "h-11 w-11";
   const dotCls =
     size === "sm" ? "h-2 w-2" : size === "lg" ? "h-3.5 w-3.5" : "h-2.5 w-2.5";
-  const online = isOnline(lastSeenAt ?? null);
+  const state = getPresenceState(lastSeenAt ?? null, presenceState);
+  const dotColor =
+    state === "online"
+      ? "bg-emerald-500 pulse-ring"
+      : state === "away"
+        ? "bg-amber-400"
+        : "bg-muted-foreground/40";
+  const title =
+    state === "online" ? "Online" : state === "away" ? "Away" : "Offline";
   return (
     <div className={["relative inline-block", className ?? ""].join(" ")}>
       <Avatar className={sizeCls}>
@@ -39,12 +49,12 @@ export function PresenceAvatar({
         </AvatarFallback>
       </Avatar>
       <span
-        title={online ? "Online" : "Offline"}
-        data-testid={online ? "presence-online" : "presence-offline"}
+        title={title}
+        data-testid={`presence-${state}`}
         className={[
           "absolute -bottom-0.5 -right-0.5 rounded-full ring-2 ring-card",
           dotCls,
-          online ? "bg-emerald-500 pulse-ring" : "bg-muted-foreground/40",
+          dotColor,
         ].join(" ")}
       />
     </div>

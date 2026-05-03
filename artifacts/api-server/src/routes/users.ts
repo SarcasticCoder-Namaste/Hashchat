@@ -5,10 +5,11 @@ import { requireAuth, getUserId } from "../middlewares/requireAuth";
 import { UpdateMeBody } from "@workspace/api-zod";
 import { normalizeTag } from "../lib/hashtags";
 import { isBlockedEitherWay } from "../lib/relationships";
+import { publicLastSeenAt } from "../lib/presence";
 
 const router: IRouter = Router();
 
-async function loadUser(userId: string) {
+async function loadUser(userId: string, viewerId: string) {
   const [user] = await db
     .select()
     .from(usersTable)
@@ -23,6 +24,7 @@ async function loadUser(userId: string) {
     .select({ tag: userFollowedHashtagsTable.tag })
     .from(userFollowedHashtagsTable)
     .where(eq(userFollowedHashtagsTable.userId, userId));
+  const isSelf = viewerId === userId;
   return {
     id: user.id,
     username: user.username,
@@ -47,7 +49,10 @@ async function loadUser(userId: string) {
     animatedAvatarUrl: user.animatedAvatarUrl,
     bannerGifUrl: user.bannerGifUrl,
     premiumUntil: user.premiumUntil ? user.premiumUntil.toISOString() : null,
-    lastSeenAt: user.lastSeenAt.toISOString(),
+    lastSeenAt: isSelf
+      ? user.lastSeenAt.toISOString()
+      : publicLastSeenAt(user.lastSeenAt, user.hidePresence),
+    hidePresence: user.hidePresence,
     hashtags: tags.map((t) => t.tag),
     followedHashtags: followed.map((t) => t.tag),
     createdAt: user.createdAt.toISOString(),
@@ -55,7 +60,8 @@ async function loadUser(userId: string) {
 }
 
 router.get("/me", requireAuth, async (req, res): Promise<void> => {
-  const me = await loadUser(getUserId(req));
+  const meId = getUserId(req);
+  const me = await loadUser(meId, meId);
   if (!me) {
     res.status(404).json({ error: "Not found" });
     return;
@@ -115,15 +121,18 @@ router.patch("/me", requireAuth, async (req, res): Promise<void> => {
   }
   if (parsed.data.featuredHashtag !== undefined)
     updates.featuredHashtag = parsed.data.featuredHashtag;
+  if (typeof parsed.data.hidePresence === "boolean") {
+    updates.hidePresence = parsed.data.hidePresence;
+  }
 
+  const meId = getUserId(req);
   // Pro-tier-only customizations: animated avatar and banner GIF.
   // Setting requires tier === "pro" and is silently ignored otherwise so
   // downgraded users keep their stored values without the client erroring.
-  const me = getUserId(req);
   const [{ tier: currentTier } = { tier: "free" }] = await db
     .select({ tier: usersTable.tier })
     .from(usersTable)
-    .where(eq(usersTable.id, me))
+    .where(eq(usersTable.id, meId))
     .limit(1);
   if (parsed.data.animatedAvatarUrl !== undefined && currentTier === "pro") {
     updates.animatedAvatarUrl = parsed.data.animatedAvatarUrl;
@@ -132,10 +141,10 @@ router.patch("/me", requireAuth, async (req, res): Promise<void> => {
     updates.bannerGifUrl = parsed.data.bannerGifUrl;
   }
   if (Object.keys(updates).length > 0) {
-    await db.update(usersTable).set(updates).where(eq(usersTable.id, me));
+    await db.update(usersTable).set(updates).where(eq(usersTable.id, meId));
   }
-  const updated = await loadUser(me);
-  res.json(updated);
+  const me = await loadUser(meId, meId);
+  res.json(me);
 });
 
 async function hashtagStats(tags: string[]) {
@@ -277,7 +286,7 @@ router.get("/users/:id", requireAuth, async (req, res): Promise<void> => {
     res.status(404).json({ error: "Not found" });
     return;
   }
-  const user = await loadUser(raw);
+  const user = await loadUser(raw, myId);
   if (!user) {
     res.status(404).json({ error: "Not found" });
     return;

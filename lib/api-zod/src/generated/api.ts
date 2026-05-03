@@ -44,6 +44,7 @@ export const GetMeResponse = zod.object({
   bannerGifUrl: zod.string().nullish(),
   premiumUntil: zod.coerce.date().nullish(),
   lastSeenAt: zod.coerce.date(),
+  hidePresence: zod.boolean(),
   hashtags: zod.array(zod.string()),
   followedHashtags: zod.array(zod.string()),
   createdAt: zod.coerce.date(),
@@ -66,6 +67,7 @@ export const UpdateMeBody = zod.object({
   featuredHashtag: zod.string().nullish(),
   animatedAvatarUrl: zod.string().nullish(),
   bannerGifUrl: zod.string().nullish(),
+  hidePresence: zod.boolean().optional(),
 });
 
 export const UpdateMeResponse = zod.object({
@@ -95,6 +97,7 @@ export const UpdateMeResponse = zod.object({
   bannerGifUrl: zod.string().nullish(),
   premiumUntil: zod.coerce.date().nullish(),
   lastSeenAt: zod.coerce.date(),
+  hidePresence: zod.boolean(),
   hashtags: zod.array(zod.string()),
   followedHashtags: zod.array(zod.string()),
   createdAt: zod.coerce.date(),
@@ -173,6 +176,7 @@ export const GetUserResponse = zod.object({
   bannerGifUrl: zod.string().nullish(),
   premiumUntil: zod.coerce.date().nullish(),
   lastSeenAt: zod.coerce.date(),
+  hidePresence: zod.boolean(),
   hashtags: zod.array(zod.string()),
   followedHashtags: zod.array(zod.string()),
   createdAt: zod.coerce.date(),
@@ -261,6 +265,18 @@ export const GetHashtagResponse = zod.object({
       animatedAvatarUrl: zod.string().nullish(),
       bannerGifUrl: zod.string().nullish(),
       lastSeenAt: zod.coerce.date(),
+      presenceState: zod
+        .enum(["online", "away", "offline"])
+        .optional()
+        .describe(
+          "Derived presence state — 'online' if active in the last 60s, 'away' within 10 min, otherwise 'offline'. Always 'offline' for users who hide their presence.",
+        ),
+      currentRoomTag: zod
+        .string()
+        .nullish()
+        .describe(
+          "Hashtag of the room the user is currently active in, if any. Null when hidden or not in a room.",
+        ),
       hashtags: zod.array(zod.string()),
       sharedHashtags: zod.array(zod.string()),
       matchScore: zod.number(),
@@ -316,6 +332,18 @@ export const DiscoverPeopleResponseItem = zod.object({
   animatedAvatarUrl: zod.string().nullish(),
   bannerGifUrl: zod.string().nullish(),
   lastSeenAt: zod.coerce.date(),
+  presenceState: zod
+    .enum(["online", "away", "offline"])
+    .optional()
+    .describe(
+      "Derived presence state — 'online' if active in the last 60s, 'away' within 10 min, otherwise 'offline'. Always 'offline' for users who hide their presence.",
+    ),
+  currentRoomTag: zod
+    .string()
+    .nullish()
+    .describe(
+      "Hashtag of the room the user is currently active in, if any. Null when hidden or not in a room.",
+    ),
   hashtags: zod.array(zod.string()),
   sharedHashtags: zod.array(zod.string()),
   matchScore: zod.number(),
@@ -551,6 +579,18 @@ export const GetForYouFeedResponseItem = zod.object({
         animatedAvatarUrl: zod.string().nullish(),
         bannerGifUrl: zod.string().nullish(),
         lastSeenAt: zod.coerce.date(),
+        presenceState: zod
+          .enum(["online", "away", "offline"])
+          .optional()
+          .describe(
+            "Derived presence state — 'online' if active in the last 60s, 'away' within 10 min, otherwise 'offline'. Always 'offline' for users who hide their presence.",
+          ),
+        currentRoomTag: zod
+          .string()
+          .nullish()
+          .describe(
+            "Hashtag of the room the user is currently active in, if any. Null when hidden or not in a room.",
+          ),
         hashtags: zod.array(zod.string()),
         sharedHashtags: zod.array(zod.string()),
         matchScore: zod.number(),
@@ -722,6 +762,18 @@ export const GetExploreResponse = zod.object({
       animatedAvatarUrl: zod.string().nullish(),
       bannerGifUrl: zod.string().nullish(),
       lastSeenAt: zod.coerce.date(),
+      presenceState: zod
+        .enum(["online", "away", "offline"])
+        .optional()
+        .describe(
+          "Derived presence state — 'online' if active in the last 60s, 'away' within 10 min, otherwise 'offline'. Always 'offline' for users who hide their presence.",
+        ),
+      currentRoomTag: zod
+        .string()
+        .nullish()
+        .describe(
+          "Hashtag of the room the user is currently active in, if any. Null when hidden or not in a room.",
+        ),
       hashtags: zod.array(zod.string()),
       sharedHashtags: zod.array(zod.string()),
       matchScore: zod.number(),
@@ -995,6 +1047,18 @@ export const GetExploreResponse = zod.object({
             animatedAvatarUrl: zod.string().nullish(),
             bannerGifUrl: zod.string().nullish(),
             lastSeenAt: zod.coerce.date(),
+            presenceState: zod
+              .enum(["online", "away", "offline"])
+              .optional()
+              .describe(
+                "Derived presence state — 'online' if active in the last 60s, 'away' within 10 min, otherwise 'offline'. Always 'offline' for users who hide their presence.",
+              ),
+            currentRoomTag: zod
+              .string()
+              .nullish()
+              .describe(
+                "Hashtag of the room the user is currently active in, if any. Null when hidden or not in a room.",
+              ),
             hashtags: zod.array(zod.string()),
             sharedHashtags: zod.array(zod.string()),
             matchScore: zod.number(),
@@ -1177,6 +1241,18 @@ export const GetHashtagAnalyticsResponse = zod.object({
         animatedAvatarUrl: zod.string().nullish(),
         bannerGifUrl: zod.string().nullish(),
         lastSeenAt: zod.coerce.date(),
+        presenceState: zod
+          .enum(["online", "away", "offline"])
+          .optional()
+          .describe(
+            "Derived presence state — 'online' if active in the last 60s, 'away' within 10 min, otherwise 'offline'. Always 'offline' for users who hide their presence.",
+          ),
+        currentRoomTag: zod
+          .string()
+          .nullish()
+          .describe(
+            "Hashtag of the room the user is currently active in, if any. Null when hidden or not in a room.",
+          ),
         hashtags: zod.array(zod.string()),
         sharedHashtags: zod.array(zod.string()),
         matchScore: zod.number(),
@@ -1389,6 +1465,18 @@ export const GetConversationsResponseItem = zod.object({
     animatedAvatarUrl: zod.string().nullish(),
     bannerGifUrl: zod.string().nullish(),
     lastSeenAt: zod.coerce.date(),
+    presenceState: zod
+      .enum(["online", "away", "offline"])
+      .optional()
+      .describe(
+        "Derived presence state — 'online' if active in the last 60s, 'away' within 10 min, otherwise 'offline'. Always 'offline' for users who hide their presence.",
+      ),
+    currentRoomTag: zod
+      .string()
+      .nullish()
+      .describe(
+        "Hashtag of the room the user is currently active in, if any. Null when hidden or not in a room.",
+      ),
     hashtags: zod.array(zod.string()),
     sharedHashtags: zod.array(zod.string()),
     matchScore: zod.number(),
@@ -1534,6 +1622,18 @@ export const OpenConversationResponse = zod.object({
     animatedAvatarUrl: zod.string().nullish(),
     bannerGifUrl: zod.string().nullish(),
     lastSeenAt: zod.coerce.date(),
+    presenceState: zod
+      .enum(["online", "away", "offline"])
+      .optional()
+      .describe(
+        "Derived presence state — 'online' if active in the last 60s, 'away' within 10 min, otherwise 'offline'. Always 'offline' for users who hide their presence.",
+      ),
+    currentRoomTag: zod
+      .string()
+      .nullish()
+      .describe(
+        "Hashtag of the room the user is currently active in, if any. Null when hidden or not in a room.",
+      ),
     hashtags: zod.array(zod.string()),
     sharedHashtags: zod.array(zod.string()),
     matchScore: zod.number(),
@@ -2072,6 +2172,7 @@ export const GetNotificationsResponse = zod.object({
         "follow",
         "dm",
         "event_starting",
+        "scheduled_post_published",
       ]),
       actor: zod
         .union([
@@ -2845,6 +2946,18 @@ export const LookupUserByFriendCodeResponse = zod.object({
   animatedAvatarUrl: zod.string().nullish(),
   bannerGifUrl: zod.string().nullish(),
   lastSeenAt: zod.coerce.date(),
+  presenceState: zod
+    .enum(["online", "away", "offline"])
+    .optional()
+    .describe(
+      "Derived presence state — 'online' if active in the last 60s, 'away' within 10 min, otherwise 'offline'. Always 'offline' for users who hide their presence.",
+    ),
+  currentRoomTag: zod
+    .string()
+    .nullish()
+    .describe(
+      "Hashtag of the room the user is currently active in, if any. Null when hidden or not in a room.",
+    ),
   hashtags: zod.array(zod.string()),
   sharedHashtags: zod.array(zod.string()),
   matchScore: zod.number(),
@@ -2877,6 +2990,18 @@ export const GetMyFriendsResponseItem = zod.object({
   animatedAvatarUrl: zod.string().nullish(),
   bannerGifUrl: zod.string().nullish(),
   lastSeenAt: zod.coerce.date(),
+  presenceState: zod
+    .enum(["online", "away", "offline"])
+    .optional()
+    .describe(
+      "Derived presence state — 'online' if active in the last 60s, 'away' within 10 min, otherwise 'offline'. Always 'offline' for users who hide their presence.",
+    ),
+  currentRoomTag: zod
+    .string()
+    .nullish()
+    .describe(
+      "Hashtag of the room the user is currently active in, if any. Null when hidden or not in a room.",
+    ),
   hashtags: zod.array(zod.string()),
   sharedHashtags: zod.array(zod.string()),
   matchScore: zod.number(),
@@ -2912,6 +3037,18 @@ export const GetFriendRequestsResponse = zod.object({
       animatedAvatarUrl: zod.string().nullish(),
       bannerGifUrl: zod.string().nullish(),
       lastSeenAt: zod.coerce.date(),
+      presenceState: zod
+        .enum(["online", "away", "offline"])
+        .optional()
+        .describe(
+          "Derived presence state — 'online' if active in the last 60s, 'away' within 10 min, otherwise 'offline'. Always 'offline' for users who hide their presence.",
+        ),
+      currentRoomTag: zod
+        .string()
+        .nullish()
+        .describe(
+          "Hashtag of the room the user is currently active in, if any. Null when hidden or not in a room.",
+        ),
       hashtags: zod.array(zod.string()),
       sharedHashtags: zod.array(zod.string()),
       matchScore: zod.number(),
@@ -2942,6 +3079,18 @@ export const GetFriendRequestsResponse = zod.object({
       animatedAvatarUrl: zod.string().nullish(),
       bannerGifUrl: zod.string().nullish(),
       lastSeenAt: zod.coerce.date(),
+      presenceState: zod
+        .enum(["online", "away", "offline"])
+        .optional()
+        .describe(
+          "Derived presence state — 'online' if active in the last 60s, 'away' within 10 min, otherwise 'offline'. Always 'offline' for users who hide their presence.",
+        ),
+      currentRoomTag: zod
+        .string()
+        .nullish()
+        .describe(
+          "Hashtag of the room the user is currently active in, if any. Null when hidden or not in a room.",
+        ),
       hashtags: zod.array(zod.string()),
       sharedHashtags: zod.array(zod.string()),
       matchScore: zod.number(),
@@ -2980,6 +3129,18 @@ export const LookupUserByCodeResponse = zod.object({
   animatedAvatarUrl: zod.string().nullish(),
   bannerGifUrl: zod.string().nullish(),
   lastSeenAt: zod.coerce.date(),
+  presenceState: zod
+    .enum(["online", "away", "offline"])
+    .optional()
+    .describe(
+      "Derived presence state — 'online' if active in the last 60s, 'away' within 10 min, otherwise 'offline'. Always 'offline' for users who hide their presence.",
+    ),
+  currentRoomTag: zod
+    .string()
+    .nullish()
+    .describe(
+      "Hashtag of the room the user is currently active in, if any. Null when hidden or not in a room.",
+    ),
   hashtags: zod.array(zod.string()),
   sharedHashtags: zod.array(zod.string()),
   matchScore: zod.number(),
@@ -3202,6 +3363,18 @@ export const GetFollowingFeedResponseItem = zod.object({
     animatedAvatarUrl: zod.string().nullish(),
     bannerGifUrl: zod.string().nullish(),
     lastSeenAt: zod.coerce.date(),
+    presenceState: zod
+      .enum(["online", "away", "offline"])
+      .optional()
+      .describe(
+        "Derived presence state — 'online' if active in the last 60s, 'away' within 10 min, otherwise 'offline'. Always 'offline' for users who hide their presence.",
+      ),
+    currentRoomTag: zod
+      .string()
+      .nullish()
+      .describe(
+        "Hashtag of the room the user is currently active in, if any. Null when hidden or not in a room.",
+      ),
     hashtags: zod.array(zod.string()),
     sharedHashtags: zod.array(zod.string()),
     matchScore: zod.number(),
@@ -3251,6 +3424,18 @@ export const GetFollowSuggestionsResponseItem = zod.object({
   animatedAvatarUrl: zod.string().nullish(),
   bannerGifUrl: zod.string().nullish(),
   lastSeenAt: zod.coerce.date(),
+  presenceState: zod
+    .enum(["online", "away", "offline"])
+    .optional()
+    .describe(
+      "Derived presence state — 'online' if active in the last 60s, 'away' within 10 min, otherwise 'offline'. Always 'offline' for users who hide their presence.",
+    ),
+  currentRoomTag: zod
+    .string()
+    .nullish()
+    .describe(
+      "Hashtag of the room the user is currently active in, if any. Null when hidden or not in a room.",
+    ),
   hashtags: zod.array(zod.string()),
   sharedHashtags: zod.array(zod.string()),
   matchScore: zod.number(),
@@ -4202,6 +4387,18 @@ export const GetCommunityResponse = zod.object({
         animatedAvatarUrl: zod.string().nullish(),
         bannerGifUrl: zod.string().nullish(),
         lastSeenAt: zod.coerce.date(),
+        presenceState: zod
+          .enum(["online", "away", "offline"])
+          .optional()
+          .describe(
+            "Derived presence state — 'online' if active in the last 60s, 'away' within 10 min, otherwise 'offline'. Always 'offline' for users who hide their presence.",
+          ),
+        currentRoomTag: zod
+          .string()
+          .nullish()
+          .describe(
+            "Hashtag of the room the user is currently active in, if any. Null when hidden or not in a room.",
+          ),
         hashtags: zod.array(zod.string()),
         sharedHashtags: zod.array(zod.string()),
         matchScore: zod.number(),
@@ -4235,6 +4432,18 @@ export const GetCommunityResponse = zod.object({
       animatedAvatarUrl: zod.string().nullish(),
       bannerGifUrl: zod.string().nullish(),
       lastSeenAt: zod.coerce.date(),
+      presenceState: zod
+        .enum(["online", "away", "offline"])
+        .optional()
+        .describe(
+          "Derived presence state — 'online' if active in the last 60s, 'away' within 10 min, otherwise 'offline'. Always 'offline' for users who hide their presence.",
+        ),
+      currentRoomTag: zod
+        .string()
+        .nullish()
+        .describe(
+          "Hashtag of the room the user is currently active in, if any. Null when hidden or not in a room.",
+        ),
       hashtags: zod.array(zod.string()),
       sharedHashtags: zod.array(zod.string()),
       matchScore: zod.number(),
@@ -4401,6 +4610,18 @@ export const JoinCommunityResponse = zod.object({
         animatedAvatarUrl: zod.string().nullish(),
         bannerGifUrl: zod.string().nullish(),
         lastSeenAt: zod.coerce.date(),
+        presenceState: zod
+          .enum(["online", "away", "offline"])
+          .optional()
+          .describe(
+            "Derived presence state — 'online' if active in the last 60s, 'away' within 10 min, otherwise 'offline'. Always 'offline' for users who hide their presence.",
+          ),
+        currentRoomTag: zod
+          .string()
+          .nullish()
+          .describe(
+            "Hashtag of the room the user is currently active in, if any. Null when hidden or not in a room.",
+          ),
         hashtags: zod.array(zod.string()),
         sharedHashtags: zod.array(zod.string()),
         matchScore: zod.number(),
@@ -4434,6 +4655,18 @@ export const JoinCommunityResponse = zod.object({
       animatedAvatarUrl: zod.string().nullish(),
       bannerGifUrl: zod.string().nullish(),
       lastSeenAt: zod.coerce.date(),
+      presenceState: zod
+        .enum(["online", "away", "offline"])
+        .optional()
+        .describe(
+          "Derived presence state — 'online' if active in the last 60s, 'away' within 10 min, otherwise 'offline'. Always 'offline' for users who hide their presence.",
+        ),
+      currentRoomTag: zod
+        .string()
+        .nullish()
+        .describe(
+          "Hashtag of the room the user is currently active in, if any. Null when hidden or not in a room.",
+        ),
       hashtags: zod.array(zod.string()),
       sharedHashtags: zod.array(zod.string()),
       matchScore: zod.number(),
@@ -4600,6 +4833,18 @@ export const LeaveCommunityResponse = zod.object({
         animatedAvatarUrl: zod.string().nullish(),
         bannerGifUrl: zod.string().nullish(),
         lastSeenAt: zod.coerce.date(),
+        presenceState: zod
+          .enum(["online", "away", "offline"])
+          .optional()
+          .describe(
+            "Derived presence state — 'online' if active in the last 60s, 'away' within 10 min, otherwise 'offline'. Always 'offline' for users who hide their presence.",
+          ),
+        currentRoomTag: zod
+          .string()
+          .nullish()
+          .describe(
+            "Hashtag of the room the user is currently active in, if any. Null when hidden or not in a room.",
+          ),
         hashtags: zod.array(zod.string()),
         sharedHashtags: zod.array(zod.string()),
         matchScore: zod.number(),
@@ -4633,6 +4878,18 @@ export const LeaveCommunityResponse = zod.object({
       animatedAvatarUrl: zod.string().nullish(),
       bannerGifUrl: zod.string().nullish(),
       lastSeenAt: zod.coerce.date(),
+      presenceState: zod
+        .enum(["online", "away", "offline"])
+        .optional()
+        .describe(
+          "Derived presence state — 'online' if active in the last 60s, 'away' within 10 min, otherwise 'offline'. Always 'offline' for users who hide their presence.",
+        ),
+      currentRoomTag: zod
+        .string()
+        .nullish()
+        .describe(
+          "Hashtag of the room the user is currently active in, if any. Null when hidden or not in a room.",
+        ),
       hashtags: zod.array(zod.string()),
       sharedHashtags: zod.array(zod.string()),
       matchScore: zod.number(),
@@ -4870,6 +5127,18 @@ export const ListRoomJoinRequestsResponseItem = zod.object({
         animatedAvatarUrl: zod.string().nullish(),
         bannerGifUrl: zod.string().nullish(),
         lastSeenAt: zod.coerce.date(),
+        presenceState: zod
+          .enum(["online", "away", "offline"])
+          .optional()
+          .describe(
+            "Derived presence state — 'online' if active in the last 60s, 'away' within 10 min, otherwise 'offline'. Always 'offline' for users who hide their presence.",
+          ),
+        currentRoomTag: zod
+          .string()
+          .nullish()
+          .describe(
+            "Hashtag of the room the user is currently active in, if any. Null when hidden or not in a room.",
+          ),
         hashtags: zod.array(zod.string()),
         sharedHashtags: zod.array(zod.string()),
         matchScore: zod.number(),
@@ -4917,6 +5186,18 @@ export const RequestRoomJoinResponse = zod.object({
         animatedAvatarUrl: zod.string().nullish(),
         bannerGifUrl: zod.string().nullish(),
         lastSeenAt: zod.coerce.date(),
+        presenceState: zod
+          .enum(["online", "away", "offline"])
+          .optional()
+          .describe(
+            "Derived presence state — 'online' if active in the last 60s, 'away' within 10 min, otherwise 'offline'. Always 'offline' for users who hide their presence.",
+          ),
+        currentRoomTag: zod
+          .string()
+          .nullish()
+          .describe(
+            "Hashtag of the room the user is currently active in, if any. Null when hidden or not in a room.",
+          ),
         hashtags: zod.array(zod.string()),
         sharedHashtags: zod.array(zod.string()),
         matchScore: zod.number(),
@@ -5206,6 +5487,24 @@ export const UpdateBookmarkResponse = zod.object({
  */
 export const DeleteBookmarkParams = zod.object({
   id: zod.coerce.number(),
+});
+
+/**
+ * @summary Heartbeat updating my last_seen_at and optionally the room I'm currently active in
+ */
+export const PingPresenceBody = zod.object({
+  roomTag: zod
+    .string()
+    .nullish()
+    .describe(
+      "Hashtag of the room I am currently viewing\/active in, without the leading '#'. Pass null when leaving a room.",
+    ),
+});
+
+export const PingPresenceResponse = zod.object({
+  lastSeenAt: zod.coerce.date(),
+  currentRoomTag: zod.string().nullish(),
+  hidePresence: zod.boolean(),
 });
 
 /**

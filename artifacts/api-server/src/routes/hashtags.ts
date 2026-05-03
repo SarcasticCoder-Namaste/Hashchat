@@ -18,6 +18,11 @@ import {
   loadMyRoomMemberships,
   getRoomAccess,
 } from "../lib/roomVisibility";
+import {
+  presenceStateFor,
+  publicCurrentRoom,
+  publicLastSeenAt,
+} from "../lib/presence";
 
 const router: IRouter = Router();
 
@@ -504,6 +509,8 @@ router.get("/hashtags/:tag", requireAuth, async (req, res): Promise<void> => {
       mvpPlan: usersTable.mvpPlan,
       verified: usersTable.verified,
       lastSeenAt: usersTable.lastSeenAt,
+      hidePresence: usersTable.hidePresence,
+      currentRoomTag: usersTable.currentRoomTag,
     })
     .from(userHashtagsTable)
     .innerJoin(usersTable, eq(userHashtagsTable.userId, usersTable.id))
@@ -544,7 +551,9 @@ router.get("/hashtags/:tag", requireAuth, async (req, res): Promise<void> => {
       role: m.role,
       mvpPlan: m.mvpPlan,
       verified: m.verified,
-      lastSeenAt: (m.lastSeenAt ?? new Date(0)).toISOString(),
+      lastSeenAt: publicLastSeenAt(m.lastSeenAt ?? new Date(0), m.hidePresence ?? false),
+      presenceState: presenceStateFor(m.lastSeenAt ?? new Date(0), m.hidePresence ?? false),
+      currentRoomTag: publicCurrentRoom(m.currentRoomTag ?? null, m.lastSeenAt ?? new Date(0), m.hidePresence ?? false),
       hashtags: tags,
       sharedHashtags: shared,
       matchScore: shared.length,

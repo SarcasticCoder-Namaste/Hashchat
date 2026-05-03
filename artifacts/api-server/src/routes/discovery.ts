@@ -19,6 +19,11 @@ import { sql, eq, inArray, ne, and, desc, gte } from "drizzle-orm";
 import { requireAuth, getUserId } from "../middlewares/requireAuth";
 import { loadFriendStatuses } from "./friends";
 import {
+  presenceStateFor,
+  publicCurrentRoom,
+  publicLastSeenAt,
+} from "../lib/presence";
+import {
   loadBlockWall,
   loadMyMutes,
   loadMutedHashtags,
@@ -118,7 +123,9 @@ router.get("/discover/people", requireAuth, async (req, res): Promise<void> => {
       role: u.role,
       mvpPlan: u.mvpPlan,
       verified: u.verified,
-      lastSeenAt: u.lastSeenAt.toISOString(),
+      lastSeenAt: publicLastSeenAt(u.lastSeenAt, u.hidePresence),
+      presenceState: presenceStateFor(u.lastSeenAt, u.hidePresence),
+      currentRoomTag: publicCurrentRoom(u.currentRoomTag, u.lastSeenAt, u.hidePresence),
       hashtags: tags,
       sharedHashtags: shared,
       matchScore:
@@ -449,7 +456,9 @@ router.get("/discover/foryou", requireAuth, async (req, res): Promise<void> => {
             discriminator: u.discriminator,
             role: u.role,
             mvpPlan: u.mvpPlan,
-            lastSeenAt: (u.lastSeenAt ?? new Date(0)).toISOString(),
+            lastSeenAt: publicLastSeenAt(u.lastSeenAt ?? new Date(0), u.hidePresence),
+            presenceState: presenceStateFor(u.lastSeenAt ?? new Date(0), u.hidePresence),
+            currentRoomTag: publicCurrentRoom(u.currentRoomTag, u.lastSeenAt ?? new Date(0), u.hidePresence),
             hashtags: tags,
             sharedHashtags: shared,
             matchScore: shared.length * 10,

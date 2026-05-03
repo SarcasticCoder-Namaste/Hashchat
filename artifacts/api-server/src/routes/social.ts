@@ -16,6 +16,11 @@ import { requireAuth, getUserId } from "../middlewares/requireAuth";
 import { normalizeTag } from "../lib/hashtags";
 import { loadFriendStatuses } from "./friends";
 import {
+  presenceStateFor,
+  publicCurrentRoom,
+  publicLastSeenAt,
+} from "../lib/presence";
+import {
   loadMyBlocks,
   loadBlockersOfMe,
   loadMyMutes,
@@ -488,7 +493,10 @@ router.get(
       role: user.role,
       mvpPlan: user.mvpPlan,
       verified: user.verified,
-      lastSeenAt: user.lastSeenAt.toISOString(),
+      lastSeenAt: publicLastSeenAt(user.lastSeenAt, user.hidePresence),
+      presenceState: presenceStateFor(user.lastSeenAt, user.hidePresence),
+      currentRoomTag: publicCurrentRoom(user.currentRoomTag, user.lastSeenAt, user.hidePresence),
+      hidePresence: user.hidePresence,
       createdAt: user.createdAt.toISOString(),
       hashtags: tags,
       mutualHashtags: mutual,
@@ -620,7 +628,9 @@ router.get(
         role: u.role,
         mvpPlan: u.mvpPlan,
         verified: u.verified,
-        lastSeenAt: u.lastSeenAt.toISOString(),
+        lastSeenAt: publicLastSeenAt(u.lastSeenAt, u.hidePresence),
+        presenceState: presenceStateFor(u.lastSeenAt, u.hidePresence),
+        currentRoomTag: publicCurrentRoom(u.currentRoomTag, u.lastSeenAt, u.hidePresence),
         hashtags: tags,
         sharedHashtags: shared,
         matchScore: shared.length,
@@ -794,7 +804,9 @@ router.get(
         discriminator: u.discriminator,
         role: u.role,
         mvpPlan: u.mvpPlan,
-        lastSeenAt: u.lastSeenAt.toISOString(),
+        lastSeenAt: publicLastSeenAt(u.lastSeenAt, u.hidePresence),
+        presenceState: presenceStateFor(u.lastSeenAt, u.hidePresence),
+        currentRoomTag: publicCurrentRoom(u.currentRoomTag, u.lastSeenAt, u.hidePresence),
         hashtags: tags,
         sharedHashtags: shared,
         matchScore:

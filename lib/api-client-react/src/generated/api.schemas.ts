@@ -69,6 +69,7 @@ export interface User {
   /** @nullable */
   premiumUntil?: string | null;
   lastSeenAt: string;
+  hidePresence: boolean;
   hashtags: string[];
   followedHashtags: string[];
   createdAt: string;
@@ -99,6 +100,7 @@ export interface UpdateUserBody {
   animatedAvatarUrl?: string | null;
   /** @nullable */
   bannerGifUrl?: string | null;
+  hidePresence?: boolean;
 }
 
 export interface SetHashtagsBody {
@@ -129,6 +131,18 @@ export const MatchUserTier = {
   pro: "pro",
 } as const;
 
+/**
+ * Derived presence state — 'online' if active in the last 60s, 'away' within 10 min, otherwise 'offline'. Always 'offline' for users who hide their presence.
+ */
+export type MatchUserPresenceState =
+  (typeof MatchUserPresenceState)[keyof typeof MatchUserPresenceState];
+
+export const MatchUserPresenceState = {
+  online: "online",
+  away: "away",
+  offline: "offline",
+} as const;
+
 export interface MatchUser {
   id: string;
   username: string;
@@ -151,6 +165,13 @@ export interface MatchUser {
   /** @nullable */
   bannerGifUrl?: string | null;
   lastSeenAt: string;
+  /** Derived presence state — 'online' if active in the last 60s, 'away' within 10 min, otherwise 'offline'. Always 'offline' for users who hide their presence. */
+  presenceState?: MatchUserPresenceState;
+  /**
+   * Hashtag of the room the user is currently active in, if any. Null when hidden or not in a room.
+   * @nullable
+   */
+  currentRoomTag?: string | null;
   hashtags: string[];
   sharedHashtags: string[];
   matchScore: number;
@@ -779,6 +800,21 @@ export interface UserPreferences {
   emailEnabled: boolean;
   pushEnabled: boolean;
   pushSubscriptionCount: number;
+}
+
+export interface PresencePingBody {
+  /**
+   * Hashtag of the room I am currently viewing/active in, without the leading '#'. Pass null when leaving a room.
+   * @nullable
+   */
+  roomTag?: string | null;
+}
+
+export interface PresencePingResponse {
+  lastSeenAt: string;
+  /** @nullable */
+  currentRoomTag?: string | null;
+  hidePresence: boolean;
 }
 
 export interface UpdatePreferencesBody {
@@ -1414,6 +1450,7 @@ export const NotificationKind = {
   follow: "follow",
   dm: "dm",
   event_starting: "event_starting",
+  scheduled_post_published: "scheduled_post_published",
 } as const;
 
 /**
