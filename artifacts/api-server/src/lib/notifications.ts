@@ -14,7 +14,8 @@ export type NotificationKind =
   | "dm"
   | "event_starting"
   | "scheduled_post_published"
-  | "poll_closing";
+  | "poll_closing"
+  | "post_milestone";
 
 export type NotificationTargetType =
   | "message"

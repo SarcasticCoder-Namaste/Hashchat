@@ -2264,6 +2264,7 @@ export const GetNotificationsResponse = zod.object({
         "dm",
         "event_starting",
         "scheduled_post_published",
+        "post_milestone",
       ]),
       actor: zod
         .union([

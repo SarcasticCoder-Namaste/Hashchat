@@ -1482,6 +1482,7 @@ export const NotificationKind = {
   dm: "dm",
   event_starting: "event_starting",
   scheduled_post_published: "scheduled_post_published",
+  post_milestone: "post_milestone",
 } as const;
 
 /**

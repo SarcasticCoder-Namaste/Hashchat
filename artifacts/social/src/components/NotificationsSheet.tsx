@@ -39,6 +39,7 @@ import {
   UserPlus,
   Loader2,
   CalendarClock,
+  TrendingUp,
 } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
@@ -77,6 +78,8 @@ function kindIcon(kind: string) {
       return <CalendarClock className="h-3.5 w-3.5" />;
     case "scheduled_post_published":
       return <CalendarClock className="h-3.5 w-3.5" />;
+    case "post_milestone":
+      return <TrendingUp className="h-3.5 w-3.5" />;
     default:
       return null;
   }
@@ -99,6 +102,8 @@ function kindLabel(n: Notification): string {
       return `Event starting soon`;
     case "scheduled_post_published":
       return `Your scheduled post is now live`;
+    case "post_milestone":
+      return `Your post hit a new milestone`;
     default:
       return who;
   }

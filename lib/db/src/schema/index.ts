@@ -758,6 +758,20 @@ export const postStatsDailyTable = pgTable(
   ],
 );
 
+export const postMilestoneNotificationsTable = pgTable(
+  "post_milestone_notifications",
+  {
+    postId: integer("post_id")
+      .notNull()
+      .references(() => postsTable.id, { onDelete: "cascade" }),
+    threshold: integer("threshold").notNull(),
+    notifiedAt: timestamp("notified_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.postId, t.threshold] })],
+);
+
 export const userFollowerStatsDailyTable = pgTable(
   "user_follower_stats_daily",
   {

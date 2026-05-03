@@ -1,6 +1,72 @@
 import { db } from "@workspace/db";
 import { sql } from "drizzle-orm";
 import { logger } from "./logger";
+import { createNotification } from "./notifications";
+
+const POST_IMPRESSION_MILESTONES = [100, 1000, 10000] as const;
+
+function formatImpressions(n: number): string {
+  if (n >= 1000) return `${Math.round(n / 1000).toLocaleString()}k`;
+  return n.toLocaleString();
+}
+
+export async function notifyPostImpressionMilestones(): Promise<void> {
+  const thresholds = POST_IMPRESSION_MILESTONES;
+  const minThreshold = thresholds[0];
+
+  const result = await db.execute<{
+    post_id: number;
+    author_id: string;
+    total_impressions: number;
+  }>(sql`
+    SELECT p.id AS post_id,
+           p.author_id,
+           COALESCE(SUM(psd.impressions), 0)::int AS total_impressions
+    FROM posts p
+    JOIN post_stats_daily psd ON psd.post_id = p.id
+    WHERE p.deleted_at IS NULL
+    GROUP BY p.id, p.author_id
+    HAVING COALESCE(SUM(psd.impressions), 0) >= ${minThreshold}
+  `);
+
+  const rows = (result as unknown as { rows: Array<{ post_id: number; author_id: string; total_impressions: number }> }).rows
+    ?? (result as unknown as Array<{ post_id: number; author_id: string; total_impressions: number }>);
+
+  for (const row of rows) {
+    const total = Number(row.total_impressions);
+    for (const threshold of thresholds) {
+      if (total < threshold) continue;
+      // Idempotent reservation: only create the notification if this
+      // (post, threshold) pair has not been recorded before.
+      const insert = await db.execute<{ post_id: number }>(sql`
+        INSERT INTO post_milestone_notifications (post_id, threshold)
+        VALUES (${row.post_id}, ${threshold})
+        ON CONFLICT (post_id, threshold) DO NOTHING
+        RETURNING post_id
+      `);
+      const inserted = (insert as unknown as { rows: unknown[] }).rows
+        ?? (insert as unknown as unknown[]);
+      if (!inserted || inserted.length === 0) continue;
+
+      try {
+        await createNotification({
+          recipientId: row.author_id,
+          actorId: null,
+          kind: "post_milestone",
+          targetType: "post",
+          targetId: row.post_id,
+          snippet: `Your post just passed ${formatImpressions(threshold)} impressions.`,
+          extra: JSON.stringify({ threshold, impressions: total }),
+        });
+      } catch (err) {
+        logger.error(
+          { err, postId: row.post_id, threshold },
+          "post milestone notification failed",
+        );
+      }
+    }
+  }
+}
 
 export async function aggregateHashtagMetrics(sinceDays = 2): Promise<void> {
   const since = new Date();
@@ -165,6 +231,19 @@ export function startHashtagMetricsScheduler(): void {
       );
     } catch (err) {
       logger.error({ err, label }, "hashtag metrics aggregation failed");
+    }
+    try {
+      const start = Date.now();
+      await notifyPostImpressionMilestones();
+      logger.info(
+        { ms: Date.now() - start, label },
+        "post impression milestones checked",
+      );
+    } catch (err) {
+      logger.error(
+        { err, label },
+        "post impression milestone notifications failed",
+      );
     }
   };
 

@@ -35,6 +35,8 @@ const PREF_KEY_BY_KIND: Record<
   scheduled_post_published: { email: "emailMentions", push: "pushMentions" },
   // Poll closing reminders piggyback on mention prefs.
   poll_closing: { email: "emailMentions", push: "pushMentions" },
+  // Post impression milestones piggyback on mention preferences.
+  post_milestone: { email: "emailMentions", push: "pushMentions" },
 };
 
 const EMAIL_FIELDS = {
@@ -71,6 +73,8 @@ function titleFor(kind: NotificationKind, actor: string | null): string {
       return `Your scheduled post is now live on HashChat`;
     case "poll_closing":
       return `A poll you can vote in is closing soon on HashChat`;
+    case "post_milestone":
+      return `Your post hit a new milestone on HashChat`;
   }
 }
 
