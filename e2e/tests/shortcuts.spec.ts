@@ -1,19 +1,22 @@
+import { existsSync } from "node:fs";
 import { expect, test } from "@playwright/test";
 
 /**
  * These tests exercise the keyboard-shortcut UI surface. They are skipped
- * unless E2E_AUTH_STATE points at a Playwright storageState file produced by
- * a signed-in Clerk session — see e2e/README.md for setup.
+ * unless a Playwright storageState file is available — either via the
+ * `setup` project's default at `./.auth/state.json` or via E2E_AUTH_STATE
+ * pointing at one — see e2e/README.md.
  */
-const AUTH_STATE = process.env.E2E_AUTH_STATE;
+const AUTH_STATE = process.env.E2E_AUTH_STATE ?? "./.auth/state.json";
+const HAS_AUTH = existsSync(AUTH_STATE);
 
 test.describe("Keyboard shortcuts", () => {
   test.skip(
-    !AUTH_STATE,
-    "Set E2E_AUTH_STATE to a saved Clerk storageState to run signed-in flows",
+    !HAS_AUTH,
+    "Run the `setup` project (or set E2E_AUTH_STATE) to capture a Clerk storageState",
   );
 
-  test.use({ storageState: AUTH_STATE ?? undefined });
+  test.use({ storageState: HAS_AUTH ? AUTH_STATE : undefined });
 
   test("? opens the shortcuts cheat sheet", async ({ page }) => {
     await page.goto("/app/discover");
