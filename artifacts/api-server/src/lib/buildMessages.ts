@@ -22,6 +22,7 @@ type RawMessage = {
   content: string;
   imageUrl: string | null;
   audioUrl: string | null;
+  audioWaveform: string | null;
   replyToId: number | null;
   createdAt: Date;
 };
@@ -361,6 +362,7 @@ export async function buildMessages(rows: RawMessage[], myUserId: string) {
       content: r.content,
       imageUrl: r.imageUrl,
       audioUrl: r.audioUrl,
+      audioWaveform: parseWaveform(r.audioWaveform),
       replyToId: r.replyToId,
       replyToContent: replyMeta?.content ?? null,
       replyToSenderName:
@@ -376,6 +378,20 @@ export async function buildMessages(rows: RawMessage[], myUserId: string) {
   });
 }
 
+
+function parseWaveform(raw: string | null): number[] | null {
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return null;
+    const peaks = parsed
+      .map((v) => Math.max(0, Math.min(100, Math.round(Number(v)))))
+      .filter((v) => Number.isFinite(v));
+    return peaks.length > 0 ? peaks : null;
+  } catch {
+    return null;
+  }
+}
 
 function emptyPollShape() {
   return {

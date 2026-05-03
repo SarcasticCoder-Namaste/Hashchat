@@ -317,6 +317,8 @@ export interface Message {
   imageUrl?: string | null;
   /** @nullable */
   audioUrl?: string | null;
+  /** @nullable */
+  audioWaveform?: number[] | null;
   reactions: Reaction[];
   attachments: MessageAttachment[];
   mentions: MentionedUser[];
@@ -454,6 +456,8 @@ export interface SendMessageBody {
   imageUrl?: string | null;
   /** @nullable */
   audioUrl?: string | null;
+  /** @nullable */
+  audioWaveform?: number[] | null;
   /** @nullable */
   gifUrl?: string | null;
 }

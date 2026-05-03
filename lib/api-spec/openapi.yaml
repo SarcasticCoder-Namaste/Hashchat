@@ -2643,6 +2643,12 @@ components:
           type: ["string", "null"]
         audioUrl:
           type: ["string", "null"]
+        audioWaveform:
+          type: ["array", "null"]
+          items:
+            type: integer
+            minimum: 0
+            maximum: 100
         reactions:
           type: array
           items: { $ref: "#/components/schemas/Reaction" }
@@ -2671,6 +2677,12 @@ components:
           type: ["string", "null"]
         audioUrl:
           type: ["string", "null"]
+        audioWaveform:
+          type: ["array", "null"]
+          items:
+            type: integer
+            minimum: 0
+            maximum: 100
         gifUrl:
           type: ["string", "null"]
       required: [content]

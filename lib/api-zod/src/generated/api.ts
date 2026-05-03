@@ -313,6 +313,9 @@ export const GetForYouFeedQueryParams = zod.object({
   limit: zod.coerce.number().default(getForYouFeedQueryLimitDefault),
 });
 
+export const getForYouFeedResponseRoomOneLastMessageOneAudioWaveformItemMin = 0;
+export const getForYouFeedResponseRoomOneLastMessageOneAudioWaveformItemMax = 100;
+
 export const GetForYouFeedResponseItem = zod.object({
   kind: zod.enum(["post", "room", "person"]),
   id: zod.string(),
@@ -378,6 +381,18 @@ export const GetForYouFeedResponseItem = zod.object({
               replyCount: zod.number(),
               imageUrl: zod.string().nullish(),
               audioUrl: zod.string().nullish(),
+              audioWaveform: zod
+                .array(
+                  zod
+                    .number()
+                    .min(
+                      getForYouFeedResponseRoomOneLastMessageOneAudioWaveformItemMin,
+                    )
+                    .max(
+                      getForYouFeedResponseRoomOneLastMessageOneAudioWaveformItemMax,
+                    ),
+                )
+                .nullish(),
               reactions: zod.array(
                 zod.object({
                   emoji: zod.string(),
@@ -710,6 +725,9 @@ export const CancelEventParams = zod.object({
 /**
  * @summary List my direct conversations
  */
+export const getConversationsResponseLastMessageOneAudioWaveformItemMin = 0;
+export const getConversationsResponseLastMessageOneAudioWaveformItemMax = 100;
+
 export const GetConversationsResponseItem = zod.object({
   id: zod.number(),
   otherUser: zod.object({
@@ -753,6 +771,14 @@ export const GetConversationsResponseItem = zod.object({
         replyCount: zod.number(),
         imageUrl: zod.string().nullish(),
         audioUrl: zod.string().nullish(),
+        audioWaveform: zod
+          .array(
+            zod
+              .number()
+              .min(getConversationsResponseLastMessageOneAudioWaveformItemMin)
+              .max(getConversationsResponseLastMessageOneAudioWaveformItemMax),
+          )
+          .nullish(),
         reactions: zod.array(
           zod.object({
             emoji: zod.string(),
@@ -821,6 +847,9 @@ export const OpenConversationBody = zod.object({
   userId: zod.string(),
 });
 
+export const openConversationResponseLastMessageOneAudioWaveformItemMin = 0;
+export const openConversationResponseLastMessageOneAudioWaveformItemMax = 100;
+
 export const OpenConversationResponse = zod.object({
   id: zod.number(),
   otherUser: zod.object({
@@ -864,6 +893,14 @@ export const OpenConversationResponse = zod.object({
         replyCount: zod.number(),
         imageUrl: zod.string().nullish(),
         audioUrl: zod.string().nullish(),
+        audioWaveform: zod
+          .array(
+            zod
+              .number()
+              .min(openConversationResponseLastMessageOneAudioWaveformItemMin)
+              .max(openConversationResponseLastMessageOneAudioWaveformItemMax),
+          )
+          .nullish(),
         reactions: zod.array(
           zod.object({
             emoji: zod.string(),
@@ -931,6 +968,9 @@ export const GetConversationMessagesParams = zod.object({
   id: zod.coerce.number(),
 });
 
+export const getConversationMessagesResponseAudioWaveformItemMin = 0;
+export const getConversationMessagesResponseAudioWaveformItemMax = 100;
+
 export const GetConversationMessagesResponseItem = zod.object({
   id: zod.number(),
   conversationId: zod.number().nullish(),
@@ -945,6 +985,14 @@ export const GetConversationMessagesResponseItem = zod.object({
   replyCount: zod.number(),
   imageUrl: zod.string().nullish(),
   audioUrl: zod.string().nullish(),
+  audioWaveform: zod
+    .array(
+      zod
+        .number()
+        .min(getConversationMessagesResponseAudioWaveformItemMin)
+        .max(getConversationMessagesResponseAudioWaveformItemMax),
+    )
+    .nullish(),
   reactions: zod.array(
     zod.object({
       emoji: zod.string(),
@@ -1008,11 +1056,22 @@ export const SendConversationMessageParams = zod.object({
   id: zod.coerce.number(),
 });
 
+export const sendConversationMessageBodyAudioWaveformItemMin = 0;
+export const sendConversationMessageBodyAudioWaveformItemMax = 100;
+
 export const SendConversationMessageBody = zod.object({
   content: zod.string(),
   replyToId: zod.number().nullish(),
   imageUrl: zod.string().nullish(),
   audioUrl: zod.string().nullish(),
+  audioWaveform: zod
+    .array(
+      zod
+        .number()
+        .min(sendConversationMessageBodyAudioWaveformItemMin)
+        .max(sendConversationMessageBodyAudioWaveformItemMax),
+    )
+    .nullish(),
   gifUrl: zod.string().nullish(),
 });
 
@@ -1045,6 +1104,12 @@ export const GetMessageRepliesParams = zod.object({
   id: zod.coerce.number(),
 });
 
+export const getMessageRepliesResponseParentAudioWaveformItemMin = 0;
+export const getMessageRepliesResponseParentAudioWaveformItemMax = 100;
+
+export const getMessageRepliesResponseRepliesItemAudioWaveformItemMin = 0;
+export const getMessageRepliesResponseRepliesItemAudioWaveformItemMax = 100;
+
 export const GetMessageRepliesResponse = zod.object({
   parent: zod.object({
     id: zod.number(),
@@ -1060,6 +1125,14 @@ export const GetMessageRepliesResponse = zod.object({
     replyCount: zod.number(),
     imageUrl: zod.string().nullish(),
     audioUrl: zod.string().nullish(),
+    audioWaveform: zod
+      .array(
+        zod
+          .number()
+          .min(getMessageRepliesResponseParentAudioWaveformItemMin)
+          .max(getMessageRepliesResponseParentAudioWaveformItemMax),
+      )
+      .nullish(),
     reactions: zod.array(
       zod.object({
         emoji: zod.string(),
@@ -1127,6 +1200,14 @@ export const GetMessageRepliesResponse = zod.object({
       replyCount: zod.number(),
       imageUrl: zod.string().nullish(),
       audioUrl: zod.string().nullish(),
+      audioWaveform: zod
+        .array(
+          zod
+            .number()
+            .min(getMessageRepliesResponseRepliesItemAudioWaveformItemMin)
+            .max(getMessageRepliesResponseRepliesItemAudioWaveformItemMax),
+        )
+        .nullish(),
       reactions: zod.array(
         zod.object({
           emoji: zod.string(),
@@ -1357,6 +1438,9 @@ export const MarkConversationReadBody = zod.object({
 /**
  * @summary List hashtag rooms I follow (with unread/last message)
  */
+export const getRoomsResponseLastMessageOneAudioWaveformItemMin = 0;
+export const getRoomsResponseLastMessageOneAudioWaveformItemMax = 100;
+
 export const GetRoomsResponseItem = zod.object({
   tag: zod.string(),
   memberCount: zod.number(),
@@ -1379,6 +1463,14 @@ export const GetRoomsResponseItem = zod.object({
         replyCount: zod.number(),
         imageUrl: zod.string().nullish(),
         audioUrl: zod.string().nullish(),
+        audioWaveform: zod
+          .array(
+            zod
+              .number()
+              .min(getRoomsResponseLastMessageOneAudioWaveformItemMin)
+              .max(getRoomsResponseLastMessageOneAudioWaveformItemMax),
+          )
+          .nullish(),
         reactions: zod.array(
           zod.object({
             emoji: zod.string(),
@@ -1449,6 +1541,9 @@ export const GetTrendingRoomsQueryParams = zod.object({
   limit: zod.coerce.number().default(getTrendingRoomsQueryLimitDefault),
 });
 
+export const getTrendingRoomsResponseLastMessageOneAudioWaveformItemMin = 0;
+export const getTrendingRoomsResponseLastMessageOneAudioWaveformItemMax = 100;
+
 export const GetTrendingRoomsResponseItem = zod.object({
   tag: zod.string(),
   memberCount: zod.number(),
@@ -1471,6 +1566,14 @@ export const GetTrendingRoomsResponseItem = zod.object({
         replyCount: zod.number(),
         imageUrl: zod.string().nullish(),
         audioUrl: zod.string().nullish(),
+        audioWaveform: zod
+          .array(
+            zod
+              .number()
+              .min(getTrendingRoomsResponseLastMessageOneAudioWaveformItemMin)
+              .max(getTrendingRoomsResponseLastMessageOneAudioWaveformItemMax),
+          )
+          .nullish(),
         reactions: zod.array(
           zod.object({
             emoji: zod.string(),
@@ -1539,6 +1642,9 @@ export const GetRoomMessagesParams = zod.object({
   tag: zod.coerce.string(),
 });
 
+export const getRoomMessagesResponseAudioWaveformItemMin = 0;
+export const getRoomMessagesResponseAudioWaveformItemMax = 100;
+
 export const GetRoomMessagesResponseItem = zod.object({
   id: zod.number(),
   conversationId: zod.number().nullish(),
@@ -1553,6 +1659,14 @@ export const GetRoomMessagesResponseItem = zod.object({
   replyCount: zod.number(),
   imageUrl: zod.string().nullish(),
   audioUrl: zod.string().nullish(),
+  audioWaveform: zod
+    .array(
+      zod
+        .number()
+        .min(getRoomMessagesResponseAudioWaveformItemMin)
+        .max(getRoomMessagesResponseAudioWaveformItemMax),
+    )
+    .nullish(),
   reactions: zod.array(
     zod.object({
       emoji: zod.string(),
@@ -1614,11 +1728,22 @@ export const SendRoomMessageParams = zod.object({
   tag: zod.coerce.string(),
 });
 
+export const sendRoomMessageBodyAudioWaveformItemMin = 0;
+export const sendRoomMessageBodyAudioWaveformItemMax = 100;
+
 export const SendRoomMessageBody = zod.object({
   content: zod.string(),
   replyToId: zod.number().nullish(),
   imageUrl: zod.string().nullish(),
   audioUrl: zod.string().nullish(),
+  audioWaveform: zod
+    .array(
+      zod
+        .number()
+        .min(sendRoomMessageBodyAudioWaveformItemMin)
+        .max(sendRoomMessageBodyAudioWaveformItemMax),
+    )
+    .nullish(),
   gifUrl: zod.string().nullish(),
 });
 
@@ -2803,6 +2928,9 @@ export const GetCommunityParams = zod.object({
   slug: zod.coerce.string(),
 });
 
+export const getCommunityResponseRoomsItemLastMessageOneAudioWaveformItemMin = 0;
+export const getCommunityResponseRoomsItemLastMessageOneAudioWaveformItemMax = 100;
+
 export const GetCommunityResponse = zod.object({
   id: zod.number(),
   slug: zod.string(),
@@ -2892,6 +3020,18 @@ export const GetCommunityResponse = zod.object({
             replyCount: zod.number(),
             imageUrl: zod.string().nullish(),
             audioUrl: zod.string().nullish(),
+            audioWaveform: zod
+              .array(
+                zod
+                  .number()
+                  .min(
+                    getCommunityResponseRoomsItemLastMessageOneAudioWaveformItemMin,
+                  )
+                  .max(
+                    getCommunityResponseRoomsItemLastMessageOneAudioWaveformItemMax,
+                  ),
+              )
+              .nullish(),
             reactions: zod.array(
               zod.object({
                 emoji: zod.string(),
@@ -2960,6 +3100,9 @@ export const GetCommunityResponse = zod.object({
 export const JoinCommunityParams = zod.object({
   slug: zod.coerce.string(),
 });
+
+export const joinCommunityResponseRoomsItemLastMessageOneAudioWaveformItemMin = 0;
+export const joinCommunityResponseRoomsItemLastMessageOneAudioWaveformItemMax = 100;
 
 export const JoinCommunityResponse = zod.object({
   id: zod.number(),
@@ -3050,6 +3193,18 @@ export const JoinCommunityResponse = zod.object({
             replyCount: zod.number(),
             imageUrl: zod.string().nullish(),
             audioUrl: zod.string().nullish(),
+            audioWaveform: zod
+              .array(
+                zod
+                  .number()
+                  .min(
+                    joinCommunityResponseRoomsItemLastMessageOneAudioWaveformItemMin,
+                  )
+                  .max(
+                    joinCommunityResponseRoomsItemLastMessageOneAudioWaveformItemMax,
+                  ),
+              )
+              .nullish(),
             reactions: zod.array(
               zod.object({
                 emoji: zod.string(),
@@ -3118,6 +3273,9 @@ export const JoinCommunityResponse = zod.object({
 export const LeaveCommunityParams = zod.object({
   slug: zod.coerce.string(),
 });
+
+export const leaveCommunityResponseRoomsItemLastMessageOneAudioWaveformItemMin = 0;
+export const leaveCommunityResponseRoomsItemLastMessageOneAudioWaveformItemMax = 100;
 
 export const LeaveCommunityResponse = zod.object({
   id: zod.number(),
@@ -3208,6 +3366,18 @@ export const LeaveCommunityResponse = zod.object({
             replyCount: zod.number(),
             imageUrl: zod.string().nullish(),
             audioUrl: zod.string().nullish(),
+            audioWaveform: zod
+              .array(
+                zod
+                  .number()
+                  .min(
+                    leaveCommunityResponseRoomsItemLastMessageOneAudioWaveformItemMin,
+                  )
+                  .max(
+                    leaveCommunityResponseRoomsItemLastMessageOneAudioWaveformItemMax,
+                  ),
+              )
+              .nullish(),
             reactions: zod.array(
               zod.object({
                 emoji: zod.string(),

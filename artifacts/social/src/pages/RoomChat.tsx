@@ -165,10 +165,10 @@ export default function RoomChat({ tag }: { tag: string }) {
     });
   }
 
-  function sendAudio(audioUrl: string) {
+  function sendAudio(audioUrl: string, peaks: number[] | null) {
     send.mutate({
       tag: cleanTag,
-      data: { content: "", audioUrl, replyToId: replyTo?.id ?? null },
+      data: { content: "", audioUrl, audioWaveform: peaks, replyToId: replyTo?.id ?? null },
     });
   }
 

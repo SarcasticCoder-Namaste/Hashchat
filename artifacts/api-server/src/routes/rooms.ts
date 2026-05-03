@@ -15,6 +15,7 @@ import {
 import { and, desc, eq, gt, inArray, sql } from "drizzle-orm";
 import { requireAuth, getUserId } from "../middlewares/requireAuth";
 import { isValidStorageUrl } from "../lib/storageUrls";
+import { serializeWaveform } from "../lib/waveform";
 import { isAllowedGifUrl } from "../lib/giphy";
 import { SendRoomMessageBody } from "@workspace/api-zod";
 import { normalizeTag } from "../lib/hashtags";
@@ -238,6 +239,11 @@ router.post("/rooms/:tag/messages", requireAuth, async (req, res): Promise<void>
     res.status(400).json({ error: "audioUrl must reference an uploaded object" });
     return;
   }
+  if (parsed.data.audioWaveform != null && parsed.data.audioUrl == null) {
+    res.status(400).json({ error: "audioWaveform requires audioUrl" });
+    return;
+  }
+  const waveformJson = serializeWaveform(parsed.data.audioWaveform ?? null);
   if (parsed.data.gifUrl != null && !isAllowedGifUrl(parsed.data.gifUrl)) {
     res.status(400).json({ error: "gifUrl must come from the configured GIF provider" });
     return;
@@ -263,6 +269,7 @@ router.post("/rooms/:tag/messages", requireAuth, async (req, res): Promise<void>
       // them; the kind="gif" attachment row preserves the distinction.
       imageUrl: parsed.data.imageUrl ?? parsed.data.gifUrl ?? null,
       audioUrl: parsed.data.audioUrl ?? null,
+      audioWaveform: waveformJson,
       replyToId,
     })
     .returning();

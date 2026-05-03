@@ -12,6 +12,7 @@ import {
 import { and, desc, eq, inArray, or, sql, gt } from "drizzle-orm";
 import { requireAuth, getUserId } from "../middlewares/requireAuth";
 import { isValidStorageUrl } from "../lib/storageUrls";
+import { serializeWaveform } from "../lib/waveform";
 import { loadBlockWall, isBlockedEitherWay } from "../lib/relationships";
 import { isAllowedGifUrl } from "../lib/giphy";
 import {
@@ -34,7 +35,7 @@ function pair(a: string, b: string): [string, string] {
   return a < b ? [a, b] : [b, a];
 }
 
-async function buildMessages(rows: { id: number; conversationId: number | null; roomTag: string | null; senderId: string; content: string; imageUrl: string | null; audioUrl: string | null; replyToId: number | null; createdAt: Date }[], myUserId: string) {
+async function buildMessages(rows: { id: number; conversationId: number | null; roomTag: string | null; senderId: string; content: string; imageUrl: string | null; audioUrl: string | null; audioWaveform: string | null; replyToId: number | null; createdAt: Date }[], myUserId: string) {
   return sharedBuildMessages(rows, myUserId);
 }
 
@@ -280,6 +281,11 @@ router.post("/conversations/:id/messages", requireAuth, async (req, res): Promis
     res.status(400).json({ error: "audioUrl must reference an uploaded object" });
     return;
   }
+  if (parsed.data.audioWaveform != null && parsed.data.audioUrl == null) {
+    res.status(400).json({ error: "audioWaveform requires audioUrl" });
+    return;
+  }
+  const waveformJson = serializeWaveform(parsed.data.audioWaveform ?? null);
   if (parsed.data.gifUrl != null && !isAllowedGifUrl(parsed.data.gifUrl)) {
     res.status(400).json({ error: "gifUrl must come from the configured GIF provider" });
     return;
@@ -307,6 +313,7 @@ router.post("/conversations/:id/messages", requireAuth, async (req, res): Promis
       // them; the kind="gif" attachment row preserves the distinction.
       imageUrl: parsed.data.imageUrl ?? parsed.data.gifUrl ?? null,
       audioUrl: parsed.data.audioUrl ?? null,
+      audioWaveform: waveformJson,
       replyToId,
     })
     .returning();

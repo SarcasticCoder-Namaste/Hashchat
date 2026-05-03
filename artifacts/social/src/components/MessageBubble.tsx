@@ -15,6 +15,7 @@ import {
 import { Reply, Smile, CornerDownRight, MessageSquare, Check, CheckCheck } from "lucide-react";
 import { LinkPreviewCard } from "./LinkPreviewCard";
 import { PollCard } from "./PollCard";
+import { WaveformPlayer } from "./WaveformPlayer";
 import { BookmarkButton } from "./BookmarkButton";
 import { renderRichContent } from "@/lib/mentions";
 
@@ -156,12 +157,11 @@ export function MessageBubble({
               </a>
             )}
             {message.audioUrl && (
-              <audio
-                controls
-                preload="metadata"
+              <WaveformPlayer
                 src={message.audioUrl}
-                className="block w-64 max-w-full px-2 pt-2"
-                data-testid={`msg-audio-${message.id}`}
+                peaks={message.audioWaveform ?? null}
+                isMine={isMine}
+                testId={`msg-audio-${message.id}`}
               />
             )}
             <div className="px-3.5 py-2" data-msg-pad>
@@ -291,13 +291,13 @@ export function MessageBubble({
           </a>
         )}
         {message.audioUrl && (
-          <audio
-            controls
-            preload="metadata"
-            src={message.audioUrl}
-            className="mt-1 block w-72 max-w-full"
-            data-testid={`msg-audio-${message.id}`}
-          />
+          <div className="mt-1 inline-block rounded-2xl bg-card shadow-sm">
+            <WaveformPlayer
+              src={message.audioUrl}
+              peaks={message.audioWaveform ?? null}
+              testId={`msg-audio-${message.id}`}
+            />
+          </div>
         )}
         {message.content && (
           <p className="mt-0.5 whitespace-pre-wrap break-words text-sm text-foreground">

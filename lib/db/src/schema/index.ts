@@ -187,6 +187,7 @@ export const messagesTable = pgTable(
     content: text("content").notNull(),
     imageUrl: text("image_url"),
     audioUrl: text("audio_url"),
+    audioWaveform: text("audio_waveform"),
     replyToId: integer("reply_to_id"),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true })
