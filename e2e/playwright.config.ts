@@ -37,11 +37,11 @@ export default defineConfig({
     {
       name: "chromium",
       use: { ...devices["Desktop Chrome"] },
-      testIgnore: /(auth\.setup|core-flows|shortcuts)\.(ts|spec\.ts)/,
+      testIgnore: /(auth\.setup|core-flows|shortcuts|translate-and-scheduled-dms)\.(ts|spec\.ts)/,
     },
     {
       name: "authenticated",
-      testMatch: /(core-flows|shortcuts)\.spec\.ts/,
+      testMatch: /(core-flows|shortcuts|translate-and-scheduled-dms)\.spec\.ts/,
       use: {
         ...devices["Desktop Chrome"],
         ...(AUTH_STATE_FOR_USE ? { storageState: AUTH_STATE_FOR_USE } : {}),
