@@ -38,6 +38,8 @@ export async function buildMessages(rows: RawMessage[], myUserId: string) {
       displayName: usersTable.displayName,
       username: usersTable.username,
       avatarUrl: usersTable.avatarUrl,
+      animatedAvatarUrl: usersTable.animatedAvatarUrl,
+      tier: usersTable.tier,
     })
     .from(usersTable)
     .where(inArray(usersTable.id, senderIds));
@@ -118,6 +120,8 @@ export async function buildMessages(rows: RawMessage[], myUserId: string) {
         displayName: usersTable.displayName,
         username: usersTable.username,
         avatarUrl: usersTable.avatarUrl,
+        animatedAvatarUrl: usersTable.animatedAvatarUrl,
+        tier: usersTable.tier,
       })
       .from(usersTable)
       .where(inArray(usersTable.id, extraSenderIds));
@@ -361,6 +365,8 @@ export async function buildMessages(rows: RawMessage[], myUserId: string) {
       senderId: r.senderId,
       senderName: sender?.displayName ?? sender?.username ?? "Unknown",
       senderAvatarUrl: sender?.avatarUrl ?? null,
+      senderAnimatedAvatarUrl:
+        sender?.tier === "pro" ? (sender?.animatedAvatarUrl ?? null) : null,
       content: r.content,
       imageUrl: r.imageUrl,
       imageAlt: r.imageAlt,

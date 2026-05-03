@@ -134,8 +134,11 @@ export function PostCard({ post, meId, onDeleted, onChanged }: PostCardProps) {
       aria-label={`Post by ${post.author.displayName}`}
     >
       <Avatar className="h-10 w-10 shrink-0">
-        {post.author.avatarUrl ? (
-          <AvatarImage src={post.author.avatarUrl} alt={post.author.displayName} />
+        {post.author.animatedAvatarUrl || post.author.avatarUrl ? (
+          <AvatarImage
+            src={post.author.animatedAvatarUrl || post.author.avatarUrl || ""}
+            alt={post.author.displayName}
+          />
         ) : null}
         <AvatarFallback className="bg-primary/15 text-primary">
           {post.author.displayName

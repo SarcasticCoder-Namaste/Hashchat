@@ -2634,7 +2634,11 @@ components:
           type: ["string", "null"]
         avatarUrl:
           type: ["string", "null"]
+        animatedAvatarUrl:
+          type: ["string", "null"]
         bannerUrl:
+          type: ["string", "null"]
+        bannerGifUrl:
           type: ["string", "null"]
         pronouns:
           type: ["string", "null"]
@@ -2896,6 +2900,8 @@ components:
         senderId: { type: string }
         senderName: { type: string }
         senderAvatarUrl:
+          type: ["string", "null"]
+        senderAnimatedAvatarUrl:
           type: ["string", "null"]
         content: { type: string }
         replyToId:

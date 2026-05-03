@@ -137,6 +137,9 @@ export default function Settings() {
   const [presence, setPresence] = useState("online");
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [bannerUrl, setBannerUrl] = useState<string | null>(null);
+  const [animatedAvatarUrl, setAnimatedAvatarUrl] = useState<string | null>(null);
+  const [bannerGifUrl, setBannerGifUrl] = useState<string | null>(null);
+  const { isPro } = useTier();
   const [hashtags, setHashtags] = useState<string[]>([]);
   const [featuredHashtag, setFeaturedHashtag] = useState<string | null>(null);
   const [custom, setCustom] = useState("");
@@ -153,6 +156,8 @@ export default function Settings() {
       setPresence(me.status ?? "online");
       setAvatarUrl(me.avatarUrl ?? null);
       setBannerUrl(me.bannerUrl ?? null);
+      setAnimatedAvatarUrl(me.animatedAvatarUrl ?? null);
+      setBannerGifUrl(me.bannerGifUrl ?? null);
       setHashtags(me.hashtags);
       setFeaturedHashtag(me.featuredHashtag ?? null);
     }
@@ -222,9 +227,9 @@ export default function Settings() {
         <div
           className="relative h-32 w-full bg-gradient-to-br from-violet-500/30 via-fuchsia-500/20 to-pink-500/30 md:h-40"
           style={
-            bannerUrl
+            bannerGifUrl || bannerUrl
               ? {
-                  backgroundImage: `url(${bannerUrl})`,
+                  backgroundImage: `url(${bannerGifUrl || bannerUrl})`,
                   backgroundSize: "cover",
                   backgroundPosition: "center",
                 }
@@ -236,8 +241,11 @@ export default function Settings() {
           <div className="-mt-10 flex items-end gap-4 md:-mt-12">
             <div className="relative">
               <Avatar className="h-20 w-20 ring-4 ring-card md:h-24 md:w-24">
-                {avatarUrl ? (
-                  <AvatarImage src={avatarUrl} alt={me.displayName} />
+                {animatedAvatarUrl || avatarUrl ? (
+                  <AvatarImage
+                    src={animatedAvatarUrl || avatarUrl || ""}
+                    alt={me.displayName}
+                  />
                 ) : null}
                 <AvatarFallback className="bg-primary/15 text-2xl text-primary">
                   {initials}
@@ -606,6 +614,111 @@ export default function Settings() {
             </div>
           </div>
 
+          {isPro && (
+            <div
+              className="space-y-4 rounded-lg border border-violet-500/40 bg-gradient-to-br from-violet-500/10 to-pink-500/10 p-4"
+              data-testid="pro-animated-section"
+            >
+              <div className="flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-violet-500" />
+                <h3 className="text-sm font-semibold text-foreground">
+                  Pro animations
+                </h3>
+                <span className="ml-auto rounded-full bg-gradient-to-r from-violet-500 to-pink-500 px-2 py-0.5 text-[10px] font-semibold text-white">
+                  Pro
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Upload an animated GIF or WebP to bring your avatar and banner
+                to life across HashChat. Falls back to your static images
+                when empty.
+              </p>
+
+              <div className="space-y-3">
+                <div className="flex items-center justify-between gap-2">
+                  <Label className="flex items-center gap-1.5">
+                    <ImageLucide className="h-3.5 w-3.5 text-primary" />
+                    Animated banner
+                  </Label>
+                  <div className="flex items-center gap-1">
+                    <ImageUploadButton
+                      testId="button-upload-banner-gif"
+                      onUploaded={(url) => setBannerGifUrl(url)}
+                    />
+                    {bannerGifUrl && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setBannerGifUrl(null)}
+                        data-testid="button-clear-banner-gif"
+                      >
+                        Remove
+                      </Button>
+                    )}
+                  </div>
+                </div>
+                <div
+                  className="h-24 w-full overflow-hidden rounded-lg border border-border bg-gradient-to-br from-violet-500/30 via-fuchsia-500/20 to-pink-500/30"
+                  style={
+                    bannerGifUrl
+                      ? {
+                          backgroundImage: `url(${bannerGifUrl})`,
+                          backgroundSize: "cover",
+                          backgroundPosition: "center",
+                        }
+                      : undefined
+                  }
+                  data-testid="banner-gif-preview"
+                />
+              </div>
+
+              <div className="space-y-3">
+                <div className="flex items-center justify-between gap-2">
+                  <Label className="flex items-center gap-1.5">
+                    <Camera className="h-3.5 w-3.5 text-primary" />
+                    Animated avatar
+                  </Label>
+                  <div className="flex items-center gap-1">
+                    <ImageUploadButton
+                      testId="button-upload-animated-avatar"
+                      onUploaded={(url) => setAnimatedAvatarUrl(url)}
+                    />
+                    {animatedAvatarUrl && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setAnimatedAvatarUrl(null)}
+                        data-testid="button-clear-animated-avatar"
+                      >
+                        Remove
+                      </Button>
+                    )}
+                  </div>
+                </div>
+                <div className="flex items-center gap-4">
+                  <Avatar className="h-16 w-16">
+                    {animatedAvatarUrl ? (
+                      <AvatarImage
+                        src={animatedAvatarUrl}
+                        alt={displayName}
+                        data-testid="animated-avatar-preview"
+                      />
+                    ) : null}
+                    <AvatarFallback className="bg-primary/15 text-lg text-primary">
+                      {initials}
+                    </AvatarFallback>
+                  </Avatar>
+                  <p className="text-xs text-muted-foreground">
+                    GIF or animated WebP recommended. Shown wherever your
+                    avatar appears across the app.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="displayName">Display name</Label>
@@ -834,6 +947,12 @@ export default function Settings() {
                   avatarUrl: avatarUrl,
                   bannerUrl: bannerUrl,
                   featuredHashtag: featuredHashtag,
+                  ...(isPro
+                    ? {
+                        animatedAvatarUrl: animatedAvatarUrl,
+                        bannerGifUrl: bannerGifUrl,
+                      }
+                    : {}),
                 },
               })
             }

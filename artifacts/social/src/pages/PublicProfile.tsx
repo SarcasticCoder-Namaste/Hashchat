@@ -135,16 +135,22 @@ export default function PublicProfile({ username }: { username: string }) {
         <div
           className="h-32 w-full bg-gradient-to-br from-violet-500/30 via-fuchsia-500/20 to-pink-500/30 md:h-40"
           style={
-            user.bannerUrl
-              ? { backgroundImage: `url(${user.bannerUrl})`, backgroundSize: "cover", backgroundPosition: "center" }
+            user.bannerGifUrl || user.bannerUrl
+              ? {
+                  backgroundImage: `url(${user.bannerGifUrl || user.bannerUrl})`,
+                  backgroundSize: "cover",
+                  backgroundPosition: "center",
+                }
               : undefined
           }
+          data-testid="profile-banner"
         />
         <div className="flex flex-col gap-4 p-6 md:flex-row md:items-end md:gap-6">
           <div className="-mt-16 md:-mt-20">
             <PresenceAvatar
               displayName={user.displayName}
               avatarUrl={user.avatarUrl}
+              animatedAvatarUrl={user.animatedAvatarUrl}
               lastSeenAt={user.lastSeenAt}
               size="lg"
             />
@@ -426,6 +432,7 @@ function SimilarPersonRow({
         <PresenceAvatar
           displayName={m.displayName}
           avatarUrl={m.avatarUrl}
+          animatedAvatarUrl={m.animatedAvatarUrl}
           lastSeenAt={m.lastSeenAt}
           size="md"
         />

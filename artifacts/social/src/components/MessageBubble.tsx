@@ -82,8 +82,11 @@ export function MessageBubble({
       >
         {variant === "room" && (
           <Avatar className="h-9 w-9">
-            {message.senderAvatarUrl ? (
-              <AvatarImage src={message.senderAvatarUrl} alt={message.senderName} />
+            {message.senderAnimatedAvatarUrl || message.senderAvatarUrl ? (
+              <AvatarImage
+                src={message.senderAnimatedAvatarUrl || message.senderAvatarUrl || ""}
+                alt={message.senderName}
+              />
             ) : null}
             <AvatarFallback className="bg-primary/15 text-primary">
               {message.senderName
@@ -281,9 +284,9 @@ export function MessageBubble({
       data-testid={`msg-${message.id}`}
     >
       <Avatar className="h-9 w-9">
-        {message.senderAvatarUrl ? (
+        {message.senderAnimatedAvatarUrl || message.senderAvatarUrl ? (
           <AvatarImage
-            src={message.senderAvatarUrl}
+            src={message.senderAnimatedAvatarUrl || message.senderAvatarUrl || ""}
             alt={message.senderName}
           />
         ) : null}

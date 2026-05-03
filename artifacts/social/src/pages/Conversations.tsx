@@ -98,6 +98,7 @@ export default function Conversations() {
                   <PresenceAvatar
                     displayName={c.otherUser.displayName}
                     avatarUrl={c.otherUser.avatarUrl}
+                    animatedAvatarUrl={c.otherUser.animatedAvatarUrl}
                     lastSeenAt={c.otherUser.lastSeenAt}
                     presenceState={c.otherUser.presenceState}
                   />

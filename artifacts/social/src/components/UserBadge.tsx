@@ -15,6 +15,7 @@ function initialsFor(name: string) {
 export function PresenceAvatar({
   displayName,
   avatarUrl,
+  animatedAvatarUrl,
   lastSeenAt,
   presenceState,
   size = "md",
@@ -22,6 +23,7 @@ export function PresenceAvatar({
 }: {
   displayName: string;
   avatarUrl?: string | null;
+  animatedAvatarUrl?: string | null;
   lastSeenAt?: string | Date | null;
   presenceState?: PresenceState | null;
   size?: "sm" | "md" | "lg";
@@ -40,10 +42,11 @@ export function PresenceAvatar({
         : "bg-muted-foreground/40";
   const title =
     state === "online" ? "Online" : state === "away" ? "Away" : "Offline";
+  const displayAvatarUrl = animatedAvatarUrl || avatarUrl;
   return (
     <div className={["relative inline-block", className ?? ""].join(" ")}>
       <Avatar className={sizeCls}>
-        {avatarUrl ? <AvatarImage src={avatarUrl} alt={displayName} /> : null}
+        {displayAvatarUrl ? <AvatarImage src={displayAvatarUrl} alt={displayName} /> : null}
         <AvatarFallback className="bg-primary/15 text-primary">
           {initialsFor(displayName)}
         </AvatarFallback>

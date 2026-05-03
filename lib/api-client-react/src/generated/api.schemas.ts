@@ -215,7 +215,11 @@ export interface PublicProfile {
   /** @nullable */
   avatarUrl?: string | null;
   /** @nullable */
+  animatedAvatarUrl?: string | null;
+  /** @nullable */
   bannerUrl?: string | null;
+  /** @nullable */
+  bannerGifUrl?: string | null;
   /** @nullable */
   pronouns?: string | null;
   /** @nullable */
@@ -397,6 +401,8 @@ export interface Message {
   senderName: string;
   /** @nullable */
   senderAvatarUrl?: string | null;
+  /** @nullable */
+  senderAnimatedAvatarUrl?: string | null;
   content: string;
   /** @nullable */
   replyToId?: number | null;

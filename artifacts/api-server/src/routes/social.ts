@@ -481,7 +481,10 @@ router.get(
       displayName: user.displayName,
       bio: user.bio,
       avatarUrl: user.avatarUrl,
+      animatedAvatarUrl:
+        user.tier === "pro" ? user.animatedAvatarUrl : null,
       bannerUrl: user.bannerUrl,
+      bannerGifUrl: user.tier === "pro" ? user.bannerGifUrl : null,
       pronouns: user.pronouns,
       location: user.location,
       website: user.website,
