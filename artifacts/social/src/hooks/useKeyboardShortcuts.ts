@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { useLocation } from "wouter";
+import { moveFeedFocus, openFeedFocused } from "@/lib/feedFocus";
 
 export type Shortcut = {
   keys: string;
@@ -26,49 +27,6 @@ function isTypingTarget(el: EventTarget | null): boolean {
   if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return true;
   if (el.isContentEditable) return true;
   return false;
-}
-
-function feedItems(): HTMLElement[] {
-  return Array.from(
-    document.querySelectorAll<HTMLElement>("[data-feed-item]"),
-  );
-}
-
-function focusedIndex(items: HTMLElement[]): number {
-  return items.findIndex((el) => el.dataset.feedFocused === "true");
-}
-
-function setFocused(items: HTMLElement[], next: number): void {
-  items.forEach((el, i) => {
-    if (i === next) {
-      el.dataset.feedFocused = "true";
-      el.scrollIntoView({ block: "center", behavior: "smooth" });
-    } else {
-      delete el.dataset.feedFocused;
-    }
-  });
-}
-
-function moveFocus(delta: 1 | -1): void {
-  const items = feedItems();
-  if (items.length === 0) return;
-  const idx = focusedIndex(items);
-  let next: number;
-  if (idx < 0) {
-    next = delta === 1 ? 0 : items.length - 1;
-  } else {
-    next = Math.max(0, Math.min(items.length - 1, idx + delta));
-  }
-  setFocused(items, next);
-}
-
-function openFocusedThread(navigate: (path: string) => void): void {
-  const items = feedItems();
-  const idx = focusedIndex(items);
-  const el = idx >= 0 ? items[idx] : items[0];
-  if (!el) return;
-  const id = el.dataset.feedItemId;
-  if (id) navigate(`/app/post/${id}`);
 }
 
 function focusSearch(): void {
@@ -135,17 +93,17 @@ export function useKeyboardShortcuts({ onShowCheatSheet }: Opts): void {
 
       if (key === "j") {
         e.preventDefault();
-        moveFocus(1);
+        moveFeedFocus(1);
         return;
       }
       if (key === "k") {
         e.preventDefault();
-        moveFocus(-1);
+        moveFeedFocus(-1);
         return;
       }
       if (key === "r") {
         e.preventDefault();
-        openFocusedThread((p) => setLocation(p));
+        openFeedFocused((p) => setLocation(p));
         return;
       }
       if (key === "/") {

@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef } from "react";
 import { useQueryClient, useInfiniteQuery } from "@tanstack/react-query";
 import { useWindowVirtualizer } from "@tanstack/react-virtual";
+import { registerFeedFocusController } from "@/lib/feedFocus";
+import { useScrollRestoration } from "@/hooks/useScrollRestoration";
 import {
   getMyFeedPosts,
   getHashtagPosts,
@@ -128,6 +130,15 @@ export function PostFeed({ scope, meId, emptyMessage, canModerate }: PostFeedPro
     return out;
   }, [posts, showSponsored]);
 
+  const scopeKey =
+    scope.kind === "home"
+      ? "home"
+      : scope.kind === "hashtag"
+        ? `tag:${scope.tag}`
+        : `user:${scope.userId}:${userTab ?? "default"}`;
+
+  useScrollRestoration(`post-feed:${scopeKey}`, rows.length > 0);
+
   if (q.isLoading) {
     return <FeedSkeleton count={4} />;
   }
@@ -165,21 +176,13 @@ export function PostFeed({ scope, meId, emptyMessage, canModerate }: PostFeedPro
           canModerate={canModerate}
         />
       ) : (
-        rows.map((row, idx) =>
-          row.kind === "post" ? (
-            <PostCard
-              key={`p-${row.post.id}`}
-              post={row.post}
-              meId={meId}
-              onDeleted={invalidate}
-              onChanged={invalidate}
-              scope={scope.kind === "hashtag" ? { type: "room", key: scope.tag } : undefined}
-              canModerate={canModerate}
-            />
-          ) : (
-            <SponsoredCard key={`sp-${idx}`} />
-          ),
-        )
+        <NonVirtualizedRows
+          rows={rows}
+          meId={meId}
+          invalidate={invalidate}
+          scope={scope}
+          canModerate={canModerate}
+        />
       )}
       {q.hasNextPage ? (
         <div
@@ -225,6 +228,72 @@ function SponsoredCard() {
   );
 }
 
+function NonVirtualizedRows({
+  rows,
+  meId,
+  invalidate,
+  scope,
+  canModerate,
+}: {
+  rows: FeedRow[];
+  meId: string | null;
+  invalidate: () => void;
+  scope: PostFeedProps["scope"];
+  canModerate?: boolean;
+}) {
+  const postRows = useMemo(() => {
+    const out: { id: string; rowIdx: number }[] = [];
+    rows.forEach((r, i) => {
+      if (r.kind === "post") out.push({ id: String(r.post.id), rowIdx: i });
+    });
+    return out;
+  }, [rows]);
+  const postRowsRef = useRef(postRows);
+  postRowsRef.current = postRows;
+
+  useEffect(() => {
+    return registerFeedFocusController({
+      count: () => postRowsRef.current.length,
+      getId: (idx) => {
+        const r = postRowsRef.current[idx];
+        return r ? r.id : null;
+      },
+      scrollToIndex: (idx) => {
+        const r = postRowsRef.current[idx];
+        if (!r) return;
+        const el = document.querySelector<HTMLElement>(
+          `[data-feed-item][data-feed-item-id="${CSS.escape(r.id)}"]`,
+        );
+        el?.scrollIntoView({ block: "center", behavior: "smooth" });
+      },
+    });
+  }, []);
+
+  return (
+    <>
+      {rows.map((row, idx) =>
+        row.kind === "post" ? (
+          <PostCard
+            key={`p-${row.post.id}`}
+            post={row.post}
+            meId={meId}
+            onDeleted={invalidate}
+            onChanged={invalidate}
+            scope={
+              scope.kind === "hashtag"
+                ? { type: "room", key: scope.tag }
+                : undefined
+            }
+            canModerate={canModerate}
+          />
+        ) : (
+          <SponsoredCard key={`sp-${idx}`} />
+        ),
+      )}
+    </>
+  );
+}
+
 function VirtualizedRows({
   rows,
   meId,
@@ -249,6 +318,31 @@ function VirtualizedRows({
       return r.kind === "post" ? `p-${r.post.id}` : `sp-${i}`;
     },
   });
+
+  const postRows = useMemo(() => {
+    const out: { id: string; rowIdx: number }[] = [];
+    rows.forEach((r, i) => {
+      if (r.kind === "post") out.push({ id: String(r.post.id), rowIdx: i });
+    });
+    return out;
+  }, [rows]);
+  const postRowsRef = useRef(postRows);
+  postRowsRef.current = postRows;
+
+  useEffect(() => {
+    return registerFeedFocusController({
+      count: () => postRowsRef.current.length,
+      getId: (idx) => {
+        const r = postRowsRef.current[idx];
+        return r ? r.id : null;
+      },
+      scrollToIndex: (idx) => {
+        const r = postRowsRef.current[idx];
+        if (!r) return;
+        virtualizer.scrollToIndex(r.rowIdx, { align: "center" });
+      },
+    });
+  }, [virtualizer]);
 
   const items = virtualizer.getVirtualItems();
   const totalSize = virtualizer.getTotalSize();
