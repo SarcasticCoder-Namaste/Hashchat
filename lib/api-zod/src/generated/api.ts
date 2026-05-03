@@ -4655,6 +4655,196 @@ export const RedeemMvpCodeResponse = zod.object({
 });
 
 /**
+ * @summary Get my current daily streak
+ */
+export const GetMyStreakResponse = zod.object({
+  currentStreak: zod.number(),
+  longestStreak: zod.number(),
+  lastActivityDate: zod.string().nullable(),
+  activeToday: zod.boolean(),
+});
+
+/**
+ * @summary Get today's daily quests and progress
+ */
+export const GetMyQuestsResponse = zod.object({
+  day: zod.string(),
+  quests: zod.array(
+    zod.object({
+      code: zod.string(),
+      title: zod.string(),
+      description: zod.string(),
+      target: zod.number(),
+      progress: zod.number(),
+      completed: zod.boolean(),
+    }),
+  ),
+});
+
+/**
+ * @summary Top contributors this week for a hashtag room
+ */
+export const GetHashtagLeaderboardParams = zod.object({
+  tag: zod.coerce.string(),
+});
+
+export const GetHashtagLeaderboardResponse = zod.object({
+  tag: zod.string(),
+  weekStart: zod.coerce.date(),
+  entries: zod.array(
+    zod.object({
+      user: zod.object({
+        id: zod.string(),
+        username: zod.string(),
+        displayName: zod.string(),
+        avatarUrl: zod.string().nullish(),
+        animatedAvatarUrl: zod.string().nullish(),
+        mvpPlan: zod.boolean(),
+      }),
+      posts: zod.number(),
+      reactions: zod.number(),
+      messages: zod.number(),
+      score: zod.number(),
+    }),
+  ),
+});
+
+/**
+ * @summary Post a 24h ephemeral Spark
+ */
+export const CreateSparkBody = zod.object({
+  content: zod.string().optional(),
+  imageUrl: zod.string().nullish(),
+  hashtags: zod.array(zod.string()).optional(),
+});
+
+/**
+ * @summary List my active Sparks
+ */
+export const GetMySparksResponseItem = zod.object({
+  id: zod.number(),
+  content: zod.string(),
+  imageUrl: zod.string().nullish(),
+  hashtags: zod.array(zod.string()),
+  createdAt: zod.coerce.date(),
+  expiresAt: zod.coerce.date(),
+  author: zod
+    .union([
+      zod.object({
+        id: zod.string(),
+        username: zod.string(),
+        displayName: zod.string(),
+        avatarUrl: zod.string().nullish(),
+        animatedAvatarUrl: zod.string().nullish(),
+      }),
+      zod.null(),
+    ])
+    .optional(),
+});
+export const GetMySparksResponse = zod.array(GetMySparksResponseItem);
+
+/**
+ * @summary Delete one of my Sparks
+ */
+export const DeleteSparkParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+/**
+ * @summary List a user's active Sparks
+ */
+export const GetUserSparksParams = zod.object({
+  username: zod.coerce.string(),
+});
+
+export const GetUserSparksResponseItem = zod.object({
+  id: zod.number(),
+  content: zod.string(),
+  imageUrl: zod.string().nullish(),
+  hashtags: zod.array(zod.string()),
+  createdAt: zod.coerce.date(),
+  expiresAt: zod.coerce.date(),
+  author: zod
+    .union([
+      zod.object({
+        id: zod.string(),
+        username: zod.string(),
+        displayName: zod.string(),
+        avatarUrl: zod.string().nullish(),
+        animatedAvatarUrl: zod.string().nullish(),
+      }),
+      zod.null(),
+    ])
+    .optional(),
+});
+export const GetUserSparksResponse = zod.array(GetUserSparksResponseItem);
+
+/**
+ * @summary List active Sparks attached to a hashtag
+ */
+export const GetHashtagSparksParams = zod.object({
+  tag: zod.coerce.string(),
+});
+
+export const GetHashtagSparksResponseItem = zod.object({
+  id: zod.number(),
+  content: zod.string(),
+  imageUrl: zod.string().nullish(),
+  hashtags: zod.array(zod.string()),
+  createdAt: zod.coerce.date(),
+  expiresAt: zod.coerce.date(),
+  author: zod
+    .union([
+      zod.object({
+        id: zod.string(),
+        username: zod.string(),
+        displayName: zod.string(),
+        avatarUrl: zod.string().nullish(),
+        animatedAvatarUrl: zod.string().nullish(),
+      }),
+      zod.null(),
+    ])
+    .optional(),
+});
+export const GetHashtagSparksResponse = zod.array(GetHashtagSparksResponseItem);
+
+/**
+ * @summary Get my referral invite token and credit stats
+ */
+export const GetMyInviteResponse = zod.object({
+  token: zod.string(),
+  totalRedemptions: zod.number(),
+  creditedRedemptions: zod.number(),
+  threshold: zod.number(),
+  rewardDays: zod.number(),
+  progressTowardNext: zod.number(),
+});
+
+/**
+ * @summary Generate a fresh invite token (invalidates the old one)
+ */
+export const RegenerateMyInviteResponse = zod.object({
+  token: zod.string(),
+  totalRedemptions: zod.number(),
+  creditedRedemptions: zod.number(),
+  threshold: zod.number(),
+  rewardDays: zod.number(),
+  progressTowardNext: zod.number(),
+});
+
+/**
+ * @summary Redeem a referral invite token
+ */
+export const RedeemInviteParams = zod.object({
+  token: zod.coerce.string(),
+});
+
+export const RedeemInviteResponse = zod.object({
+  ok: zod.boolean(),
+  inviterId: zod.string(),
+});
+
+/**
  * @summary List all users (moderator+)
  */
 export const AdminListUsersResponseItem = zod.object({

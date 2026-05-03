@@ -1446,3 +1446,110 @@ export type Reaction = typeof reactionsTable.$inferSelect;
 export type ReportAppeal = typeof reportAppealsTable.$inferSelect;
 export type UserTwoFactor = typeof userTwoFactorTable.$inferSelect;
 export type UserSession = typeof userSessionsTable.$inferSelect;
+
+
+// =================== Engagement & Growth ===================
+
+export const userStreaksTable = pgTable("user_streaks", {
+  userId: text("user_id")
+    .primaryKey()
+    .references(() => usersTable.id, { onDelete: "cascade" }),
+  currentStreak: integer("current_streak").notNull().default(0),
+  longestStreak: integer("longest_streak").notNull().default(0),
+  lastActivityDate: text("last_activity_date"),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+export const questProgressTable = pgTable(
+  "quest_progress",
+  {
+    userId: text("user_id")
+      .notNull()
+      .references(() => usersTable.id, { onDelete: "cascade" }),
+    day: text("day").notNull(),
+    questCode: text("quest_code").notNull(),
+    progress: integer("progress").notNull().default(0),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.userId, t.day, t.questCode] }),
+    index("quest_progress_user_day_idx").on(t.userId, t.day),
+  ],
+);
+
+export const sparksTable = pgTable(
+  "sparks",
+  {
+    id: serial("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => usersTable.id, { onDelete: "cascade" }),
+    content: text("content").notNull().default(""),
+    imageUrl: text("image_url"),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    index("sparks_user_idx").on(t.userId, t.createdAt),
+    index("sparks_expires_idx").on(t.expiresAt),
+  ],
+);
+
+export const sparkHashtagsTable = pgTable(
+  "spark_hashtags",
+  {
+    sparkId: integer("spark_id")
+      .notNull()
+      .references(() => sparksTable.id, { onDelete: "cascade" }),
+    tag: text("tag").notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.sparkId, t.tag] }),
+    index("spark_hashtags_tag_idx").on(t.tag),
+  ],
+);
+
+export const inviteTokensTable = pgTable(
+  "invite_tokens",
+  {
+    token: text("token").primaryKey(),
+    inviterId: text("inviter_id")
+      .notNull()
+      .references(() => usersTable.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [uniqueIndex("invite_tokens_inviter_unique").on(t.inviterId)],
+);
+
+export const inviteRedemptionsTable = pgTable(
+  "invite_redemptions",
+  {
+    inviteeId: text("invitee_id")
+      .primaryKey()
+      .references(() => usersTable.id, { onDelete: "cascade" }),
+    inviterId: text("inviter_id")
+      .notNull()
+      .references(() => usersTable.id, { onDelete: "cascade" }),
+    token: text("token").notNull(),
+    creditedAt: timestamp("credited_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [index("invite_redemptions_inviter_idx").on(t.inviterId)],
+);
+
+export type UserStreak = typeof userStreaksTable.$inferSelect;
+export type QuestProgress = typeof questProgressTable.$inferSelect;
+export type Spark = typeof sparksTable.$inferSelect;
+export type InviteToken = typeof inviteTokensTable.$inferSelect;
+export type InviteRedemption = typeof inviteRedemptionsTable.$inferSelect;

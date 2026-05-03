@@ -32,6 +32,7 @@ tags:
   - name: wallets
   - name: presence
   - name: safety
+  - name: engagement
 paths:
   /healthz:
     get:
@@ -1563,6 +1564,173 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/OkResponse" }
         "404": { description: Invalid code }
+        "409": { description: Already redeemed }
+
+  /me/streak:
+    get:
+      operationId: getMyStreak
+      tags: [engagement]
+      summary: Get my current daily streak
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/UserStreak" }
+
+  /me/quests:
+    get:
+      operationId: getMyQuests
+      tags: [engagement]
+      summary: Get today's daily quests and progress
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/QuestList" }
+
+  /hashtags/{tag}/leaderboard:
+    get:
+      operationId: getHashtagLeaderboard
+      tags: [engagement]
+      summary: Top contributors this week for a hashtag room
+      parameters:
+        - in: path
+          name: tag
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/HashtagLeaderboard" }
+
+  /sparks:
+    post:
+      operationId: createSpark
+      tags: [engagement]
+      summary: Post a 24h ephemeral Spark
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateSparkBody" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Spark" }
+
+  /sparks/me:
+    get:
+      operationId: getMySparks
+      tags: [engagement]
+      summary: List my active Sparks
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Spark" }
+
+  /sparks/{id}:
+    delete:
+      operationId: deleteSpark
+      tags: [engagement]
+      summary: Delete one of my Sparks
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        "204": { description: No Content }
+
+  /users/{username}/sparks:
+    get:
+      operationId: getUserSparks
+      tags: [engagement]
+      summary: List a user's active Sparks
+      parameters:
+        - in: path
+          name: username
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Spark" }
+
+  /hashtags/{tag}/sparks:
+    get:
+      operationId: getHashtagSparks
+      tags: [engagement]
+      summary: List active Sparks attached to a hashtag
+      parameters:
+        - in: path
+          name: tag
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Spark" }
+
+  /me/invite:
+    get:
+      operationId: getMyInvite
+      tags: [engagement]
+      summary: Get my referral invite token and credit stats
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/InviteInfo" }
+
+  /me/invite/regenerate:
+    post:
+      operationId: regenerateMyInvite
+      tags: [engagement]
+      summary: Generate a fresh invite token (invalidates the old one)
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/InviteInfo" }
+
+  /invites/{token}/redeem:
+    post:
+      operationId: redeemInvite
+      tags: [engagement]
+      summary: Redeem a referral invite token
+      parameters:
+        - in: path
+          name: token
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/InviteRedeemResponse" }
+        "400": { description: Invalid }
+        "404": { description: Invalid invite }
         "409": { description: Already redeemed }
 
   /admin/users:
@@ -5238,6 +5406,128 @@ components:
           type: array
           items: { $ref: "#/components/schemas/Message" }
       required: [parent, replies]
+
+    UserStreak:
+      type: object
+      properties:
+        currentStreak: { type: integer }
+        longestStreak: { type: integer }
+        lastActivityDate:
+          type: ["string", "null"]
+        activeToday: { type: boolean }
+      required: [currentStreak, longestStreak, lastActivityDate, activeToday]
+
+    Quest:
+      type: object
+      properties:
+        code: { type: string }
+        title: { type: string }
+        description: { type: string }
+        target: { type: integer }
+        progress: { type: integer }
+        completed: { type: boolean }
+      required: [code, title, description, target, progress, completed]
+
+    QuestList:
+      type: object
+      properties:
+        day: { type: string }
+        quests:
+          type: array
+          items: { $ref: "#/components/schemas/Quest" }
+      required: [day, quests]
+
+    LeaderboardUser:
+      type: object
+      properties:
+        id: { type: string }
+        username: { type: string }
+        displayName: { type: string }
+        avatarUrl:
+          type: ["string", "null"]
+        animatedAvatarUrl:
+          type: ["string", "null"]
+        mvpPlan: { type: boolean }
+      required: [id, username, displayName, mvpPlan]
+
+    LeaderboardEntry:
+      type: object
+      properties:
+        user: { $ref: "#/components/schemas/LeaderboardUser" }
+        posts: { type: integer }
+        reactions: { type: integer }
+        messages: { type: integer }
+        score: { type: integer }
+      required: [user, posts, reactions, messages, score]
+
+    HashtagLeaderboard:
+      type: object
+      properties:
+        tag: { type: string }
+        weekStart: { type: string, format: date-time }
+        entries:
+          type: array
+          items: { $ref: "#/components/schemas/LeaderboardEntry" }
+      required: [tag, weekStart, entries]
+
+    SparkAuthor:
+      type: object
+      properties:
+        id: { type: string }
+        username: { type: string }
+        displayName: { type: string }
+        avatarUrl:
+          type: ["string", "null"]
+        animatedAvatarUrl:
+          type: ["string", "null"]
+      required: [id, username, displayName]
+
+    Spark:
+      type: object
+      properties:
+        id: { type: integer }
+        content: { type: string }
+        imageUrl:
+          type: ["string", "null"]
+        hashtags:
+          type: array
+          items: { type: string }
+        createdAt: { type: string, format: date-time }
+        expiresAt: { type: string, format: date-time }
+        author:
+          oneOf:
+            - { $ref: "#/components/schemas/SparkAuthor" }
+            - { type: "null" }
+      required: [id, content, hashtags, createdAt, expiresAt]
+
+    CreateSparkBody:
+      type: object
+      properties:
+        content: { type: string }
+        imageUrl:
+          type: ["string", "null"]
+        hashtags:
+          type: array
+          items: { type: string }
+
+    InviteInfo:
+      type: object
+      properties:
+        token: { type: string }
+        totalRedemptions: { type: integer }
+        creditedRedemptions: { type: integer }
+        threshold: { type: integer }
+        rewardDays: { type: integer }
+        progressTowardNext: { type: integer }
+      required:
+        [token, totalRedemptions, creditedRedemptions, threshold, rewardDays, progressTowardNext]
+
+    InviteRedeemResponse:
+      type: object
+      properties:
+        ok: { type: boolean }
+        inviterId: { type: string }
+      required: [ok, inviterId]
 
     NotificationActor:
       type: object

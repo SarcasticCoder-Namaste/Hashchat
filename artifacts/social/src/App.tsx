@@ -52,6 +52,7 @@ import Communities from "@/pages/Communities";
 import CommunityDetail from "@/pages/CommunityDetail";
 import Premium from "@/pages/Premium";
 import InviteRedeem from "@/pages/InviteRedeem";
+import ReferralRedeem from "@/pages/ReferralRedeem";
 import AdminPanel from "@/pages/AdminPanel";
 import SearchResults from "@/pages/SearchResults";
 import Saved from "@/pages/Saved";
@@ -463,6 +464,13 @@ function ClerkProviderWithRoutes() {
               {(params) => (
                 <ProtectedShell>
                   <InviteRedeem code={params.code} />
+                </ProtectedShell>
+              )}
+            </Route>
+            <Route path="/app/invite/:token">
+              {(params) => (
+                <ProtectedShell>
+                  <ReferralRedeem token={params.token} />
                 </ProtectedShell>
               )}
             </Route>

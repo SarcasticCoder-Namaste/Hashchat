@@ -40,6 +40,8 @@ import { PostComposer } from "@/components/PostComposer";
 import { PrePostSafetyWarning } from "@/components/PrePostSafetyWarning";
 import { PostFeed } from "@/components/PostFeed";
 import { PollsPanel } from "@/components/PollsPanel";
+import { LeaderboardPanel } from "@/components/LeaderboardPanel";
+import { SparkComposer, SparksRow } from "@/components/SparksPanel";
 import { EventsPanel, LiveEventBanner } from "@/components/EventsPanel";
 import { RoomSettingsDialog } from "@/components/RoomSettingsDialog";
 import { ReportsPanel } from "@/components/moderation-panels";
@@ -660,6 +662,9 @@ export default function RoomChat({ tag }: { tag: string }) {
           ) : (
             <div className="min-h-0 flex-1 overflow-y-auto bg-background px-4 py-4">
               <div className="mx-auto flex max-w-2xl flex-col gap-3">
+                <LeaderboardPanel tag={cleanTag} />
+                <SparkComposer defaultTag={cleanTag} />
+                <SparksRow scope={{ kind: "hashtag", tag: cleanTag }} />
                 <PostComposer
                   defaultHashtag={cleanTag}
                   onPosted={() =>

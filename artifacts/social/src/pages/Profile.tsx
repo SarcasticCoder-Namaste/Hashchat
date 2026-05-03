@@ -97,6 +97,9 @@ import {
   BarChart3,
 } from "lucide-react";
 import { ImageUploadButton } from "@/components/ImageUploadButton";
+import { StreakBadge } from "@/components/StreakBadge";
+import { SparkComposer, SparksRow } from "@/components/SparksPanel";
+import { InvitePanel } from "@/components/InvitePanel";
 import { FriendCodeQRDialog } from "@/components/FriendCodeQRDialog";
 import { WalletConnectSection } from "@/components/WalletConnectSection";
 import { Wallet as WalletIcon } from "lucide-react";
@@ -273,6 +276,7 @@ export default function Settings() {
                 <h1 className="truncate text-2xl font-bold text-foreground">
                   {me.displayName}
                 </h1>
+                <StreakBadge />
                 {me.featuredHashtag && (
                   <span
                     className="inline-flex items-center gap-0.5 rounded-full bg-gradient-to-r from-violet-500/20 to-pink-500/20 px-2 py-0.5 text-xs font-semibold text-foreground"
@@ -355,6 +359,11 @@ export default function Settings() {
       </div>
 
       <FriendCodeCard />
+
+      <SparkComposer />
+      <SparksRow scope={{ kind: "me" }} canDelete />
+
+      <InvitePanel />
 
       <a
         href={`${basePath}/app/analytics`}

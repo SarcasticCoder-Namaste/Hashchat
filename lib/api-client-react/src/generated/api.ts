@@ -45,6 +45,7 @@ import type {
   CreatePostBody,
   CreateReportBody,
   CreateRoomInviteBody,
+  CreateSparkBody,
   CreatedCode,
   CreatorBalance,
   DecideAppealBody,
@@ -91,9 +92,12 @@ import type {
   Hashtag,
   HashtagAnalytics,
   HashtagDetail,
+  HashtagLeaderboard,
   HealthStatus,
   HotPost,
   InitiateCallBody,
+  InviteInfo,
+  InviteRedeemResponse,
   LinkPreview,
   ListCommunitiesParams,
   LookupUserByCodeParams,
@@ -132,6 +136,7 @@ import type {
   PublicProfile,
   PushSubscribeBody,
   PushUnsubscribeBody,
+  QuestList,
   ReactionBody,
   RecordPostImpressionBody,
   RedeemCodeBody,
@@ -160,6 +165,7 @@ import type {
   SetSlowModeBody,
   SolanaTipBody,
   SolanaWallet,
+  Spark,
   SuggestHashtagsBody,
   SuggestHashtagsResponse,
   Tip,
@@ -184,6 +190,7 @@ import type {
   UserPhoto,
   UserPreferences,
   UserSessionInfo,
+  UserStreak,
   VapidKeyResponse,
   VotePollBody,
   WalletChallengeBody,
@@ -9322,6 +9329,901 @@ export const useRedeemMvpCode = <
   TContext
 > => {
   return useMutation(getRedeemMvpCodeMutationOptions(options));
+};
+
+/**
+ * @summary Get my current daily streak
+ */
+export const getGetMyStreakUrl = () => {
+  return `/api/me/streak`;
+};
+
+export const getMyStreak = async (
+  options?: RequestInit,
+): Promise<UserStreak> => {
+  return customFetch<UserStreak>(getGetMyStreakUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetMyStreakQueryKey = () => {
+  return [`/api/me/streak`] as const;
+};
+
+export const getGetMyStreakQueryOptions = <
+  TData = Awaited<ReturnType<typeof getMyStreak>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getMyStreak>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetMyStreakQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getMyStreak>>> = ({
+    signal,
+  }) => getMyStreak({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getMyStreak>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetMyStreakQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getMyStreak>>
+>;
+export type GetMyStreakQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get my current daily streak
+ */
+
+export function useGetMyStreak<
+  TData = Awaited<ReturnType<typeof getMyStreak>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getMyStreak>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetMyStreakQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Get today's daily quests and progress
+ */
+export const getGetMyQuestsUrl = () => {
+  return `/api/me/quests`;
+};
+
+export const getMyQuests = async (
+  options?: RequestInit,
+): Promise<QuestList> => {
+  return customFetch<QuestList>(getGetMyQuestsUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetMyQuestsQueryKey = () => {
+  return [`/api/me/quests`] as const;
+};
+
+export const getGetMyQuestsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getMyQuests>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getMyQuests>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetMyQuestsQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getMyQuests>>> = ({
+    signal,
+  }) => getMyQuests({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getMyQuests>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetMyQuestsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getMyQuests>>
+>;
+export type GetMyQuestsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get today's daily quests and progress
+ */
+
+export function useGetMyQuests<
+  TData = Awaited<ReturnType<typeof getMyQuests>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getMyQuests>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetMyQuestsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Top contributors this week for a hashtag room
+ */
+export const getGetHashtagLeaderboardUrl = (tag: string) => {
+  return `/api/hashtags/${tag}/leaderboard`;
+};
+
+export const getHashtagLeaderboard = async (
+  tag: string,
+  options?: RequestInit,
+): Promise<HashtagLeaderboard> => {
+  return customFetch<HashtagLeaderboard>(getGetHashtagLeaderboardUrl(tag), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetHashtagLeaderboardQueryKey = (tag: string) => {
+  return [`/api/hashtags/${tag}/leaderboard`] as const;
+};
+
+export const getGetHashtagLeaderboardQueryOptions = <
+  TData = Awaited<ReturnType<typeof getHashtagLeaderboard>>,
+  TError = ErrorType<unknown>,
+>(
+  tag: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getHashtagLeaderboard>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetHashtagLeaderboardQueryKey(tag);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getHashtagLeaderboard>>
+  > = ({ signal }) => getHashtagLeaderboard(tag, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!tag,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getHashtagLeaderboard>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetHashtagLeaderboardQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getHashtagLeaderboard>>
+>;
+export type GetHashtagLeaderboardQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Top contributors this week for a hashtag room
+ */
+
+export function useGetHashtagLeaderboard<
+  TData = Awaited<ReturnType<typeof getHashtagLeaderboard>>,
+  TError = ErrorType<unknown>,
+>(
+  tag: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getHashtagLeaderboard>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetHashtagLeaderboardQueryOptions(tag, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Post a 24h ephemeral Spark
+ */
+export const getCreateSparkUrl = () => {
+  return `/api/sparks`;
+};
+
+export const createSpark = async (
+  createSparkBody: CreateSparkBody,
+  options?: RequestInit,
+): Promise<Spark> => {
+  return customFetch<Spark>(getCreateSparkUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createSparkBody),
+  });
+};
+
+export const getCreateSparkMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createSpark>>,
+    TError,
+    { data: BodyType<CreateSparkBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createSpark>>,
+  TError,
+  { data: BodyType<CreateSparkBody> },
+  TContext
+> => {
+  const mutationKey = ["createSpark"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createSpark>>,
+    { data: BodyType<CreateSparkBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return createSpark(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateSparkMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createSpark>>
+>;
+export type CreateSparkMutationBody = BodyType<CreateSparkBody>;
+export type CreateSparkMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Post a 24h ephemeral Spark
+ */
+export const useCreateSpark = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createSpark>>,
+    TError,
+    { data: BodyType<CreateSparkBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createSpark>>,
+  TError,
+  { data: BodyType<CreateSparkBody> },
+  TContext
+> => {
+  return useMutation(getCreateSparkMutationOptions(options));
+};
+
+/**
+ * @summary List my active Sparks
+ */
+export const getGetMySparksUrl = () => {
+  return `/api/sparks/me`;
+};
+
+export const getMySparks = async (options?: RequestInit): Promise<Spark[]> => {
+  return customFetch<Spark[]>(getGetMySparksUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetMySparksQueryKey = () => {
+  return [`/api/sparks/me`] as const;
+};
+
+export const getGetMySparksQueryOptions = <
+  TData = Awaited<ReturnType<typeof getMySparks>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getMySparks>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetMySparksQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getMySparks>>> = ({
+    signal,
+  }) => getMySparks({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getMySparks>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetMySparksQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getMySparks>>
+>;
+export type GetMySparksQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List my active Sparks
+ */
+
+export function useGetMySparks<
+  TData = Awaited<ReturnType<typeof getMySparks>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getMySparks>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetMySparksQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Delete one of my Sparks
+ */
+export const getDeleteSparkUrl = (id: number) => {
+  return `/api/sparks/${id}`;
+};
+
+export const deleteSpark = async (
+  id: number,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getDeleteSparkUrl(id), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getDeleteSparkMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteSpark>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteSpark>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["deleteSpark"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteSpark>>,
+    { id: number }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return deleteSpark(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteSparkMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteSpark>>
+>;
+
+export type DeleteSparkMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Delete one of my Sparks
+ */
+export const useDeleteSpark = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteSpark>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteSpark>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  return useMutation(getDeleteSparkMutationOptions(options));
+};
+
+/**
+ * @summary List a user's active Sparks
+ */
+export const getGetUserSparksUrl = (username: string) => {
+  return `/api/users/${username}/sparks`;
+};
+
+export const getUserSparks = async (
+  username: string,
+  options?: RequestInit,
+): Promise<Spark[]> => {
+  return customFetch<Spark[]>(getGetUserSparksUrl(username), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetUserSparksQueryKey = (username: string) => {
+  return [`/api/users/${username}/sparks`] as const;
+};
+
+export const getGetUserSparksQueryOptions = <
+  TData = Awaited<ReturnType<typeof getUserSparks>>,
+  TError = ErrorType<unknown>,
+>(
+  username: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getUserSparks>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetUserSparksQueryKey(username);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getUserSparks>>> = ({
+    signal,
+  }) => getUserSparks(username, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!username,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getUserSparks>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetUserSparksQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getUserSparks>>
+>;
+export type GetUserSparksQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List a user's active Sparks
+ */
+
+export function useGetUserSparks<
+  TData = Awaited<ReturnType<typeof getUserSparks>>,
+  TError = ErrorType<unknown>,
+>(
+  username: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getUserSparks>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetUserSparksQueryOptions(username, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary List active Sparks attached to a hashtag
+ */
+export const getGetHashtagSparksUrl = (tag: string) => {
+  return `/api/hashtags/${tag}/sparks`;
+};
+
+export const getHashtagSparks = async (
+  tag: string,
+  options?: RequestInit,
+): Promise<Spark[]> => {
+  return customFetch<Spark[]>(getGetHashtagSparksUrl(tag), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetHashtagSparksQueryKey = (tag: string) => {
+  return [`/api/hashtags/${tag}/sparks`] as const;
+};
+
+export const getGetHashtagSparksQueryOptions = <
+  TData = Awaited<ReturnType<typeof getHashtagSparks>>,
+  TError = ErrorType<unknown>,
+>(
+  tag: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getHashtagSparks>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetHashtagSparksQueryKey(tag);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getHashtagSparks>>
+  > = ({ signal }) => getHashtagSparks(tag, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!tag,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getHashtagSparks>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetHashtagSparksQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getHashtagSparks>>
+>;
+export type GetHashtagSparksQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List active Sparks attached to a hashtag
+ */
+
+export function useGetHashtagSparks<
+  TData = Awaited<ReturnType<typeof getHashtagSparks>>,
+  TError = ErrorType<unknown>,
+>(
+  tag: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getHashtagSparks>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetHashtagSparksQueryOptions(tag, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Get my referral invite token and credit stats
+ */
+export const getGetMyInviteUrl = () => {
+  return `/api/me/invite`;
+};
+
+export const getMyInvite = async (
+  options?: RequestInit,
+): Promise<InviteInfo> => {
+  return customFetch<InviteInfo>(getGetMyInviteUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetMyInviteQueryKey = () => {
+  return [`/api/me/invite`] as const;
+};
+
+export const getGetMyInviteQueryOptions = <
+  TData = Awaited<ReturnType<typeof getMyInvite>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getMyInvite>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetMyInviteQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getMyInvite>>> = ({
+    signal,
+  }) => getMyInvite({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getMyInvite>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetMyInviteQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getMyInvite>>
+>;
+export type GetMyInviteQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get my referral invite token and credit stats
+ */
+
+export function useGetMyInvite<
+  TData = Awaited<ReturnType<typeof getMyInvite>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getMyInvite>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetMyInviteQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Generate a fresh invite token (invalidates the old one)
+ */
+export const getRegenerateMyInviteUrl = () => {
+  return `/api/me/invite/regenerate`;
+};
+
+export const regenerateMyInvite = async (
+  options?: RequestInit,
+): Promise<InviteInfo> => {
+  return customFetch<InviteInfo>(getRegenerateMyInviteUrl(), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getRegenerateMyInviteMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof regenerateMyInvite>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof regenerateMyInvite>>,
+  TError,
+  void,
+  TContext
+> => {
+  const mutationKey = ["regenerateMyInvite"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof regenerateMyInvite>>,
+    void
+  > = () => {
+    return regenerateMyInvite(requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RegenerateMyInviteMutationResult = NonNullable<
+  Awaited<ReturnType<typeof regenerateMyInvite>>
+>;
+
+export type RegenerateMyInviteMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Generate a fresh invite token (invalidates the old one)
+ */
+export const useRegenerateMyInvite = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof regenerateMyInvite>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof regenerateMyInvite>>,
+  TError,
+  void,
+  TContext
+> => {
+  return useMutation(getRegenerateMyInviteMutationOptions(options));
+};
+
+/**
+ * @summary Redeem a referral invite token
+ */
+export const getRedeemInviteUrl = (token: string) => {
+  return `/api/invites/${token}/redeem`;
+};
+
+export const redeemInvite = async (
+  token: string,
+  options?: RequestInit,
+): Promise<InviteRedeemResponse> => {
+  return customFetch<InviteRedeemResponse>(getRedeemInviteUrl(token), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getRedeemInviteMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof redeemInvite>>,
+    TError,
+    { token: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof redeemInvite>>,
+  TError,
+  { token: string },
+  TContext
+> => {
+  const mutationKey = ["redeemInvite"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof redeemInvite>>,
+    { token: string }
+  > = (props) => {
+    const { token } = props ?? {};
+
+    return redeemInvite(token, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RedeemInviteMutationResult = NonNullable<
+  Awaited<ReturnType<typeof redeemInvite>>
+>;
+
+export type RedeemInviteMutationError = ErrorType<void>;
+
+/**
+ * @summary Redeem a referral invite token
+ */
+export const useRedeemInvite = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof redeemInvite>>,
+    TError,
+    { token: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof redeemInvite>>,
+  TError,
+  { token: string },
+  TContext
+> => {
+  return useMutation(getRedeemInviteMutationOptions(options));
 };
 
 /**

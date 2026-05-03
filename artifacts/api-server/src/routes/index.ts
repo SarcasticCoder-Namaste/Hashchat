@@ -35,6 +35,7 @@ import tipsRouter from "./tips";
 import boostsRouter from "./boosts";
 import reactionsPremiumRouter from "./reactionsPremium";
 import safetyRouter from "./safety";
+import engagementRouter from "./engagement";
 
 const router: IRouter = Router();
 
@@ -80,5 +81,6 @@ router.use(tipsRouter);
 router.use(boostsRouter);
 router.use(reactionsPremiumRouter);
 router.use(safetyRouter);
+router.use(engagementRouter);
 
 export default router;

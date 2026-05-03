@@ -9,6 +9,9 @@ import {
 } from "@workspace/api-client-react";
 import { PostFeed } from "@/components/PostFeed";
 import { PostComposer } from "@/components/PostComposer";
+import { QuestsWidget } from "@/components/QuestsWidget";
+import { SparkComposer, SparksRow } from "@/components/SparksPanel";
+import { LeaderboardPanel } from "@/components/LeaderboardPanel";
 import { Button } from "@/components/ui/button";
 import { Hash, Home as HomeIcon } from "lucide-react";
 import { FeedSkeleton } from "@/components/Skeleton";
@@ -56,17 +59,22 @@ export default function Home() {
         </div>
       </div>
 
+      <QuestsWidget />
+
       {followedQ.isLoading ? (
         <FeedSkeleton count={3} />
       ) : followed.length === 0 ? (
-        <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-border bg-card/40 p-8 text-center">
-          <Hash className="h-8 w-8 text-muted-foreground/70" />
-          <p className="text-sm text-muted-foreground">
-            {t("home.emptyFollow")}
-          </p>
-          <Link href="/app/trending">
-            <Button data-testid="link-find-rooms">{t("home.findRooms")}</Button>
-          </Link>
+        <div className="space-y-4">
+          <SparkComposer />
+          <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-border bg-card/40 p-8 text-center">
+            <Hash className="h-8 w-8 text-muted-foreground/70" />
+            <p className="text-sm text-muted-foreground">
+              {t("home.emptyFollow")}
+            </p>
+            <Link href="/app/trending">
+              <Button data-testid="link-find-rooms">{t("home.findRooms")}</Button>
+            </Link>
+          </div>
         </div>
       ) : (
         <div className="flex flex-col gap-3">
@@ -110,6 +118,14 @@ export default function Home() {
               );
             })}
           </div>
+
+          {selectedTag && <LeaderboardPanel tag={selectedTag} />}
+
+          <SparkComposer defaultTag={selectedTag ?? undefined} />
+
+          {selectedTag ? (
+            <SparksRow scope={{ kind: "hashtag", tag: selectedTag }} />
+          ) : null}
 
           <PostComposer
             placeholder={

@@ -1768,6 +1768,95 @@ export interface MessageThread {
   replies: Message[];
 }
 
+export interface UserStreak {
+  currentStreak: number;
+  longestStreak: number;
+  /** @nullable */
+  lastActivityDate: string | null;
+  activeToday: boolean;
+}
+
+export interface Quest {
+  code: string;
+  title: string;
+  description: string;
+  target: number;
+  progress: number;
+  completed: boolean;
+}
+
+export interface QuestList {
+  day: string;
+  quests: Quest[];
+}
+
+export interface LeaderboardUser {
+  id: string;
+  username: string;
+  displayName: string;
+  /** @nullable */
+  avatarUrl?: string | null;
+  /** @nullable */
+  animatedAvatarUrl?: string | null;
+  mvpPlan: boolean;
+}
+
+export interface LeaderboardEntry {
+  user: LeaderboardUser;
+  posts: number;
+  reactions: number;
+  messages: number;
+  score: number;
+}
+
+export interface HashtagLeaderboard {
+  tag: string;
+  weekStart: string;
+  entries: LeaderboardEntry[];
+}
+
+export interface SparkAuthor {
+  id: string;
+  username: string;
+  displayName: string;
+  /** @nullable */
+  avatarUrl?: string | null;
+  /** @nullable */
+  animatedAvatarUrl?: string | null;
+}
+
+export interface Spark {
+  id: number;
+  content: string;
+  /** @nullable */
+  imageUrl?: string | null;
+  hashtags: string[];
+  createdAt: string;
+  expiresAt: string;
+  author?: SparkAuthor | null;
+}
+
+export interface CreateSparkBody {
+  content?: string;
+  /** @nullable */
+  imageUrl?: string | null;
+  hashtags?: string[];
+}
+
+export interface InviteInfo {
+  token: string;
+  totalRedemptions: number;
+  creditedRedemptions: number;
+  threshold: number;
+  rewardDays: number;
+  progressTowardNext: number;
+}
+
+export interface InviteRedeemResponse {
+  ok: boolean;
+  inviterId: string;
+}
+
 export interface NotificationActor {
   id: string;
   username: string;

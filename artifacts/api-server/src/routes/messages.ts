@@ -5,6 +5,7 @@ import { requireAuth, getUserId } from "../middlewares/requireAuth";
 import { AddMessageReactionBody } from "@workspace/api-zod";
 import { buildMessages } from "../lib/buildMessages";
 import { createNotification } from "../lib/notifications";
+import { recordActivity } from "../lib/engagement";
 
 const router: IRouter = Router();
 
@@ -37,10 +38,14 @@ router.post(
       res.status(403).json({ error: "This message is locked" });
       return;
     }
-    await db
+    const inserted = await db
       .insert(reactionsTable)
       .values({ messageId: id, userId: me, emoji: parsed.data.emoji })
-      .onConflictDoNothing();
+      .onConflictDoNothing()
+      .returning();
+    if (inserted.length > 0) {
+      void recordActivity(me, "reaction");
+    }
     if (exists.senderId !== me) {
       const targetTextId = exists.roomTag
         ? `room:${exists.roomTag}`

@@ -16,6 +16,7 @@ import {
 import { and, desc, eq, inArray, lt, sql, isNull } from "drizzle-orm";
 import { requireAuth, getUserId } from "../middlewares/requireAuth";
 import { isValidStorageUrl } from "../lib/storageUrls";
+import { recordActivity } from "../lib/engagement";
 import { normalizeTag } from "../lib/hashtags";
 import {
   CreatePostBody,
@@ -573,6 +574,10 @@ router.post("/posts", requireAuth, async (req, res): Promise<void> => {
   }
 
   if (status === "published") {
+    void recordActivity(me, "post");
+    if (replyToId != null) {
+      void recordActivity(me, "reply");
+    }
     const resolved = await resolveMentions(content);
     const recorded = await recordMentions({
       mentionerId: me,
@@ -1231,10 +1236,14 @@ router.post(
       res.status(403).json({ error: "This post is locked" });
       return;
     }
-    await db
+    const inserted = await db
       .insert(postReactionsTable)
       .values({ postId: id, userId: me, emoji: parsed.data.emoji })
-      .onConflictDoNothing();
+      .onConflictDoNothing()
+      .returning();
+    if (inserted.length > 0) {
+      void recordActivity(me, "reaction");
+    }
     if (post.authorId !== me) {
       await createNotification({
         recipientId: post.authorId,
