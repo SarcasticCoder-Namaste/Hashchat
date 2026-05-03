@@ -162,6 +162,7 @@ export async function buildMessages(rows: RawMessage[], myUserId: string) {
     }[]
   >();
   const messagePollIds = new Map<number, number>();
+  const staleLinkPreviews: { id: number; url: string }[] = [];
   for (const a of attachments) {
     if (!attachmentMap.has(a.messageId)) attachmentMap.set(a.messageId, []);
     attachmentMap.get(a.messageId)!.push({
@@ -176,6 +177,15 @@ export async function buildMessages(rows: RawMessage[], myUserId: string) {
       const m = a.url.match(/^poll:(\d+)$/);
       if (m) messagePollIds.set(a.messageId, parseInt(m[1], 10));
     }
+    if (
+      a.kind === "link_preview" &&
+      a.createdAt.getTime() < Date.now() - LINK_PREVIEW_REFRESH_AFTER_MS
+    ) {
+      staleLinkPreviews.push({ id: a.id, url: a.url });
+    }
+  }
+  if (staleLinkPreviews.length > 0) {
+    void refreshStaleLinkPreviews(staleLinkPreviews);
   }
 
   const pollIds = Array.from(new Set(messagePollIds.values()));
@@ -381,6 +391,47 @@ function emptyPollShape() {
     isExpired: false,
     createdAt: "",
   };
+}
+
+/**
+ * How long a stored link_preview row is trusted before we re-fetch the
+ * destination page in the background. Refresh runs fire-and-forget on
+ * read, throttled per-attachment via `refreshInflight`. The shared
+ * `fetchLinkPreview` cache (also 24h) further dedupes network hits when
+ * many messages share a URL.
+ */
+const LINK_PREVIEW_REFRESH_AFTER_MS = 24 * 60 * 60 * 1000;
+const refreshInflight = new Set<number>();
+
+async function refreshStaleLinkPreviews(
+  items: { id: number; url: string }[],
+): Promise<void> {
+  for (const item of items) {
+    if (refreshInflight.has(item.id)) continue;
+    refreshInflight.add(item.id);
+    try {
+      const fresh = await fetchLinkPreview(item.url);
+      // Only persist on a successful refresh. On null/error we leave the
+      // row untouched so the next read retries (the fetchLinkPreview
+      // cache still throttles network hits on broken pages to once every
+      // few minutes per URL within a process).
+      if (!fresh) continue;
+      await db
+        .update(messageAttachmentsTable)
+        .set({
+          url: fresh.url,
+          title: fresh.title ?? null,
+          description: fresh.description ?? null,
+          thumbnailUrl: fresh.thumbnailUrl ?? null,
+          createdAt: new Date(),
+        })
+        .where(eq(messageAttachmentsTable.id, item.id));
+    } catch {
+      // ignore — best-effort background refresh
+    } finally {
+      refreshInflight.delete(item.id);
+    }
+  }
 }
 
 /**
