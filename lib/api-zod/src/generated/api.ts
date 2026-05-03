@@ -3194,6 +3194,7 @@ export const GetNotificationsResponse = zod.object({
         "scheduled_post_published",
         "post_milestone",
         "report_resolved",
+        "appeal_decided",
         "moderation_action",
         "mod_promoted",
         "post_pinned",

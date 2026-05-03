@@ -18,6 +18,7 @@ export type NotificationKind =
   | "poll_closing"
   | "post_milestone"
   | "report_resolved"
+  | "appeal_decided"
   | "moderation_action"
   | "mod_promoted"
   | "post_pinned"

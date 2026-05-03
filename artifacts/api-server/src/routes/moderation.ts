@@ -1201,6 +1201,18 @@ router.post(
         resolution: parsed.data.note ?? action,
       })
       .where(eq(reportsTable.id, id));
+    const modNote = parsed.data.note?.trim();
+    const actionLabel =
+      action === "remove"
+        ? "the content was removed"
+        : action === "lock"
+          ? "the content was locked"
+          : action === "dismiss"
+            ? "no action was taken"
+            : `action: ${action}`;
+    const reportSnippet = modNote
+      ? `Your report was ${status} — ${actionLabel}. Moderator note: ${modNote}`
+      : `Your report was ${status} — ${actionLabel}.`;
     await createNotification({
       recipientId: report.reporterId,
       actorId: me,
@@ -1208,7 +1220,7 @@ router.post(
       targetType: "report",
       targetId: id,
       targetTextId: `${report.scopeType}:${report.scopeKey}`,
-      snippet: `Your report was ${status} (${action}).`,
+      snippet: reportSnippet,
     });
     res.json({ ok: true });
   },

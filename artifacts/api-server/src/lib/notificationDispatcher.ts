@@ -39,6 +39,7 @@ const PREF_KEY_BY_KIND: Record<
   post_milestone: { email: "emailMentions", push: "pushMentions" },
   // Moderation notifications use the mention pref slot for now.
   report_resolved: { email: "emailMentions", push: "pushMentions" },
+  appeal_decided: { email: "emailMentions", push: "pushMentions" },
   moderation_action: { email: "emailMentions", push: "pushMentions" },
   mod_promoted: { email: "emailMentions", push: "pushMentions" },
   post_pinned: { email: "emailMentions", push: "pushMentions" },
@@ -83,7 +84,9 @@ function titleFor(kind: NotificationKind, actor: string | null): string {
     case "post_milestone":
       return `Your post hit a new milestone on HashChat`;
     case "report_resolved":
-      return `Your report was resolved`;
+      return `Your HashChat report has an update`;
+    case "appeal_decided":
+      return `Your HashChat appeal has been decided`;
     case "moderation_action":
       return `Moderator action on your content`;
     case "mod_promoted":

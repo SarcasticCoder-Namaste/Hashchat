@@ -1950,6 +1950,7 @@ export const NotificationKind = {
   scheduled_post_published: "scheduled_post_published",
   post_milestone: "post_milestone",
   report_resolved: "report_resolved",
+  appeal_decided: "appeal_decided",
   moderation_action: "moderation_action",
   mod_promoted: "mod_promoted",
   post_pinned: "post_pinned",

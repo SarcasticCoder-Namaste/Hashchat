@@ -5757,7 +5757,7 @@ components:
       type: object
       properties:
         id: { type: integer }
-        kind: { type: string, enum: [mention, reply, reaction, follow, dm, event_starting, scheduled_post_published, post_milestone, report_resolved, moderation_action, mod_promoted, post_pinned] }
+        kind: { type: string, enum: [mention, reply, reaction, follow, dm, event_starting, scheduled_post_published, post_milestone, report_resolved, appeal_decided, moderation_action, mod_promoted, post_pinned] }
         actor:
           oneOf:
             - { $ref: "#/components/schemas/NotificationActor" }

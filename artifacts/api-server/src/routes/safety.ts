@@ -292,13 +292,19 @@ router.post(
         .where(eq(reportsTable.id, appeal.reportId));
     }
 
+    const decisionLabel =
+      parsed.data.decision === "overturned" ? "overturned" : "upheld";
+    const note = parsed.data.note?.trim();
+    const appealSnippet = note
+      ? `Your appeal was ${decisionLabel}. Admin note: ${note}`
+      : `Your appeal was ${decisionLabel}.`;
     await createNotification({
       recipientId: appeal.requesterId,
       actorId: me,
-      kind: "report_resolved",
+      kind: "appeal_decided",
       targetType: "report",
       targetId: appeal.reportId,
-      snippet: `Your appeal was ${parsed.data.decision}.`,
+      snippet: appealSnippet,
     });
 
     const [refreshed] = await db
