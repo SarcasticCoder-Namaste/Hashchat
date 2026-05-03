@@ -20,7 +20,8 @@ export type NotificationKind =
   | "report_resolved"
   | "moderation_action"
   | "mod_promoted"
-  | "post_pinned";
+  | "post_pinned"
+  | "weekly_rank";
 
 export type NotificationTargetType =
   | "message"
@@ -31,7 +32,8 @@ export type NotificationTargetType =
   | "poll"
   | "room"
   | "community"
-  | "report";
+  | "report"
+  | "hashtag";
 
 export interface CreateNotificationInput {
   recipientId: string;
@@ -221,6 +223,9 @@ export function buildHref(
   }
   if (targetType === "community" && targetTextId) {
     return `/app/communities/${targetTextId}`;
+  }
+  if (targetType === "hashtag" && targetTextId) {
+    return `/app/tag/${targetTextId}`;
   }
   if (targetType === "report" && targetTextId) {
     if (targetTextId.startsWith("room:")) {

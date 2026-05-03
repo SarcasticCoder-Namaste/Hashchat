@@ -42,6 +42,8 @@ const PREF_KEY_BY_KIND: Record<
   moderation_action: { email: "emailMentions", push: "pushMentions" },
   mod_promoted: { email: "emailMentions", push: "pushMentions" },
   post_pinned: { email: "emailMentions", push: "pushMentions" },
+  // Weekly leaderboard recaps piggyback on mention preferences.
+  weekly_rank: { email: "emailMentions", push: "pushMentions" },
 };
 
 const EMAIL_FIELDS = {
@@ -88,6 +90,8 @@ function titleFor(kind: NotificationKind, actor: string | null): string {
       return `You're now a moderator`;
     case "post_pinned":
       return `${a} pinned your post`;
+    case "weekly_rank":
+      return `Your weekly hashtag rank on HashChat`;
   }
 }
 
