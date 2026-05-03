@@ -33,6 +33,31 @@ function parseDays(raw: unknown): number {
   return 30;
 }
 
+function csvEscape(value: string | number): string {
+  const s = String(value);
+  if (/[",\n\r]/.test(s)) {
+    return `"${s.replace(/"/g, '""')}"`;
+  }
+  return s;
+}
+
+function toCsv(headers: string[], rows: Array<Array<string | number>>): string {
+  const lines = [headers.map(csvEscape).join(",")];
+  for (const row of rows) {
+    lines.push(row.map(csvEscape).join(","));
+  }
+  return lines.join("\r\n") + "\r\n";
+}
+
+function sendCsv(res: import("express").Response, filename: string, body: string): void {
+  res.setHeader("Content-Type", "text/csv; charset=utf-8");
+  res.setHeader(
+    "Content-Disposition",
+    `attachment; filename="${filename.replace(/[^a-zA-Z0-9._-]/g, "_")}"`,
+  );
+  res.send(body);
+}
+
 function dayList(days: number): string[] {
   const out: string[] = [];
   const today = new Date();
@@ -543,6 +568,127 @@ router.get("/me/analytics", requireAuth, async (req, res): Promise<void> => {
   });
 });
 
+// ---------- GET /me/analytics.csv ----------
+
+router.get(
+  "/me/analytics.csv",
+  requireAuth,
+  async (req, res): Promise<void> => {
+    const me = getUserId(req);
+    const days = parseDays(req.query.days);
+    const dayKeys = dayList(days);
+    const startDay = dayKeys[0];
+    const startIso = `${startDay}T00:00:00Z`;
+
+    const [totalFollowersRow] = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(userFollowsTable)
+      .where(eq(userFollowsTable.followeeId, me));
+    const totalFollowers = totalFollowersRow?.count ?? 0;
+
+    const [windowFollowersRow] = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(userFollowsTable)
+      .where(
+        and(
+          eq(userFollowsTable.followeeId, me),
+          sql`${userFollowsTable.createdAt} >= ${startIso}::timestamptz`,
+        ),
+      );
+    const followerDelta = windowFollowersRow?.count ?? 0;
+
+    const followerByDay = await db
+      .select({
+        day: sql<string>`to_char(date_trunc('day', ${userFollowsTable.createdAt} AT TIME ZONE 'UTC'), 'YYYY-MM-DD')`,
+        count: sql<number>`count(*)::int`,
+      })
+      .from(userFollowsTable)
+      .where(
+        and(
+          eq(userFollowsTable.followeeId, me),
+          sql`${userFollowsTable.createdAt} >= ${startIso}::timestamptz`,
+        ),
+      )
+      .groupBy(
+        sql`date_trunc('day', ${userFollowsTable.createdAt} AT TIME ZONE 'UTC')`,
+      );
+    const newByDay = new Map(followerByDay.map((r) => [r.day, r.count]));
+
+    const postByDay = await db
+      .select({
+        day: sql<string>`to_char(date_trunc('day', ${postsTable.createdAt} AT TIME ZONE 'UTC'), 'YYYY-MM-DD')`,
+        count: sql<number>`count(*)::int`,
+      })
+      .from(postsTable)
+      .where(
+        and(
+          eq(postsTable.authorId, me),
+          sql`${postsTable.deletedAt} IS NULL`,
+          sql`${postsTable.createdAt} >= ${startIso}::timestamptz`,
+        ),
+      )
+      .groupBy(sql`date_trunc('day', ${postsTable.createdAt} AT TIME ZONE 'UTC')`);
+    const postsByDay = new Map(postByDay.map((r) => [r.day, r.count]));
+
+    const impressionByDay = await db
+      .select({
+        day: sql<string>`to_char(date_trunc('day', ${postImpressionsTable.createdAt} AT TIME ZONE 'UTC'), 'YYYY-MM-DD')`,
+        count: sql<number>`count(*)::int`,
+      })
+      .from(postImpressionsTable)
+      .innerJoin(postsTable, eq(postsTable.id, postImpressionsTable.postId))
+      .where(
+        and(
+          eq(postsTable.authorId, me),
+          eq(postImpressionsTable.kind, "view"),
+          sql`${postImpressionsTable.createdAt} >= ${startIso}::timestamptz`,
+        ),
+      )
+      .groupBy(
+        sql`date_trunc('day', ${postImpressionsTable.createdAt} AT TIME ZONE 'UTC')`,
+      );
+    const impByDay = new Map(impressionByDay.map((r) => [r.day, r.count]));
+
+    const likeByDay = await db
+      .select({
+        day: sql<string>`to_char(date_trunc('day', ${postReactionsTable.createdAt} AT TIME ZONE 'UTC'), 'YYYY-MM-DD')`,
+        count: sql<number>`count(*)::int`,
+      })
+      .from(postReactionsTable)
+      .innerJoin(postsTable, eq(postsTable.id, postReactionsTable.postId))
+      .where(
+        and(
+          eq(postsTable.authorId, me),
+          sql`${postReactionsTable.createdAt} >= ${startIso}::timestamptz`,
+        ),
+      )
+      .groupBy(
+        sql`date_trunc('day', ${postReactionsTable.createdAt} AT TIME ZONE 'UTC')`,
+      );
+    const likesByDay = new Map(likeByDay.map((r) => [r.day, r.count]));
+
+    let runningFollowers = totalFollowers - followerDelta;
+    const rows: Array<Array<string | number>> = dayKeys.map((day) => {
+      const newF = newByDay.get(day) ?? 0;
+      runningFollowers += newF;
+      return [
+        day,
+        runningFollowers,
+        newF,
+        postsByDay.get(day) ?? 0,
+        impByDay.get(day) ?? 0,
+        likesByDay.get(day) ?? 0,
+      ];
+    });
+
+    const csv = toCsv(
+      ["day", "followers", "new_followers", "posts", "impressions", "likes"],
+      rows,
+    );
+    sendCsv(res, `creator-analytics-${days}d.csv`, csv);
+  },
+);
+
 // ---------- GET /rooms/:tag/analytics ----------
 
 router.get(
@@ -707,6 +853,86 @@ router.get(
       timeline,
       topPosts,
     });
+  },
+);
+
+// ---------- GET /rooms/:tag/analytics.csv ----------
+
+router.get(
+  "/rooms/:tag/analytics.csv",
+  requireAuth,
+  async (req, res): Promise<void> => {
+    const raw = Array.isArray(req.params.tag) ? req.params.tag[0] : req.params.tag;
+    const tag = normalizeTag(raw);
+    if (!tag) {
+      res.status(404).json({ error: "Not found" });
+      return;
+    }
+    const me = getUserId(req);
+    const access = await getRoomAccess(tag, me);
+    if (!access.canManage) {
+      res.status(403).json({ error: "Forbidden" });
+      return;
+    }
+    const days = parseDays(req.query.days);
+    const dayKeys = dayList(days);
+    const startDay = dayKeys[0];
+    const startIso = `${startDay}T00:00:00Z`;
+
+    const dailyRows = await db
+      .select({
+        day: hashtagMetricsDailyTable.day,
+        messages: hashtagMetricsDailyTable.messages,
+        posts: hashtagMetricsDailyTable.posts,
+        newMembers: hashtagMetricsDailyTable.newMembers,
+      })
+      .from(hashtagMetricsDailyTable)
+      .where(
+        and(
+          eq(hashtagMetricsDailyTable.tag, tag),
+          gte(hashtagMetricsDailyTable.day, startDay),
+        ),
+      );
+    const byDay = new Map(dailyRows.map((r) => [r.day, r]));
+
+    const impByDay = await db
+      .select({
+        day: sql<string>`to_char(date_trunc('day', ${postImpressionsTable.createdAt} AT TIME ZONE 'UTC'), 'YYYY-MM-DD')`,
+        count: sql<number>`count(*)::int`,
+      })
+      .from(postImpressionsTable)
+      .innerJoin(
+        postHashtagsTable,
+        eq(postHashtagsTable.postId, postImpressionsTable.postId),
+      )
+      .where(
+        and(
+          eq(postHashtagsTable.tag, tag),
+          eq(postImpressionsTable.kind, "view"),
+          sql`${postImpressionsTable.createdAt} >= ${startIso}::timestamptz`,
+        ),
+      )
+      .groupBy(
+        sql`date_trunc('day', ${postImpressionsTable.createdAt} AT TIME ZONE 'UTC')`,
+      );
+    const impMap = new Map(impByDay.map((r) => [r.day, r.count]));
+
+    const rows: Array<Array<string | number>> = dayKeys.map((day) => {
+      const m = byDay.get(day);
+      return [
+        day,
+        m?.messages ?? 0,
+        m?.posts ?? 0,
+        m?.newMembers ?? 0,
+        impMap.get(day) ?? 0,
+      ];
+    });
+
+    const csv = toCsv(
+      ["day", "messages", "posts", "new_members", "impressions"],
+      rows,
+    );
+    sendCsv(res, `room-${tag}-analytics-${days}d.csv`, csv);
   },
 );
 

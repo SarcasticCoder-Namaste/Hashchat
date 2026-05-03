@@ -14,7 +14,7 @@ import {
   Tooltip,
   Legend,
 } from "recharts";
-import { Eye, FileText, Loader2, MessageSquare, Users } from "lucide-react";
+import { Download, Eye, FileText, Loader2, MessageSquare, Users } from "lucide-react";
 import { TopPostsList } from "@/pages/Analytics";
 
 const WINDOWS = [
@@ -72,23 +72,40 @@ export function RoomAnalyticsPanel({
 
   return (
     <div className="space-y-4" data-testid={`room-analytics-${tag}`}>
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-xs text-muted-foreground">
           How people are engaging with #{tag}.
         </p>
-        <div className="flex gap-1 rounded-full border border-border p-1">
-          {WINDOWS.map((w) => (
-            <Button
-              key={w.value}
-              size="sm"
-              variant={days === w.value ? "default" : "ghost"}
-              className="h-6 rounded-full px-2 text-[11px]"
-              onClick={() => setDays(w.value)}
-              data-testid={`room-window-${w.value}`}
+        <div className="flex items-center gap-2">
+          <div className="flex gap-1 rounded-full border border-border p-1">
+            {WINDOWS.map((w) => (
+              <Button
+                key={w.value}
+                size="sm"
+                variant={days === w.value ? "default" : "ghost"}
+                className="h-6 rounded-full px-2 text-[11px]"
+                onClick={() => setDays(w.value)}
+                data-testid={`room-window-${w.value}`}
+              >
+                {w.label}
+              </Button>
+            ))}
+          </div>
+          <Button
+            asChild
+            size="sm"
+            variant="outline"
+            className="h-7 rounded-full px-2.5 text-[11px]"
+            data-testid={`room-export-csv-${tag}`}
+          >
+            <a
+              href={`/api/rooms/${encodeURIComponent(tag)}/analytics.csv?days=${days}`}
+              download={`room-${tag}-analytics-${days}d.csv`}
             >
-              {w.label}
-            </Button>
-          ))}
+              <Download className="mr-1 h-3 w-3" />
+              CSV
+            </a>
+          </Button>
         </div>
       </div>
 
