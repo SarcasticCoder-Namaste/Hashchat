@@ -13,8 +13,10 @@ import {
   usePingRoomTyping,
   useGetRoomVisibility,
   useGetRoomPinnedPosts,
+  useGetRoomActiveUsers,
   getGetRoomMessagesQueryKey,
   getGetRoomTypingQueryKey,
+  getGetRoomActiveUsersQueryKey,
   getGetHashtagQueryKey,
   getGetMyFollowedHashtagsQueryKey,
   getGetRoomsQueryKey,
@@ -87,6 +89,19 @@ export default function RoomChat({ tag }: { tag: string }) {
     const t = setInterval(() => setSlowCooldown((v) => Math.max(0, v - 1)), 1000);
     return () => clearInterval(t);
   }, [slowCooldown]);
+
+  const activeUsersQ = useGetRoomActiveUsers(
+    cleanTag,
+    { limit: 24 },
+    {
+      query: {
+        queryKey: getGetRoomActiveUsersQueryKey(cleanTag, { limit: 24 }),
+        refetchInterval: 15000,
+        enabled: !isLocked,
+      },
+    },
+  );
+  const activeUsers = activeUsersQ.data ?? [];
 
   const pinnedQ = useGetRoomPinnedPosts(cleanTag, {
     query: {
@@ -341,6 +356,49 @@ export default function RoomChat({ tag }: { tag: string }) {
       </header>
 
       <LiveEventBanner tag={cleanTag} />
+
+      {!isLocked && activeUsers.length > 0 && (
+        <div
+          className="relative z-10 flex shrink-0 items-center gap-2 border-b border-border bg-card/60 px-3 py-2"
+          data-testid="active-now-strip"
+        >
+          <span className="shrink-0 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+            Active now · {activeUsers.length}
+          </span>
+          <div className="flex min-w-0 flex-1 items-center gap-2 overflow-x-auto">
+            {activeUsers.map((u) => (
+              <Link
+                key={u.id}
+                href={`/app/profile/${u.username}`}
+                className="group relative shrink-0"
+                title={`${u.displayName} (@${u.username})`}
+                data-testid={`active-user-${u.id}`}
+              >
+                {u.avatarUrl ? (
+                  <img
+                    src={u.animatedAvatarUrl ?? u.avatarUrl}
+                    alt={u.displayName}
+                    className="h-8 w-8 rounded-full border border-border object-cover"
+                  />
+                ) : (
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-violet-500 to-pink-500 text-xs font-semibold text-white">
+                    {u.displayName.slice(0, 1).toUpperCase()}
+                  </div>
+                )}
+                <span
+                  className={[
+                    "absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-card",
+                    u.presenceState === "online"
+                      ? "bg-green-500"
+                      : "bg-amber-400",
+                  ].join(" ")}
+                  aria-label={u.presenceState}
+                />
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
 
       <Tabs
         value={tab}

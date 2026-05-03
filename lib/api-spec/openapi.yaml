@@ -897,6 +897,30 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/Message" }
 
+  /rooms/{tag}/active:
+    get:
+      operationId: getRoomActiveUsers
+      tags: [rooms]
+      summary: Users currently active in this room (broadcasting `currentRoomTag` and not offline)
+      parameters:
+        - name: tag
+          in: path
+          required: true
+          schema: { type: string }
+        - name: limit
+          in: query
+          required: false
+          schema: { type: integer, default: 24 }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/ActiveRoomUser" }
+        "403": { description: Private room — not a member }
+
   /rooms/{tag}/typing:
     post:
       operationId: pingRoomTyping
@@ -4863,6 +4887,23 @@ components:
         id: { type: string }
         displayName: { type: string }
       required: [id, displayName]
+
+    ActiveRoomUser:
+      type: object
+      properties:
+        id: { type: string }
+        username: { type: string }
+        displayName: { type: string }
+        avatarUrl:
+          type: ["string", "null"]
+        animatedAvatarUrl:
+          type: ["string", "null"]
+        verified: { type: boolean }
+        lastSeenAt: { type: string, format: date-time }
+        presenceState:
+          type: string
+          enum: [online, away, offline]
+      required: [id, username, displayName, verified, lastSeenAt, presenceState]
 
     TypingResponse:
       type: object

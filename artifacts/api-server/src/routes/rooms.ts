@@ -383,6 +383,63 @@ router.post("/rooms/:tag/messages", requireAuth, async (req, res): Promise<void>
   res.status(201).json(built);
 });
 
+// ---------- Active users in a room ----------
+
+router.get("/rooms/:tag/active", requireAuth, async (req, res): Promise<void> => {
+  const raw = Array.isArray(req.params.tag) ? req.params.tag[0] : req.params.tag;
+  const tag = normalizeTag(raw);
+  if (!tag) {
+    res.status(400).json({ error: "Invalid tag" });
+    return;
+  }
+  const me = getUserId(req);
+  const access = await getRoomAccess(tag, me);
+  if (access.isPrivate && !access.isMember) {
+    res.status(403).json({ error: "This is a private room." });
+    return;
+  }
+  const limit = Math.min(
+    Math.max(parseInt(String(req.query.limit ?? "24"), 10) || 24, 1),
+    100,
+  );
+  // "not offline" = lastSeenAt within 10 minutes (PRESENCE_AWAY_MS)
+  const cutoff = new Date(Date.now() - 10 * 60 * 1000);
+  const rows = await db
+    .select({
+      id: usersTable.id,
+      username: usersTable.username,
+      displayName: usersTable.displayName,
+      avatarUrl: usersTable.avatarUrl,
+      animatedAvatarUrl: usersTable.animatedAvatarUrl,
+      verified: usersTable.verified,
+      lastSeenAt: usersTable.lastSeenAt,
+      hidePresence: usersTable.hidePresence,
+    })
+    .from(usersTable)
+    .where(
+      and(
+        eq(usersTable.currentRoomTag, tag),
+        eq(usersTable.hidePresence, false),
+        gt(usersTable.lastSeenAt, cutoff),
+      ),
+    )
+    .orderBy(desc(usersTable.lastSeenAt))
+    .limit(limit);
+
+  res.json(
+    rows.map((u) => ({
+      id: u.id,
+      username: u.username,
+      displayName: u.displayName,
+      avatarUrl: u.avatarUrl,
+      animatedAvatarUrl: u.animatedAvatarUrl,
+      verified: u.verified,
+      lastSeenAt: publicLastSeenAt(u.lastSeenAt, u.hidePresence),
+      presenceState: presenceStateFor(u.lastSeenAt, u.hidePresence),
+    })),
+  );
+});
+
 // ---------- Typing indicator ----------
 
 router.post("/rooms/:tag/typing", requireAuth, async (req, res): Promise<void> => {

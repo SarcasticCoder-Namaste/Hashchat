@@ -17,6 +17,7 @@ import type {
 } from "@tanstack/react-query";
 
 import type {
+  ActiveRoomUser,
   AddConversationMembersBody,
   AddModeratorBody,
   AddPhotoBody,
@@ -68,6 +69,7 @@ import type {
   GetPostQuotesParams,
   GetPostRepliesParams,
   GetRecentGifsParams,
+  GetRoomActiveUsersParams,
   GetRoomAnalyticsParams,
   GetTrendingEventsParams,
   GetTrendingHashtagsParams,
@@ -5268,6 +5270,116 @@ export const useSendRoomMessage = <
 > => {
   return useMutation(getSendRoomMessageMutationOptions(options));
 };
+
+/**
+ * @summary Users currently active in this room (broadcasting `currentRoomTag` and not offline)
+ */
+export const getGetRoomActiveUsersUrl = (
+  tag: string,
+  params?: GetRoomActiveUsersParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/rooms/${tag}/active?${stringifiedParams}`
+    : `/api/rooms/${tag}/active`;
+};
+
+export const getRoomActiveUsers = async (
+  tag: string,
+  params?: GetRoomActiveUsersParams,
+  options?: RequestInit,
+): Promise<ActiveRoomUser[]> => {
+  return customFetch<ActiveRoomUser[]>(getGetRoomActiveUsersUrl(tag, params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetRoomActiveUsersQueryKey = (
+  tag: string,
+  params?: GetRoomActiveUsersParams,
+) => {
+  return [`/api/rooms/${tag}/active`, ...(params ? [params] : [])] as const;
+};
+
+export const getGetRoomActiveUsersQueryOptions = <
+  TData = Awaited<ReturnType<typeof getRoomActiveUsers>>,
+  TError = ErrorType<void>,
+>(
+  tag: string,
+  params?: GetRoomActiveUsersParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getRoomActiveUsers>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetRoomActiveUsersQueryKey(tag, params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getRoomActiveUsers>>
+  > = ({ signal }) =>
+    getRoomActiveUsers(tag, params, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!tag,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getRoomActiveUsers>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetRoomActiveUsersQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getRoomActiveUsers>>
+>;
+export type GetRoomActiveUsersQueryError = ErrorType<void>;
+
+/**
+ * @summary Users currently active in this room (broadcasting `currentRoomTag` and not offline)
+ */
+
+export function useGetRoomActiveUsers<
+  TData = Awaited<ReturnType<typeof getRoomActiveUsers>>,
+  TError = ErrorType<void>,
+>(
+  tag: string,
+  params?: GetRoomActiveUsersParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getRoomActiveUsers>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetRoomActiveUsersQueryOptions(tag, params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
 
 /**
  * @summary Heartbeat that current user is typing in this room

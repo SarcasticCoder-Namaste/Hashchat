@@ -3695,6 +3695,33 @@ export const SendRoomMessageBody = zod.object({
 });
 
 /**
+ * @summary Users currently active in this room (broadcasting `currentRoomTag` and not offline)
+ */
+export const GetRoomActiveUsersParams = zod.object({
+  tag: zod.coerce.string(),
+});
+
+export const getRoomActiveUsersQueryLimitDefault = 24;
+
+export const GetRoomActiveUsersQueryParams = zod.object({
+  limit: zod.coerce.number().default(getRoomActiveUsersQueryLimitDefault),
+});
+
+export const GetRoomActiveUsersResponseItem = zod.object({
+  id: zod.string(),
+  username: zod.string(),
+  displayName: zod.string(),
+  avatarUrl: zod.string().nullish(),
+  animatedAvatarUrl: zod.string().nullish(),
+  verified: zod.boolean(),
+  lastSeenAt: zod.coerce.date(),
+  presenceState: zod.enum(["online", "away", "offline"]),
+});
+export const GetRoomActiveUsersResponse = zod.array(
+  GetRoomActiveUsersResponseItem,
+);
+
+/**
  * @summary Heartbeat that current user is typing in this room
  */
 export const PingRoomTypingParams = zod.object({

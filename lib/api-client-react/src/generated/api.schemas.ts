@@ -1790,6 +1790,28 @@ export interface TypingUser {
   displayName: string;
 }
 
+export type ActiveRoomUserPresenceState =
+  (typeof ActiveRoomUserPresenceState)[keyof typeof ActiveRoomUserPresenceState];
+
+export const ActiveRoomUserPresenceState = {
+  online: "online",
+  away: "away",
+  offline: "offline",
+} as const;
+
+export interface ActiveRoomUser {
+  id: string;
+  username: string;
+  displayName: string;
+  /** @nullable */
+  avatarUrl?: string | null;
+  /** @nullable */
+  animatedAvatarUrl?: string | null;
+  verified: boolean;
+  lastSeenAt: string;
+  presenceState: ActiveRoomUserPresenceState;
+}
+
 export interface TypingResponse {
   users: TypingUser[];
 }
@@ -1956,6 +1978,10 @@ export type GetNotificationsParams = {
 };
 
 export type GetTrendingRoomsParams = {
+  limit?: number;
+};
+
+export type GetRoomActiveUsersParams = {
   limit?: number;
 };
 
