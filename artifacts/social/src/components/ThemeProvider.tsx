@@ -18,7 +18,17 @@ export type ThemeId =
   | "rose"
   | "mocha"
   | "lavender"
-  | "emerald";
+  | "emerald"
+  | "cyberpunk"
+  | "sakura"
+  | "nord"
+  | "dracula"
+  | "solarized"
+  | "coffee"
+  | "sapphire"
+  | "crimson"
+  | "mint"
+  | "gold";
 
 export interface ThemeMeta {
   id: ThemeId;
@@ -98,6 +108,76 @@ export const THEMES: ThemeMeta[] = [
     description: "Deep forest with bright emerald",
     isDark: true,
     swatch: { bg: "#06140e", primary: "#34d399", accent: "#0e3a2a" },
+  },
+  {
+    id: "cyberpunk",
+    label: "Cyberpunk",
+    description: "Neon magenta on jet black",
+    isDark: true,
+    swatch: { bg: "#0a0014", primary: "#ff2bd6", accent: "#1a0833" },
+  },
+  {
+    id: "sakura",
+    label: "Sakura",
+    description: "Cherry blossom pink and cream",
+    isDark: false,
+    swatch: { bg: "#fff5f7", primary: "#db2777", accent: "#fce7f3" },
+  },
+  {
+    id: "nord",
+    label: "Nord",
+    description: "Cool frost blues and slate",
+    isDark: false,
+    swatch: { bg: "#eceff4", primary: "#5e81ac", accent: "#d8dee9" },
+  },
+  {
+    id: "dracula",
+    label: "Dracula",
+    description: "Cult classic purple and pink",
+    isDark: true,
+    swatch: { bg: "#282a36", primary: "#bd93f9", accent: "#44475a" },
+  },
+  {
+    id: "solarized",
+    label: "Solarized",
+    description: "Warm cream with teal",
+    isDark: false,
+    swatch: { bg: "#fdf6e3", primary: "#268bd2", accent: "#eee8d5" },
+  },
+  {
+    id: "coffee",
+    label: "Coffee",
+    description: "Cream and espresso brown",
+    isDark: false,
+    swatch: { bg: "#faf3e7", primary: "#7b3f00", accent: "#e8d8c2" },
+  },
+  {
+    id: "sapphire",
+    label: "Sapphire",
+    description: "Deep blue with bright sky",
+    isDark: true,
+    swatch: { bg: "#060a1f", primary: "#3b82f6", accent: "#10204a" },
+  },
+  {
+    id: "crimson",
+    label: "Crimson",
+    description: "Black with bold crimson",
+    isDark: true,
+    swatch: { bg: "#120606", primary: "#ef4444", accent: "#3a0e0e" },
+  },
+  {
+    id: "mint",
+    label: "Mint",
+    description: "Crisp mint and white",
+    isDark: false,
+    swatch: { bg: "#f0fdf4", primary: "#10b981", accent: "#a7f3d0" },
+  },
+  {
+    id: "gold",
+    label: "Gold",
+    description: "Black tie with rich gold",
+    isDark: true,
+    swatch: { bg: "#0d0a05", primary: "#eab308", accent: "#3a2a06" },
   },
 ];
 

@@ -520,6 +520,336 @@
   --ring: 280 65% 52%;
 }
 
+/* Cyberpunk — neon magenta on jet black */
+[data-theme="cyberpunk"] {
+  --background: 270 100% 4%;
+  --foreground: 320 30% 96%;
+  --border: 320 60% 18%;
+  --card: 270 80% 7%;
+  --card-foreground: 320 30% 96%;
+  --card-border: 320 60% 18%;
+  --sidebar: 270 100% 4%;
+  --sidebar-foreground: 320 30% 96%;
+  --sidebar-border: 320 60% 18%;
+  --sidebar-primary: 320 100% 58%;
+  --sidebar-primary-foreground: 270 100% 4%;
+  --sidebar-accent: 320 70% 18%;
+  --sidebar-accent-foreground: 320 100% 88%;
+  --sidebar-ring: 320 100% 58%;
+  --popover: 270 80% 7%;
+  --popover-foreground: 320 30% 96%;
+  --popover-border: 320 60% 18%;
+  --primary: 320 100% 58%;
+  --primary-foreground: 270 100% 4%;
+  --secondary: 270 60% 14%;
+  --secondary-foreground: 320 30% 96%;
+  --muted: 270 50% 12%;
+  --muted-foreground: 320 20% 70%;
+  --accent: 320 70% 18%;
+  --accent-foreground: 320 100% 88%;
+  --destructive: 0 95% 60%;
+  --destructive-foreground: 0 0% 100%;
+  --input: 320 60% 22%;
+  --ring: 320 100% 58%;
+}
+
+/* Sakura — cherry blossom pink and cream */
+[data-theme="sakura"] {
+  --background: 350 100% 98%;
+  --foreground: 340 35% 16%;
+  --border: 340 50% 90%;
+  --card: 0 0% 100%;
+  --card-foreground: 340 35% 16%;
+  --card-border: 340 50% 90%;
+  --sidebar: 350 100% 98%;
+  --sidebar-foreground: 340 35% 16%;
+  --sidebar-border: 340 50% 90%;
+  --sidebar-primary: 330 81% 50%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 330 81% 94%;
+  --sidebar-accent-foreground: 330 81% 28%;
+  --sidebar-ring: 330 81% 50%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 340 35% 16%;
+  --popover-border: 340 50% 90%;
+  --primary: 330 81% 50%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 340 60% 96%;
+  --secondary-foreground: 340 35% 16%;
+  --muted: 340 60% 96%;
+  --muted-foreground: 340 18% 44%;
+  --accent: 330 81% 94%;
+  --accent-foreground: 330 81% 28%;
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 100%;
+  --input: 340 50% 90%;
+  --ring: 330 81% 50%;
+}
+
+/* Nord — frost blues and slate */
+[data-theme="nord"] {
+  --background: 219 28% 94%;
+  --foreground: 222 16% 18%;
+  --border: 219 20% 84%;
+  --card: 218 27% 98%;
+  --card-foreground: 222 16% 18%;
+  --card-border: 219 20% 84%;
+  --sidebar: 219 28% 94%;
+  --sidebar-foreground: 222 16% 18%;
+  --sidebar-border: 219 20% 84%;
+  --sidebar-primary: 213 32% 52%;
+  --sidebar-primary-foreground: 218 27% 98%;
+  --sidebar-accent: 213 32% 88%;
+  --sidebar-accent-foreground: 213 32% 28%;
+  --sidebar-ring: 213 32% 52%;
+  --popover: 218 27% 98%;
+  --popover-foreground: 222 16% 18%;
+  --popover-border: 219 20% 84%;
+  --primary: 213 32% 52%;
+  --primary-foreground: 218 27% 98%;
+  --secondary: 219 20% 90%;
+  --secondary-foreground: 222 16% 18%;
+  --muted: 219 20% 90%;
+  --muted-foreground: 222 14% 42%;
+  --accent: 213 32% 88%;
+  --accent-foreground: 213 32% 28%;
+  --destructive: 354 42% 56%;
+  --destructive-foreground: 218 27% 98%;
+  --input: 219 20% 84%;
+  --ring: 213 32% 52%;
+}
+
+/* Dracula — purple and pink classic */
+[data-theme="dracula"] {
+  --background: 231 15% 18%;
+  --foreground: 60 30% 96%;
+  --border: 232 14% 31%;
+  --card: 232 14% 22%;
+  --card-foreground: 60 30% 96%;
+  --card-border: 232 14% 31%;
+  --sidebar: 231 15% 18%;
+  --sidebar-foreground: 60 30% 96%;
+  --sidebar-border: 232 14% 31%;
+  --sidebar-primary: 265 89% 78%;
+  --sidebar-primary-foreground: 231 15% 18%;
+  --sidebar-accent: 232 14% 31%;
+  --sidebar-accent-foreground: 326 100% 80%;
+  --sidebar-ring: 265 89% 78%;
+  --popover: 232 14% 22%;
+  --popover-foreground: 60 30% 96%;
+  --popover-border: 232 14% 31%;
+  --primary: 265 89% 78%;
+  --primary-foreground: 231 15% 18%;
+  --secondary: 232 14% 28%;
+  --secondary-foreground: 60 30% 96%;
+  --muted: 232 14% 24%;
+  --muted-foreground: 225 13% 68%;
+  --accent: 232 14% 31%;
+  --accent-foreground: 326 100% 80%;
+  --destructive: 0 100% 67%;
+  --destructive-foreground: 60 30% 96%;
+  --input: 232 14% 35%;
+  --ring: 265 89% 78%;
+}
+
+/* Solarized — warm cream with teal */
+[data-theme="solarized"] {
+  --background: 44 87% 94%;
+  --foreground: 192 81% 14%;
+  --border: 46 42% 84%;
+  --card: 44 87% 98%;
+  --card-foreground: 192 81% 14%;
+  --card-border: 46 42% 84%;
+  --sidebar: 44 87% 94%;
+  --sidebar-foreground: 192 81% 14%;
+  --sidebar-border: 46 42% 84%;
+  --sidebar-primary: 205 69% 49%;
+  --sidebar-primary-foreground: 44 87% 98%;
+  --sidebar-accent: 205 69% 90%;
+  --sidebar-accent-foreground: 205 69% 24%;
+  --sidebar-ring: 205 69% 49%;
+  --popover: 44 87% 98%;
+  --popover-foreground: 192 81% 14%;
+  --popover-border: 46 42% 84%;
+  --primary: 205 69% 49%;
+  --primary-foreground: 44 87% 98%;
+  --secondary: 46 42% 90%;
+  --secondary-foreground: 192 81% 14%;
+  --muted: 46 42% 90%;
+  --muted-foreground: 192 25% 38%;
+  --accent: 205 69% 90%;
+  --accent-foreground: 205 69% 24%;
+  --destructive: 18 80% 44%;
+  --destructive-foreground: 44 87% 98%;
+  --input: 46 42% 84%;
+  --ring: 205 69% 49%;
+}
+
+/* Coffee — cream and espresso brown */
+[data-theme="coffee"] {
+  --background: 36 60% 95%;
+  --foreground: 25 50% 14%;
+  --border: 30 30% 84%;
+  --card: 36 60% 98%;
+  --card-foreground: 25 50% 14%;
+  --card-border: 30 30% 84%;
+  --sidebar: 36 60% 95%;
+  --sidebar-foreground: 25 50% 14%;
+  --sidebar-border: 30 30% 84%;
+  --sidebar-primary: 25 100% 24%;
+  --sidebar-primary-foreground: 36 60% 98%;
+  --sidebar-accent: 30 45% 86%;
+  --sidebar-accent-foreground: 25 100% 18%;
+  --sidebar-ring: 25 100% 24%;
+  --popover: 36 60% 98%;
+  --popover-foreground: 25 50% 14%;
+  --popover-border: 30 30% 84%;
+  --primary: 25 100% 24%;
+  --primary-foreground: 36 60% 98%;
+  --secondary: 30 30% 90%;
+  --secondary-foreground: 25 50% 14%;
+  --muted: 30 30% 90%;
+  --muted-foreground: 25 22% 40%;
+  --accent: 30 45% 86%;
+  --accent-foreground: 25 100% 18%;
+  --destructive: 0 70% 45%;
+  --destructive-foreground: 36 60% 98%;
+  --input: 30 30% 84%;
+  --ring: 25 100% 24%;
+}
+
+/* Sapphire — deep blue with bright sky */
+[data-theme="sapphire"] {
+  --background: 226 80% 6%;
+  --foreground: 213 30% 96%;
+  --border: 220 50% 18%;
+  --card: 224 70% 9%;
+  --card-foreground: 213 30% 96%;
+  --card-border: 220 50% 18%;
+  --sidebar: 226 80% 6%;
+  --sidebar-foreground: 213 30% 96%;
+  --sidebar-border: 220 50% 18%;
+  --sidebar-primary: 217 91% 60%;
+  --sidebar-primary-foreground: 226 80% 6%;
+  --sidebar-accent: 220 70% 18%;
+  --sidebar-accent-foreground: 213 100% 88%;
+  --sidebar-ring: 217 91% 60%;
+  --popover: 224 70% 9%;
+  --popover-foreground: 213 30% 96%;
+  --popover-border: 220 50% 18%;
+  --primary: 217 91% 60%;
+  --primary-foreground: 226 80% 6%;
+  --secondary: 220 50% 16%;
+  --secondary-foreground: 213 30% 96%;
+  --muted: 222 50% 12%;
+  --muted-foreground: 215 20% 70%;
+  --accent: 220 70% 18%;
+  --accent-foreground: 213 100% 88%;
+  --destructive: 0 80% 60%;
+  --destructive-foreground: 213 30% 96%;
+  --input: 220 50% 22%;
+  --ring: 217 91% 60%;
+}
+
+/* Crimson — black with bold crimson */
+[data-theme="crimson"] {
+  --background: 0 40% 5%;
+  --foreground: 0 10% 96%;
+  --border: 0 40% 18%;
+  --card: 0 35% 8%;
+  --card-foreground: 0 10% 96%;
+  --card-border: 0 40% 18%;
+  --sidebar: 0 40% 5%;
+  --sidebar-foreground: 0 10% 96%;
+  --sidebar-border: 0 40% 18%;
+  --sidebar-primary: 0 84% 60%;
+  --sidebar-primary-foreground: 0 40% 5%;
+  --sidebar-accent: 0 60% 18%;
+  --sidebar-accent-foreground: 0 90% 88%;
+  --sidebar-ring: 0 84% 60%;
+  --popover: 0 35% 8%;
+  --popover-foreground: 0 10% 96%;
+  --popover-border: 0 40% 18%;
+  --primary: 0 84% 60%;
+  --primary-foreground: 0 40% 5%;
+  --secondary: 0 30% 14%;
+  --secondary-foreground: 0 10% 96%;
+  --muted: 0 25% 11%;
+  --muted-foreground: 0 10% 70%;
+  --accent: 0 60% 18%;
+  --accent-foreground: 0 90% 88%;
+  --destructive: 14 95% 55%;
+  --destructive-foreground: 0 10% 96%;
+  --input: 0 40% 22%;
+  --ring: 0 84% 60%;
+}
+
+/* Mint — crisp mint and white */
+[data-theme="mint"] {
+  --background: 138 76% 97%;
+  --foreground: 158 65% 12%;
+  --border: 152 40% 86%;
+  --card: 0 0% 100%;
+  --card-foreground: 158 65% 12%;
+  --card-border: 152 40% 86%;
+  --sidebar: 138 76% 97%;
+  --sidebar-foreground: 158 65% 12%;
+  --sidebar-border: 152 40% 86%;
+  --sidebar-primary: 160 84% 39%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 156 73% 88%;
+  --sidebar-accent-foreground: 160 84% 22%;
+  --sidebar-ring: 160 84% 39%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 158 65% 12%;
+  --popover-border: 152 40% 86%;
+  --primary: 160 84% 39%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 152 40% 92%;
+  --secondary-foreground: 158 65% 12%;
+  --muted: 152 40% 92%;
+  --muted-foreground: 158 20% 40%;
+  --accent: 156 73% 88%;
+  --accent-foreground: 160 84% 22%;
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 100%;
+  --input: 152 40% 86%;
+  --ring: 160 84% 39%;
+}
+
+/* Gold — black tie with rich gold */
+[data-theme="gold"] {
+  --background: 40 50% 4%;
+  --foreground: 45 60% 96%;
+  --border: 42 40% 20%;
+  --card: 40 45% 7%;
+  --card-foreground: 45 60% 96%;
+  --card-border: 42 40% 20%;
+  --sidebar: 40 50% 4%;
+  --sidebar-foreground: 45 60% 96%;
+  --sidebar-border: 42 40% 20%;
+  --sidebar-primary: 45 93% 47%;
+  --sidebar-primary-foreground: 40 50% 4%;
+  --sidebar-accent: 42 60% 18%;
+  --sidebar-accent-foreground: 45 93% 82%;
+  --sidebar-ring: 45 93% 47%;
+  --popover: 40 45% 7%;
+  --popover-foreground: 45 60% 96%;
+  --popover-border: 42 40% 20%;
+  --primary: 45 93% 47%;
+  --primary-foreground: 40 50% 4%;
+  --secondary: 42 30% 16%;
+  --secondary-foreground: 45 60% 96%;
+  --muted: 42 30% 12%;
+  --muted-foreground: 45 20% 70%;
+  --accent: 42 60% 18%;
+  --accent-foreground: 45 93% 82%;
+  --destructive: 0 70% 55%;
+  --destructive-foreground: 45 60% 96%;
+  --input: 42 40% 24%;
+  --ring: 45 93% 47%;
+}
+
 @layer base {
   * {
     @apply border-border;
