@@ -5,6 +5,7 @@ import {
   userHashtagsTable,
   userFollowedHashtagsTable,
   conversationsTable,
+  conversationMembersTable,
   messagesTable,
   reactionsTable,
 } from "@workspace/db";
@@ -214,14 +215,84 @@ async function main() {
   // A couple of DM conversations
   const [convo1] = await db
     .insert(conversationsTable)
-    .values({ userAId: "seed_jordan_park", userBId: "seed_maya_chen" })
+    .values({
+      kind: "direct",
+      userAId: "seed_jordan_park",
+      userBId: "seed_maya_chen",
+      creatorId: "seed_jordan_park",
+    })
     .onConflictDoNothing()
     .returning();
   const [convo2] = await db
     .insert(conversationsTable)
-    .values({ userAId: "seed_amelia_brooks", userBId: "seed_riley_okafor" })
+    .values({
+      kind: "direct",
+      userAId: "seed_amelia_brooks",
+      userBId: "seed_riley_okafor",
+      creatorId: "seed_amelia_brooks",
+    })
     .onConflictDoNothing()
     .returning();
+
+  if (convo1) {
+    await db
+      .insert(conversationMembersTable)
+      .values([
+        { conversationId: convo1.id, userId: "seed_jordan_park" },
+        { conversationId: convo1.id, userId: "seed_maya_chen" },
+      ])
+      .onConflictDoNothing();
+  }
+  if (convo2) {
+    await db
+      .insert(conversationMembersTable)
+      .values([
+        { conversationId: convo2.id, userId: "seed_amelia_brooks" },
+        { conversationId: convo2.id, userId: "seed_riley_okafor" },
+      ])
+      .onConflictDoNothing();
+  }
+
+  // A small group chat seed.
+  const [groupConvo] = await db
+    .insert(conversationsTable)
+    .values({
+      kind: "group",
+      title: "Coffee Crew",
+      creatorId: "seed_maya_chen",
+    })
+    .returning();
+  if (groupConvo) {
+    await db
+      .insert(conversationMembersTable)
+      .values([
+        { conversationId: groupConvo.id, userId: "seed_maya_chen" },
+        { conversationId: groupConvo.id, userId: "seed_jordan_park" },
+        { conversationId: groupConvo.id, userId: "seed_amelia_brooks" },
+      ])
+      .onConflictDoNothing();
+    await db.insert(messagesTable).values([
+      {
+        conversationId: groupConvo.id,
+        senderId: "seed_maya_chen",
+        kind: "system",
+        content: "created the group",
+        createdAt: new Date(Date.now() - 90 * 60 * 1000),
+      },
+      {
+        conversationId: groupConvo.id,
+        senderId: "seed_jordan_park",
+        content: "anyone going to the new roastery on Friday?",
+        createdAt: new Date(Date.now() - 80 * 60 * 1000),
+      },
+      {
+        conversationId: groupConvo.id,
+        senderId: "seed_amelia_brooks",
+        content: "I'm in! 5pm?",
+        createdAt: new Date(Date.now() - 70 * 60 * 1000),
+      },
+    ]);
+  }
 
   if (convo1) {
     await db.insert(messagesTable).values([

@@ -464,6 +464,82 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/Conversation" }
 
+  /conversations/group:
+    post:
+      operationId: createGroupConversation
+      tags: [conversations]
+      summary: Create a new group conversation (3-10 members including me)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateGroupConversationBody" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Conversation" }
+
+  /conversations/{id}:
+    patch:
+      operationId: renameConversation
+      tags: [conversations]
+      summary: Rename a group conversation (creator only)
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/RenameConversationBody" }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Conversation" }
+
+  /conversations/{id}/members:
+    post:
+      operationId: addConversationMembers
+      tags: [conversations]
+      summary: Add members to a group conversation (any member)
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AddConversationMembersBody" }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Conversation" }
+
+  /conversations/{id}/members/{userId}:
+    delete:
+      operationId: removeConversationMember
+      tags: [conversations]
+      summary: Remove a member from a group conversation (creator only)
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+        - { name: userId, in: path, required: true, schema: { type: string } }
+      responses:
+        "204": { description: No content }
+
+  /conversations/{id}/leave:
+    post:
+      operationId: leaveConversation
+      tags: [conversations]
+      summary: Leave a group conversation
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      responses:
+        "204": { description: No content }
+
   /conversations/{id}/messages:
     get:
       operationId: getConversationMessages
@@ -2857,7 +2933,19 @@ components:
       type: object
       properties:
         id: { type: integer }
-        otherUser: { $ref: "#/components/schemas/MatchUser" }
+        kind: { type: string, enum: [direct, group] }
+        title:
+          type: ["string", "null"]
+        creatorId:
+          type: ["string", "null"]
+        otherUser:
+          oneOf:
+            - $ref: "#/components/schemas/MatchUser"
+            - type: "null"
+          description: "For direct conversations only. Null for groups."
+        members:
+          type: array
+          items: { $ref: "#/components/schemas/ConversationMember" }
         lastMessage:
           oneOf:
             - $ref: "#/components/schemas/Message"
@@ -2866,7 +2954,49 @@ components:
         backgroundUrl:
           type: ["string", "null"]
         updatedAt: { type: string, format: date-time }
-      required: [id, otherUser, unreadCount, updatedAt]
+      required: [id, kind, members, unreadCount, updatedAt]
+
+    ConversationMember:
+      type: object
+      properties:
+        id: { type: string }
+        username: { type: string }
+        displayName: { type: string }
+        avatarUrl:
+          type: ["string", "null"]
+        discriminator:
+          type: ["string", "null"]
+        lastSeenAt: { type: string, format: date-time }
+        joinedAt: { type: string, format: date-time }
+      required: [id, username, displayName, lastSeenAt, joinedAt]
+
+    CreateGroupConversationBody:
+      type: object
+      properties:
+        userIds:
+          type: array
+          items: { type: string }
+          minItems: 2
+          maxItems: 9
+        title:
+          type: ["string", "null"]
+      required: [userIds]
+
+    RenameConversationBody:
+      type: object
+      properties:
+        title:
+          type: ["string", "null"]
+      required: [title]
+
+    AddConversationMembersBody:
+      type: object
+      properties:
+        userIds:
+          type: array
+          items: { type: string }
+          minItems: 1
+      required: [userIds]
 
     SetBackgroundBody:
       type: object
@@ -3040,7 +3170,8 @@ components:
             - { $ref: "#/components/schemas/Poll" }
             - { type: "null" }
         createdAt: { type: string, format: date-time }
-      required: [id, senderId, senderName, content, reactions, attachments, mentions, replyCount, createdAt]
+        kind: { type: string, description: "user | system" }
+      required: [id, senderId, senderName, content, kind, reactions, attachments, mentions, replyCount, createdAt]
 
     SendMessageBody:
       type: object

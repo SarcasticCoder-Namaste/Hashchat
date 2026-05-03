@@ -20,6 +20,7 @@ type RawMessage = {
   roomTag: string | null;
   senderId: string;
   content: string;
+  kind?: string;
   imageUrl: string | null;
   imageAlt: string | null;
   audioUrl: string | null;
@@ -302,8 +303,10 @@ export async function buildMessages(rows: RawMessage[], myUserId: string) {
     mentionMap.set(m.targetId, list);
   }
 
-  // Per-message read receipts: for DM messages I sent, did the other user read past it?
-  const dmConvIds = Array.from(
+  // Per-message read receipts: for DM (direct) messages I sent, did the
+  // other user read past it? Group conversations don't render per-message
+  // read receipts.
+  const candidateConvIds = Array.from(
     new Set(
       rows
         .filter((r) => r.conversationId !== null && r.senderId === myUserId)
@@ -314,16 +317,21 @@ export async function buildMessages(rows: RawMessage[], myUserId: string) {
     number,
     { lastReadMessageId: number | null; lastReadAt: Date }
   >();
-  if (dmConvIds.length > 0) {
+  let dmConvIds: number[] = [];
+  if (candidateConvIds.length > 0) {
     const convs = await db
       .select()
       .from(conversationsTable)
-      .where(inArray(conversationsTable.id, dmConvIds));
+      .where(inArray(conversationsTable.id, candidateConvIds));
     const otherIdByConv = new Map<number, string>();
     for (const c of convs) {
+      if (c.kind !== "direct") continue;
+      if (!c.userAId || !c.userBId) continue;
       const other = c.userAId === myUserId ? c.userBId : c.userAId;
       otherIdByConv.set(c.id, other);
     }
+    dmConvIds = Array.from(otherIdByConv.keys());
+    if (dmConvIds.length > 0) {
     const reads = await db
       .select()
       .from(conversationReadsTable)
@@ -337,6 +345,7 @@ export async function buildMessages(rows: RawMessage[], myUserId: string) {
         lastReadAt: r.lastReadAt,
       });
     }
+    }
   }
 
   return rows.map((r) => {
@@ -346,7 +355,11 @@ export async function buildMessages(rows: RawMessage[], myUserId: string) {
     const replyMeta = r.replyToId ? replyMap.get(r.replyToId) : undefined;
     const replyToSender = replyMeta ? senderMap.get(replyMeta.senderId) : undefined;
     let readByOther: boolean | null = null;
-    if (r.conversationId !== null && r.senderId === myUserId) {
+    if (
+      r.conversationId !== null &&
+      r.senderId === myUserId &&
+      otherReadByConv.has(r.conversationId)
+    ) {
       const meta = otherReadByConv.get(r.conversationId);
       if (meta) {
         if (meta.lastReadMessageId !== null) {
@@ -368,6 +381,7 @@ export async function buildMessages(rows: RawMessage[], myUserId: string) {
       senderAnimatedAvatarUrl:
         sender?.tier === "pro" ? (sender?.animatedAvatarUrl ?? null) : null,
       content: r.content,
+      kind: r.kind ?? "user",
       imageUrl: r.imageUrl,
       imageAlt: r.imageAlt,
       audioUrl: r.audioUrl,

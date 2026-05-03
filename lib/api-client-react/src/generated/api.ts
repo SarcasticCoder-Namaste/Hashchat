@@ -17,6 +17,7 @@ import type {
 } from "@tanstack/react-query";
 
 import type {
+  AddConversationMembersBody,
   AddPhotoBody,
   AdminStats,
   AdminUser,
@@ -33,6 +34,7 @@ import type {
   CreateBookmarkBody,
   CreateCommunityBody,
   CreateEventBody,
+  CreateGroupConversationBody,
   CreateMvpCodeBody,
   CreatePollBody,
   CreatePostBody,
@@ -119,6 +121,7 @@ import type {
   ReelsList,
   RemoveMessageReactionParams,
   RemovePostReactionParams,
+  RenameConversationBody,
   Room,
   RoomAnalytics,
   RoomInvite,
@@ -2573,6 +2576,437 @@ export const useOpenConversation = <
   TContext
 > => {
   return useMutation(getOpenConversationMutationOptions(options));
+};
+
+/**
+ * @summary Create a new group conversation (3-10 members including me)
+ */
+export const getCreateGroupConversationUrl = () => {
+  return `/api/conversations/group`;
+};
+
+export const createGroupConversation = async (
+  createGroupConversationBody: CreateGroupConversationBody,
+  options?: RequestInit,
+): Promise<Conversation> => {
+  return customFetch<Conversation>(getCreateGroupConversationUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createGroupConversationBody),
+  });
+};
+
+export const getCreateGroupConversationMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createGroupConversation>>,
+    TError,
+    { data: BodyType<CreateGroupConversationBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createGroupConversation>>,
+  TError,
+  { data: BodyType<CreateGroupConversationBody> },
+  TContext
+> => {
+  const mutationKey = ["createGroupConversation"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createGroupConversation>>,
+    { data: BodyType<CreateGroupConversationBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return createGroupConversation(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateGroupConversationMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createGroupConversation>>
+>;
+export type CreateGroupConversationMutationBody =
+  BodyType<CreateGroupConversationBody>;
+export type CreateGroupConversationMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Create a new group conversation (3-10 members including me)
+ */
+export const useCreateGroupConversation = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createGroupConversation>>,
+    TError,
+    { data: BodyType<CreateGroupConversationBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createGroupConversation>>,
+  TError,
+  { data: BodyType<CreateGroupConversationBody> },
+  TContext
+> => {
+  return useMutation(getCreateGroupConversationMutationOptions(options));
+};
+
+/**
+ * @summary Rename a group conversation (creator only)
+ */
+export const getRenameConversationUrl = (id: number) => {
+  return `/api/conversations/${id}`;
+};
+
+export const renameConversation = async (
+  id: number,
+  renameConversationBody: RenameConversationBody,
+  options?: RequestInit,
+): Promise<Conversation> => {
+  return customFetch<Conversation>(getRenameConversationUrl(id), {
+    ...options,
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(renameConversationBody),
+  });
+};
+
+export const getRenameConversationMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof renameConversation>>,
+    TError,
+    { id: number; data: BodyType<RenameConversationBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof renameConversation>>,
+  TError,
+  { id: number; data: BodyType<RenameConversationBody> },
+  TContext
+> => {
+  const mutationKey = ["renameConversation"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof renameConversation>>,
+    { id: number; data: BodyType<RenameConversationBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return renameConversation(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RenameConversationMutationResult = NonNullable<
+  Awaited<ReturnType<typeof renameConversation>>
+>;
+export type RenameConversationMutationBody = BodyType<RenameConversationBody>;
+export type RenameConversationMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Rename a group conversation (creator only)
+ */
+export const useRenameConversation = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof renameConversation>>,
+    TError,
+    { id: number; data: BodyType<RenameConversationBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof renameConversation>>,
+  TError,
+  { id: number; data: BodyType<RenameConversationBody> },
+  TContext
+> => {
+  return useMutation(getRenameConversationMutationOptions(options));
+};
+
+/**
+ * @summary Add members to a group conversation (any member)
+ */
+export const getAddConversationMembersUrl = (id: number) => {
+  return `/api/conversations/${id}/members`;
+};
+
+export const addConversationMembers = async (
+  id: number,
+  addConversationMembersBody: AddConversationMembersBody,
+  options?: RequestInit,
+): Promise<Conversation> => {
+  return customFetch<Conversation>(getAddConversationMembersUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(addConversationMembersBody),
+  });
+};
+
+export const getAddConversationMembersMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof addConversationMembers>>,
+    TError,
+    { id: number; data: BodyType<AddConversationMembersBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof addConversationMembers>>,
+  TError,
+  { id: number; data: BodyType<AddConversationMembersBody> },
+  TContext
+> => {
+  const mutationKey = ["addConversationMembers"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof addConversationMembers>>,
+    { id: number; data: BodyType<AddConversationMembersBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return addConversationMembers(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AddConversationMembersMutationResult = NonNullable<
+  Awaited<ReturnType<typeof addConversationMembers>>
+>;
+export type AddConversationMembersMutationBody =
+  BodyType<AddConversationMembersBody>;
+export type AddConversationMembersMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Add members to a group conversation (any member)
+ */
+export const useAddConversationMembers = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof addConversationMembers>>,
+    TError,
+    { id: number; data: BodyType<AddConversationMembersBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof addConversationMembers>>,
+  TError,
+  { id: number; data: BodyType<AddConversationMembersBody> },
+  TContext
+> => {
+  return useMutation(getAddConversationMembersMutationOptions(options));
+};
+
+/**
+ * @summary Remove a member from a group conversation (creator only)
+ */
+export const getRemoveConversationMemberUrl = (id: number, userId: string) => {
+  return `/api/conversations/${id}/members/${userId}`;
+};
+
+export const removeConversationMember = async (
+  id: number,
+  userId: string,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getRemoveConversationMemberUrl(id, userId), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getRemoveConversationMemberMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof removeConversationMember>>,
+    TError,
+    { id: number; userId: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof removeConversationMember>>,
+  TError,
+  { id: number; userId: string },
+  TContext
+> => {
+  const mutationKey = ["removeConversationMember"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof removeConversationMember>>,
+    { id: number; userId: string }
+  > = (props) => {
+    const { id, userId } = props ?? {};
+
+    return removeConversationMember(id, userId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RemoveConversationMemberMutationResult = NonNullable<
+  Awaited<ReturnType<typeof removeConversationMember>>
+>;
+
+export type RemoveConversationMemberMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Remove a member from a group conversation (creator only)
+ */
+export const useRemoveConversationMember = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof removeConversationMember>>,
+    TError,
+    { id: number; userId: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof removeConversationMember>>,
+  TError,
+  { id: number; userId: string },
+  TContext
+> => {
+  return useMutation(getRemoveConversationMemberMutationOptions(options));
+};
+
+/**
+ * @summary Leave a group conversation
+ */
+export const getLeaveConversationUrl = (id: number) => {
+  return `/api/conversations/${id}/leave`;
+};
+
+export const leaveConversation = async (
+  id: number,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getLeaveConversationUrl(id), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getLeaveConversationMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof leaveConversation>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof leaveConversation>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["leaveConversation"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof leaveConversation>>,
+    { id: number }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return leaveConversation(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type LeaveConversationMutationResult = NonNullable<
+  Awaited<ReturnType<typeof leaveConversation>>
+>;
+
+export type LeaveConversationMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Leave a group conversation
+ */
+export const useLeaveConversation = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof leaveConversation>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof leaveConversation>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  return useMutation(getLeaveConversationMutationOptions(options));
 };
 
 /**

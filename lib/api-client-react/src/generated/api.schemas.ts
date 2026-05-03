@@ -326,6 +326,26 @@ export interface FriendRequestList {
   outgoing: MatchUser[];
 }
 
+export type ConversationKind =
+  (typeof ConversationKind)[keyof typeof ConversationKind];
+
+export const ConversationKind = {
+  direct: "direct",
+  group: "group",
+} as const;
+
+export interface ConversationMember {
+  id: string;
+  username: string;
+  displayName: string;
+  /** @nullable */
+  avatarUrl?: string | null;
+  /** @nullable */
+  discriminator?: string | null;
+  lastSeenAt: string;
+  joinedAt: string;
+}
+
 export interface Reaction {
   emoji: string;
   count: number;
@@ -447,16 +467,45 @@ export interface Message {
   readByOther?: boolean | null;
   poll?: Poll | null;
   createdAt: string;
+  /** user | system */
+  kind: string;
 }
 
 export interface Conversation {
   id: number;
-  otherUser: MatchUser;
+  kind: ConversationKind;
+  /** @nullable */
+  title?: string | null;
+  /** @nullable */
+  creatorId?: string | null;
+  /** For direct conversations only. Null for groups. */
+  otherUser?: MatchUser | null;
+  members: ConversationMember[];
   lastMessage?: Message | null;
   unreadCount: number;
   /** @nullable */
   backgroundUrl?: string | null;
   updatedAt: string;
+}
+
+export interface CreateGroupConversationBody {
+  /**
+   * @minItems 2
+   * @maxItems 9
+   */
+  userIds: string[];
+  /** @nullable */
+  title?: string | null;
+}
+
+export interface RenameConversationBody {
+  /** @nullable */
+  title: string | null;
+}
+
+export interface AddConversationMembersBody {
+  /** @minItems 1 */
+  userIds: string[];
 }
 
 export interface SetBackgroundBody {

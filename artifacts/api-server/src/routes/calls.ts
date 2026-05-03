@@ -5,6 +5,7 @@ import {
   callParticipantsTable,
   callSignalsTable,
   conversationsTable,
+  conversationMembersTable,
   userHashtagsTable,
   userFollowedHashtagsTable,
   usersTable,
@@ -108,18 +109,32 @@ router.post("/calls", requireAuth, async (req, res): Promise<void> => {
 
   const invitees = new Set<string>([me]);
   if (conversationId) {
-    const [convo] = await db.select().from(conversationsTable).where(eq(conversationsTable.id, conversationId)).limit(1);
-    if (!convo || (convo.userAId !== me && convo.userBId !== me)) {
+    const [convo] = await db
+      .select()
+      .from(conversationsTable)
+      .where(eq(conversationsTable.id, conversationId))
+      .limit(1);
+    if (!convo) {
       res.status(404).json({ error: "Conversation not found" });
       return;
     }
-    const otherId = convo.userAId === me ? convo.userBId : convo.userAId;
-    if (await isBlockedEitherWay(me, otherId)) {
-      res.status(403).json({ error: "Cannot start a call with this user" });
+    const memberRows = await db
+      .select({ userId: conversationMembersTable.userId })
+      .from(conversationMembersTable)
+      .where(eq(conversationMembersTable.conversationId, conversationId));
+    const memberIds = memberRows.map((r) => r.userId);
+    if (!memberIds.includes(me)) {
+      res.status(404).json({ error: "Conversation not found" });
       return;
     }
-    invitees.add(convo.userAId);
-    invitees.add(convo.userBId);
+    if (convo.kind === "direct") {
+      const otherId = memberIds.find((u) => u !== me);
+      if (otherId && (await isBlockedEitherWay(me, otherId))) {
+        res.status(403).json({ error: "Cannot start a call with this user" });
+        return;
+      }
+    }
+    for (const uid of memberIds) invitees.add(uid);
   } else if (tag) {
     const access = await getRoomAccess(tag, me);
     if (access.isPrivate) {

@@ -561,6 +561,7 @@ export const GetForYouFeedResponseItem = zod.object({
                 ])
                 .optional(),
               createdAt: zod.coerce.date(),
+              kind: zod.string().describe("user | system"),
             }),
             zod.null(),
           ])
@@ -768,6 +769,7 @@ export const GetExploreResponse = zod.object({
               ])
               .optional(),
             createdAt: zod.coerce.date(),
+            kind: zod.string().describe("user | system"),
           }),
           zod.null(),
         ])
@@ -1089,6 +1091,7 @@ export const GetExploreResponse = zod.object({
                     ])
                     .optional(),
                   createdAt: zod.coerce.date(),
+                  kind: zod.string().describe("user | system"),
                 }),
                 zod.null(),
               ])
@@ -1529,46 +1532,66 @@ export const getConversationsResponseLastMessageOneAudioWaveformItemMax = 100;
 
 export const GetConversationsResponseItem = zod.object({
   id: zod.number(),
-  otherUser: zod.object({
-    id: zod.string(),
-    username: zod.string(),
-    displayName: zod.string(),
-    bio: zod.string().nullish(),
-    avatarUrl: zod.string().nullish(),
-    status: zod.string(),
-    featuredHashtag: zod.string().nullish(),
-    discriminator: zod.string().nullish(),
-    role: zod.string(),
-    mvpPlan: zod.boolean(),
-    verified: zod.boolean(),
-    tier: zod.enum(["free", "premium", "pro"]).optional(),
-    animatedAvatarUrl: zod.string().nullish(),
-    bannerGifUrl: zod.string().nullish(),
-    lastSeenAt: zod.coerce.date(),
-    presenceState: zod
-      .enum(["online", "away", "offline"])
-      .optional()
-      .describe(
-        "Derived presence state — 'online' if active in the last 60s, 'away' within 10 min, otherwise 'offline'. Always 'offline' for users who hide their presence.",
-      ),
-    currentRoomTag: zod
-      .string()
-      .nullish()
-      .describe(
-        "Hashtag of the room the user is currently active in, if any. Null when hidden or not in a room.",
-      ),
-    hashtags: zod.array(zod.string()),
-    sharedHashtags: zod.array(zod.string()),
-    matchScore: zod.number(),
-    friendStatus: zod
-      .string()
-      .nullish()
-      .describe("One of: friends, request_sent, request_received, none"),
-    isFollowing: zod.boolean().optional(),
-    followsMe: zod.boolean().optional(),
-    isMuted: zod.boolean().optional(),
-    isBlocked: zod.boolean().optional(),
-  }),
+  kind: zod.enum(["direct", "group"]),
+  title: zod.string().nullish(),
+  creatorId: zod.string().nullish(),
+  otherUser: zod
+    .union([
+      zod.object({
+        id: zod.string(),
+        username: zod.string(),
+        displayName: zod.string(),
+        bio: zod.string().nullish(),
+        avatarUrl: zod.string().nullish(),
+        status: zod.string(),
+        featuredHashtag: zod.string().nullish(),
+        discriminator: zod.string().nullish(),
+        role: zod.string(),
+        mvpPlan: zod.boolean(),
+        verified: zod.boolean(),
+        tier: zod.enum(["free", "premium", "pro"]).optional(),
+        animatedAvatarUrl: zod.string().nullish(),
+        bannerGifUrl: zod.string().nullish(),
+        lastSeenAt: zod.coerce.date(),
+        presenceState: zod
+          .enum(["online", "away", "offline"])
+          .optional()
+          .describe(
+            "Derived presence state — 'online' if active in the last 60s, 'away' within 10 min, otherwise 'offline'. Always 'offline' for users who hide their presence.",
+          ),
+        currentRoomTag: zod
+          .string()
+          .nullish()
+          .describe(
+            "Hashtag of the room the user is currently active in, if any. Null when hidden or not in a room.",
+          ),
+        hashtags: zod.array(zod.string()),
+        sharedHashtags: zod.array(zod.string()),
+        matchScore: zod.number(),
+        friendStatus: zod
+          .string()
+          .nullish()
+          .describe("One of: friends, request_sent, request_received, none"),
+        isFollowing: zod.boolean().optional(),
+        followsMe: zod.boolean().optional(),
+        isMuted: zod.boolean().optional(),
+        isBlocked: zod.boolean().optional(),
+      }),
+      zod.null(),
+    ])
+    .optional()
+    .describe("For direct conversations only. Null for groups."),
+  members: zod.array(
+    zod.object({
+      id: zod.string(),
+      username: zod.string(),
+      displayName: zod.string(),
+      avatarUrl: zod.string().nullish(),
+      discriminator: zod.string().nullish(),
+      lastSeenAt: zod.coerce.date(),
+      joinedAt: zod.coerce.date(),
+    }),
+  ),
   lastMessage: zod
     .union([
       zod.object({
@@ -1666,6 +1689,7 @@ export const GetConversationsResponseItem = zod.object({
           ])
           .optional(),
         createdAt: zod.coerce.date(),
+        kind: zod.string().describe("user | system"),
       }),
       zod.null(),
     ])
@@ -1688,46 +1712,66 @@ export const openConversationResponseLastMessageOneAudioWaveformItemMax = 100;
 
 export const OpenConversationResponse = zod.object({
   id: zod.number(),
-  otherUser: zod.object({
-    id: zod.string(),
-    username: zod.string(),
-    displayName: zod.string(),
-    bio: zod.string().nullish(),
-    avatarUrl: zod.string().nullish(),
-    status: zod.string(),
-    featuredHashtag: zod.string().nullish(),
-    discriminator: zod.string().nullish(),
-    role: zod.string(),
-    mvpPlan: zod.boolean(),
-    verified: zod.boolean(),
-    tier: zod.enum(["free", "premium", "pro"]).optional(),
-    animatedAvatarUrl: zod.string().nullish(),
-    bannerGifUrl: zod.string().nullish(),
-    lastSeenAt: zod.coerce.date(),
-    presenceState: zod
-      .enum(["online", "away", "offline"])
-      .optional()
-      .describe(
-        "Derived presence state — 'online' if active in the last 60s, 'away' within 10 min, otherwise 'offline'. Always 'offline' for users who hide their presence.",
-      ),
-    currentRoomTag: zod
-      .string()
-      .nullish()
-      .describe(
-        "Hashtag of the room the user is currently active in, if any. Null when hidden or not in a room.",
-      ),
-    hashtags: zod.array(zod.string()),
-    sharedHashtags: zod.array(zod.string()),
-    matchScore: zod.number(),
-    friendStatus: zod
-      .string()
-      .nullish()
-      .describe("One of: friends, request_sent, request_received, none"),
-    isFollowing: zod.boolean().optional(),
-    followsMe: zod.boolean().optional(),
-    isMuted: zod.boolean().optional(),
-    isBlocked: zod.boolean().optional(),
-  }),
+  kind: zod.enum(["direct", "group"]),
+  title: zod.string().nullish(),
+  creatorId: zod.string().nullish(),
+  otherUser: zod
+    .union([
+      zod.object({
+        id: zod.string(),
+        username: zod.string(),
+        displayName: zod.string(),
+        bio: zod.string().nullish(),
+        avatarUrl: zod.string().nullish(),
+        status: zod.string(),
+        featuredHashtag: zod.string().nullish(),
+        discriminator: zod.string().nullish(),
+        role: zod.string(),
+        mvpPlan: zod.boolean(),
+        verified: zod.boolean(),
+        tier: zod.enum(["free", "premium", "pro"]).optional(),
+        animatedAvatarUrl: zod.string().nullish(),
+        bannerGifUrl: zod.string().nullish(),
+        lastSeenAt: zod.coerce.date(),
+        presenceState: zod
+          .enum(["online", "away", "offline"])
+          .optional()
+          .describe(
+            "Derived presence state — 'online' if active in the last 60s, 'away' within 10 min, otherwise 'offline'. Always 'offline' for users who hide their presence.",
+          ),
+        currentRoomTag: zod
+          .string()
+          .nullish()
+          .describe(
+            "Hashtag of the room the user is currently active in, if any. Null when hidden or not in a room.",
+          ),
+        hashtags: zod.array(zod.string()),
+        sharedHashtags: zod.array(zod.string()),
+        matchScore: zod.number(),
+        friendStatus: zod
+          .string()
+          .nullish()
+          .describe("One of: friends, request_sent, request_received, none"),
+        isFollowing: zod.boolean().optional(),
+        followsMe: zod.boolean().optional(),
+        isMuted: zod.boolean().optional(),
+        isBlocked: zod.boolean().optional(),
+      }),
+      zod.null(),
+    ])
+    .optional()
+    .describe("For direct conversations only. Null for groups."),
+  members: zod.array(
+    zod.object({
+      id: zod.string(),
+      username: zod.string(),
+      displayName: zod.string(),
+      avatarUrl: zod.string().nullish(),
+      discriminator: zod.string().nullish(),
+      lastSeenAt: zod.coerce.date(),
+      joinedAt: zod.coerce.date(),
+    }),
+  ),
   lastMessage: zod
     .union([
       zod.object({
@@ -1825,6 +1869,7 @@ export const OpenConversationResponse = zod.object({
           ])
           .optional(),
         createdAt: zod.coerce.date(),
+        kind: zod.string().describe("user | system"),
       }),
       zod.null(),
     ])
@@ -1832,6 +1877,407 @@ export const OpenConversationResponse = zod.object({
   unreadCount: zod.number(),
   backgroundUrl: zod.string().nullish(),
   updatedAt: zod.coerce.date(),
+});
+
+/**
+ * @summary Create a new group conversation (3-10 members including me)
+ */
+export const createGroupConversationBodyUserIdsMin = 2;
+export const createGroupConversationBodyUserIdsMax = 9;
+
+export const CreateGroupConversationBody = zod.object({
+  userIds: zod
+    .array(zod.string())
+    .min(createGroupConversationBodyUserIdsMin)
+    .max(createGroupConversationBodyUserIdsMax),
+  title: zod.string().nullish(),
+});
+
+/**
+ * @summary Rename a group conversation (creator only)
+ */
+export const RenameConversationParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const RenameConversationBody = zod.object({
+  title: zod.string().nullable(),
+});
+
+export const renameConversationResponseLastMessageOneAudioWaveformItemMin = 0;
+export const renameConversationResponseLastMessageOneAudioWaveformItemMax = 100;
+
+export const RenameConversationResponse = zod.object({
+  id: zod.number(),
+  kind: zod.enum(["direct", "group"]),
+  title: zod.string().nullish(),
+  creatorId: zod.string().nullish(),
+  otherUser: zod
+    .union([
+      zod.object({
+        id: zod.string(),
+        username: zod.string(),
+        displayName: zod.string(),
+        bio: zod.string().nullish(),
+        avatarUrl: zod.string().nullish(),
+        status: zod.string(),
+        featuredHashtag: zod.string().nullish(),
+        discriminator: zod.string().nullish(),
+        role: zod.string(),
+        mvpPlan: zod.boolean(),
+        verified: zod.boolean(),
+        tier: zod.enum(["free", "premium", "pro"]).optional(),
+        animatedAvatarUrl: zod.string().nullish(),
+        bannerGifUrl: zod.string().nullish(),
+        lastSeenAt: zod.coerce.date(),
+        presenceState: zod
+          .enum(["online", "away", "offline"])
+          .optional()
+          .describe(
+            "Derived presence state — 'online' if active in the last 60s, 'away' within 10 min, otherwise 'offline'. Always 'offline' for users who hide their presence.",
+          ),
+        currentRoomTag: zod
+          .string()
+          .nullish()
+          .describe(
+            "Hashtag of the room the user is currently active in, if any. Null when hidden or not in a room.",
+          ),
+        hashtags: zod.array(zod.string()),
+        sharedHashtags: zod.array(zod.string()),
+        matchScore: zod.number(),
+        friendStatus: zod
+          .string()
+          .nullish()
+          .describe("One of: friends, request_sent, request_received, none"),
+        isFollowing: zod.boolean().optional(),
+        followsMe: zod.boolean().optional(),
+        isMuted: zod.boolean().optional(),
+        isBlocked: zod.boolean().optional(),
+      }),
+      zod.null(),
+    ])
+    .optional()
+    .describe("For direct conversations only. Null for groups."),
+  members: zod.array(
+    zod.object({
+      id: zod.string(),
+      username: zod.string(),
+      displayName: zod.string(),
+      avatarUrl: zod.string().nullish(),
+      discriminator: zod.string().nullish(),
+      lastSeenAt: zod.coerce.date(),
+      joinedAt: zod.coerce.date(),
+    }),
+  ),
+  lastMessage: zod
+    .union([
+      zod.object({
+        id: zod.number(),
+        conversationId: zod.number().nullish(),
+        roomTag: zod.string().nullish(),
+        senderId: zod.string(),
+        senderName: zod.string(),
+        senderAvatarUrl: zod.string().nullish(),
+        senderAnimatedAvatarUrl: zod.string().nullish(),
+        content: zod.string(),
+        replyToId: zod.number().nullish(),
+        replyToContent: zod.string().nullish(),
+        replyToSenderName: zod.string().nullish(),
+        replyCount: zod.number(),
+        imageUrl: zod.string().nullish(),
+        imageAlt: zod.string().nullish(),
+        audioUrl: zod.string().nullish(),
+        audioWaveform: zod
+          .array(
+            zod
+              .number()
+              .min(renameConversationResponseLastMessageOneAudioWaveformItemMin)
+              .max(
+                renameConversationResponseLastMessageOneAudioWaveformItemMax,
+              ),
+          )
+          .nullish(),
+        audioTranscript: zod.string().nullish(),
+        reactions: zod.array(
+          zod.object({
+            emoji: zod.string(),
+            count: zod.number(),
+            reactedByMe: zod.boolean(),
+          }),
+        ),
+        attachments: zod.array(
+          zod.object({
+            id: zod.number(),
+            kind: zod.enum(["image", "gif", "link_preview", "poll"]),
+            url: zod.string(),
+            title: zod.string().nullish(),
+            description: zod.string().nullish(),
+            thumbnailUrl: zod.string().nullish(),
+          }),
+        ),
+        mentions: zod.array(
+          zod.object({
+            id: zod.string(),
+            username: zod.string(),
+            displayName: zod.string(),
+          }),
+        ),
+        readByOther: zod.boolean().nullish(),
+        poll: zod
+          .union([
+            zod.object({
+              id: zod.number(),
+              roomTag: zod.string(),
+              creatorId: zod.string(),
+              creatorName: zod.string(),
+              question: zod.string(),
+              mode: zod.enum(["single", "multi", "ranked"]),
+              maxSelections: zod.number(),
+              options: zod.array(
+                zod.object({
+                  id: zod.number(),
+                  text: zod.string(),
+                  votes: zod.number(),
+                  votedByMe: zod.boolean(),
+                  myRank: zod.number().nullish(),
+                }),
+              ),
+              totalVotes: zod.number(),
+              myVoteOptionId: zod.number().nullish(),
+              myVoteOptionIds: zod.array(zod.number()),
+              rounds: zod
+                .array(
+                  zod.object({
+                    round: zod.number(),
+                    tallies: zod.array(
+                      zod.object({
+                        optionId: zod.number(),
+                        votes: zod.number(),
+                      }),
+                    ),
+                    eliminated: zod.array(zod.number()),
+                  }),
+                )
+                .optional(),
+              winnerOptionId: zod.number().nullish(),
+              expiresAt: zod.coerce.date().nullish(),
+              isExpired: zod.boolean(),
+              createdAt: zod.coerce.date(),
+            }),
+            zod.null(),
+          ])
+          .optional(),
+        createdAt: zod.coerce.date(),
+        kind: zod.string().describe("user | system"),
+      }),
+      zod.null(),
+    ])
+    .optional(),
+  unreadCount: zod.number(),
+  backgroundUrl: zod.string().nullish(),
+  updatedAt: zod.coerce.date(),
+});
+
+/**
+ * @summary Add members to a group conversation (any member)
+ */
+export const AddConversationMembersParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const AddConversationMembersBody = zod.object({
+  userIds: zod.array(zod.string()).min(1),
+});
+
+export const addConversationMembersResponseLastMessageOneAudioWaveformItemMin = 0;
+export const addConversationMembersResponseLastMessageOneAudioWaveformItemMax = 100;
+
+export const AddConversationMembersResponse = zod.object({
+  id: zod.number(),
+  kind: zod.enum(["direct", "group"]),
+  title: zod.string().nullish(),
+  creatorId: zod.string().nullish(),
+  otherUser: zod
+    .union([
+      zod.object({
+        id: zod.string(),
+        username: zod.string(),
+        displayName: zod.string(),
+        bio: zod.string().nullish(),
+        avatarUrl: zod.string().nullish(),
+        status: zod.string(),
+        featuredHashtag: zod.string().nullish(),
+        discriminator: zod.string().nullish(),
+        role: zod.string(),
+        mvpPlan: zod.boolean(),
+        verified: zod.boolean(),
+        tier: zod.enum(["free", "premium", "pro"]).optional(),
+        animatedAvatarUrl: zod.string().nullish(),
+        bannerGifUrl: zod.string().nullish(),
+        lastSeenAt: zod.coerce.date(),
+        presenceState: zod
+          .enum(["online", "away", "offline"])
+          .optional()
+          .describe(
+            "Derived presence state — 'online' if active in the last 60s, 'away' within 10 min, otherwise 'offline'. Always 'offline' for users who hide their presence.",
+          ),
+        currentRoomTag: zod
+          .string()
+          .nullish()
+          .describe(
+            "Hashtag of the room the user is currently active in, if any. Null when hidden or not in a room.",
+          ),
+        hashtags: zod.array(zod.string()),
+        sharedHashtags: zod.array(zod.string()),
+        matchScore: zod.number(),
+        friendStatus: zod
+          .string()
+          .nullish()
+          .describe("One of: friends, request_sent, request_received, none"),
+        isFollowing: zod.boolean().optional(),
+        followsMe: zod.boolean().optional(),
+        isMuted: zod.boolean().optional(),
+        isBlocked: zod.boolean().optional(),
+      }),
+      zod.null(),
+    ])
+    .optional()
+    .describe("For direct conversations only. Null for groups."),
+  members: zod.array(
+    zod.object({
+      id: zod.string(),
+      username: zod.string(),
+      displayName: zod.string(),
+      avatarUrl: zod.string().nullish(),
+      discriminator: zod.string().nullish(),
+      lastSeenAt: zod.coerce.date(),
+      joinedAt: zod.coerce.date(),
+    }),
+  ),
+  lastMessage: zod
+    .union([
+      zod.object({
+        id: zod.number(),
+        conversationId: zod.number().nullish(),
+        roomTag: zod.string().nullish(),
+        senderId: zod.string(),
+        senderName: zod.string(),
+        senderAvatarUrl: zod.string().nullish(),
+        senderAnimatedAvatarUrl: zod.string().nullish(),
+        content: zod.string(),
+        replyToId: zod.number().nullish(),
+        replyToContent: zod.string().nullish(),
+        replyToSenderName: zod.string().nullish(),
+        replyCount: zod.number(),
+        imageUrl: zod.string().nullish(),
+        imageAlt: zod.string().nullish(),
+        audioUrl: zod.string().nullish(),
+        audioWaveform: zod
+          .array(
+            zod
+              .number()
+              .min(
+                addConversationMembersResponseLastMessageOneAudioWaveformItemMin,
+              )
+              .max(
+                addConversationMembersResponseLastMessageOneAudioWaveformItemMax,
+              ),
+          )
+          .nullish(),
+        audioTranscript: zod.string().nullish(),
+        reactions: zod.array(
+          zod.object({
+            emoji: zod.string(),
+            count: zod.number(),
+            reactedByMe: zod.boolean(),
+          }),
+        ),
+        attachments: zod.array(
+          zod.object({
+            id: zod.number(),
+            kind: zod.enum(["image", "gif", "link_preview", "poll"]),
+            url: zod.string(),
+            title: zod.string().nullish(),
+            description: zod.string().nullish(),
+            thumbnailUrl: zod.string().nullish(),
+          }),
+        ),
+        mentions: zod.array(
+          zod.object({
+            id: zod.string(),
+            username: zod.string(),
+            displayName: zod.string(),
+          }),
+        ),
+        readByOther: zod.boolean().nullish(),
+        poll: zod
+          .union([
+            zod.object({
+              id: zod.number(),
+              roomTag: zod.string(),
+              creatorId: zod.string(),
+              creatorName: zod.string(),
+              question: zod.string(),
+              mode: zod.enum(["single", "multi", "ranked"]),
+              maxSelections: zod.number(),
+              options: zod.array(
+                zod.object({
+                  id: zod.number(),
+                  text: zod.string(),
+                  votes: zod.number(),
+                  votedByMe: zod.boolean(),
+                  myRank: zod.number().nullish(),
+                }),
+              ),
+              totalVotes: zod.number(),
+              myVoteOptionId: zod.number().nullish(),
+              myVoteOptionIds: zod.array(zod.number()),
+              rounds: zod
+                .array(
+                  zod.object({
+                    round: zod.number(),
+                    tallies: zod.array(
+                      zod.object({
+                        optionId: zod.number(),
+                        votes: zod.number(),
+                      }),
+                    ),
+                    eliminated: zod.array(zod.number()),
+                  }),
+                )
+                .optional(),
+              winnerOptionId: zod.number().nullish(),
+              expiresAt: zod.coerce.date().nullish(),
+              isExpired: zod.boolean(),
+              createdAt: zod.coerce.date(),
+            }),
+            zod.null(),
+          ])
+          .optional(),
+        createdAt: zod.coerce.date(),
+        kind: zod.string().describe("user | system"),
+      }),
+      zod.null(),
+    ])
+    .optional(),
+  unreadCount: zod.number(),
+  backgroundUrl: zod.string().nullish(),
+  updatedAt: zod.coerce.date(),
+});
+
+/**
+ * @summary Remove a member from a group conversation (creator only)
+ */
+export const RemoveConversationMemberParams = zod.object({
+  id: zod.coerce.number(),
+  userId: zod.coerce.string(),
+});
+
+/**
+ * @summary Leave a group conversation
+ */
+export const LeaveConversationParams = zod.object({
+  id: zod.coerce.number(),
 });
 
 /**
@@ -1939,6 +2385,7 @@ export const GetConversationMessagesResponseItem = zod.object({
     ])
     .optional(),
   createdAt: zod.coerce.date(),
+  kind: zod.string().describe("user | system"),
 });
 export const GetConversationMessagesResponse = zod.array(
   GetConversationMessagesResponseItem,
@@ -2102,6 +2549,7 @@ export const GetMessageRepliesResponse = zod.object({
       ])
       .optional(),
     createdAt: zod.coerce.date(),
+    kind: zod.string().describe("user | system"),
   }),
   replies: zod.array(
     zod.object({
@@ -2199,6 +2647,7 @@ export const GetMessageRepliesResponse = zod.object({
         ])
         .optional(),
       createdAt: zod.coerce.date(),
+      kind: zod.string().describe("user | system"),
     }),
   ),
 });
@@ -2486,6 +2935,7 @@ export const GetRoomsResponseItem = zod.object({
           ])
           .optional(),
         createdAt: zod.coerce.date(),
+        kind: zod.string().describe("user | system"),
       }),
       zod.null(),
     ])
@@ -2611,6 +3061,7 @@ export const GetTrendingRoomsResponseItem = zod.object({
           ])
           .optional(),
         createdAt: zod.coerce.date(),
+        kind: zod.string().describe("user | system"),
       }),
       zod.null(),
     ])
@@ -2726,6 +3177,7 @@ export const GetRoomMessagesResponseItem = zod.object({
     ])
     .optional(),
   createdAt: zod.coerce.date(),
+  kind: zod.string().describe("user | system"),
 });
 export const GetRoomMessagesResponse = zod.array(GetRoomMessagesResponseItem);
 
@@ -5198,6 +5650,7 @@ export const GetCommunityResponse = zod.object({
               ])
               .optional(),
             createdAt: zod.coerce.date(),
+            kind: zod.string().describe("user | system"),
           }),
           zod.null(),
         ])
@@ -5423,6 +5876,7 @@ export const JoinCommunityResponse = zod.object({
               ])
               .optional(),
             createdAt: zod.coerce.date(),
+            kind: zod.string().describe("user | system"),
           }),
           zod.null(),
         ])
@@ -5648,6 +6102,7 @@ export const LeaveCommunityResponse = zod.object({
               ])
               .optional(),
             createdAt: zod.coerce.date(),
+            kind: zod.string().describe("user | system"),
           }),
           zod.null(),
         ])

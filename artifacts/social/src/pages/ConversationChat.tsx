@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from "react";
-import { Link } from "wouter";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Link, useLocation } from "wouter";
 import { useUser } from "@clerk/react";
 import {
   useGetConversationMessages,
@@ -13,16 +13,24 @@ import {
   useGetConversationTyping,
   usePingConversationTyping,
   useMarkConversationRead,
+  useGetMyFriends,
+  useRenameConversation,
+  useAddConversationMembers,
+  useRemoveConversationMember,
+  useLeaveConversation,
   getGetConversationMessagesQueryKey,
   getGetConversationsQueryKey,
   getGetMyRelationshipsQueryKey,
   getGetConversationTypingQueryKey,
   getGetUnreadNotificationCountQueryKey,
+  getGetMyFriendsQueryKey,
   type Message,
+  type Conversation,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useUpload } from "@workspace/object-storage-web";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { MessageBubble } from "@/components/MessageBubble";
 import { MentionTextarea, type MentionFieldHandle } from "@/components/MentionTextarea";
@@ -36,7 +44,23 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import {
   ArrowLeft,
   Send,
@@ -50,10 +74,369 @@ import {
   Ban,
   EyeOff,
   UserMinus,
+  Users,
+  UserPlus,
+  Pencil,
+  LogOut,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
+
+function groupTitle(c: Conversation): string {
+  if (c.title?.trim()) return c.title.trim();
+  const names = c.members.map((m) => m.displayName);
+  const head = names.slice(0, 3).join(", ");
+  return names.length > 3 ? `${head} +${names.length - 3}` : head;
+}
+
+function GroupMembersPanel({
+  open,
+  onOpenChange,
+  conv,
+  meId,
+}: {
+  open: boolean;
+  onOpenChange: (o: boolean) => void;
+  conv: Conversation;
+  meId: string;
+}) {
+  const qc = useQueryClient();
+  const { toast } = useToast();
+  const [, navigate] = useLocation();
+  const isCreator = conv.creatorId === meId;
+  const [renameOpen, setRenameOpen] = useState(false);
+  const [addOpen, setAddOpen] = useState(false);
+  const [titleDraft, setTitleDraft] = useState(conv.title ?? "");
+
+  const friends = useGetMyFriends({
+    query: { queryKey: getGetMyFriendsQueryKey(), enabled: addOpen },
+  });
+  const memberIds = useMemo(
+    () => new Set(conv.members.map((m) => m.id)),
+    [conv.members],
+  );
+  const candidateFriends = useMemo(
+    () => (friends.data ?? []).filter((f) => !memberIds.has(f.id)),
+    [friends.data, memberIds],
+  );
+  const [picked, setPicked] = useState<Set<string>>(new Set());
+
+  function refreshAll() {
+    qc.invalidateQueries({ queryKey: getGetConversationsQueryKey() });
+    qc.invalidateQueries({
+      queryKey: getGetConversationMessagesQueryKey(conv.id),
+    });
+  }
+
+  const rename = useRenameConversation({
+    mutation: {
+      onSuccess: () => {
+        refreshAll();
+        setRenameOpen(false);
+        toast({ title: "Group renamed" });
+      },
+      onError: (e: unknown) =>
+        toast({
+          title: "Rename failed",
+          description: e instanceof Error ? e.message : "",
+          variant: "destructive",
+        }),
+    },
+  });
+  const addMembers = useAddConversationMembers({
+    mutation: {
+      onSuccess: () => {
+        refreshAll();
+        setAddOpen(false);
+        setPicked(new Set());
+        toast({ title: "Members added" });
+      },
+      onError: (e: unknown) =>
+        toast({
+          title: "Add failed",
+          description: e instanceof Error ? e.message : "",
+          variant: "destructive",
+        }),
+    },
+  });
+  const removeMember = useRemoveConversationMember({
+    mutation: {
+      onSuccess: () => {
+        refreshAll();
+        toast({ title: "Member removed" });
+      },
+      onError: (e: unknown) =>
+        toast({
+          title: "Remove failed",
+          description: e instanceof Error ? e.message : "",
+          variant: "destructive",
+        }),
+    },
+  });
+  const leave = useLeaveConversation({
+    mutation: {
+      onSuccess: () => {
+        qc.invalidateQueries({ queryKey: getGetConversationsQueryKey() });
+        toast({ title: "Left group" });
+        navigate("/app/messages");
+      },
+      onError: (e: unknown) =>
+        toast({
+          title: "Couldn't leave",
+          description: e instanceof Error ? e.message : "",
+          variant: "destructive",
+        }),
+    },
+  });
+
+  function togglePick(id: string) {
+    setPicked((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else if (conv.members.length + next.size < 10) next.add(id);
+      return next;
+    });
+  }
+
+  return (
+    <>
+      <Sheet open={open} onOpenChange={onOpenChange}>
+        <SheetContent side="right" className="w-full max-w-sm overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>{groupTitle(conv)}</SheetTitle>
+            <SheetDescription>
+              {conv.members.length} members · {isCreator ? "you created" : "group chat"}
+            </SheetDescription>
+          </SheetHeader>
+          <div className="mt-4 space-y-2">
+            <Button
+              variant="outline"
+              className="w-full justify-start"
+              onClick={() => setAddOpen(true)}
+              disabled={conv.members.length >= 10}
+              data-testid="button-open-add-members"
+            >
+              <UserPlus className="mr-2 h-4 w-4" />
+              Add members ({conv.members.length}/10)
+            </Button>
+            {isCreator && (
+              <Button
+                variant="outline"
+                className="w-full justify-start"
+                onClick={() => {
+                  setTitleDraft(conv.title ?? "");
+                  setRenameOpen(true);
+                }}
+                data-testid="button-open-rename"
+              >
+                <Pencil className="mr-2 h-4 w-4" />
+                Rename group
+              </Button>
+            )}
+            <Button
+              variant="outline"
+              className="w-full justify-start text-destructive hover:text-destructive"
+              onClick={() => leave.mutate({ id: conv.id })}
+              disabled={leave.isPending}
+              data-testid="button-leave-group"
+            >
+              <LogOut className="mr-2 h-4 w-4" />
+              Leave group
+            </Button>
+          </div>
+          <div className="mt-6">
+            <h3 className="mb-2 text-sm font-semibold text-muted-foreground">
+              Members
+            </h3>
+            <ul className="divide-y divide-border rounded-lg border border-border">
+              {conv.members.map((m) => (
+                <li
+                  key={m.id}
+                  className="flex items-center gap-3 px-3 py-2"
+                  data-testid={`member-row-${m.id}`}
+                >
+                  <Avatar className="h-8 w-8">
+                    {m.avatarUrl ? (
+                      <AvatarImage src={m.avatarUrl} alt={m.displayName} />
+                    ) : null}
+                    <AvatarFallback>
+                      {m.displayName.slice(0, 2).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium">
+                      {m.displayName}
+                      {m.id === conv.creatorId && (
+                        <span className="ml-1 rounded bg-accent px-1 text-[10px] text-accent-foreground">
+                          owner
+                        </span>
+                      )}
+                      {m.id === meId && (
+                        <span className="ml-1 text-[10px] text-muted-foreground">
+                          (you)
+                        </span>
+                      )}
+                    </p>
+                    <p className="truncate text-xs text-muted-foreground">
+                      @{m.username}
+                    </p>
+                  </div>
+                  {isCreator && m.id !== meId && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() =>
+                        removeMember.mutate({ id: conv.id, userId: m.id })
+                      }
+                      disabled={removeMember.isPending}
+                      data-testid={`button-remove-${m.id}`}
+                      className="text-destructive hover:text-destructive"
+                    >
+                      Remove
+                    </Button>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      <Dialog open={renameOpen} onOpenChange={setRenameOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Rename group</DialogTitle>
+            <DialogDescription>
+              Pick a name everyone in the group will see.
+            </DialogDescription>
+          </DialogHeader>
+          <Input
+            value={titleDraft}
+            onChange={(e) => setTitleDraft(e.target.value)}
+            maxLength={80}
+            placeholder="Group name"
+            data-testid="input-rename-group"
+          />
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setRenameOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={() =>
+                rename.mutate({
+                  id: conv.id,
+                  data: { title: titleDraft.trim() || null },
+                })
+              }
+              disabled={rename.isPending}
+              data-testid="button-confirm-rename"
+            >
+              {rename.isPending && (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              )}
+              Save
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={addOpen} onOpenChange={setAddOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add members</DialogTitle>
+            <DialogDescription>
+              Pick friends to add. Group capacity is 10 members.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="max-h-72 overflow-y-auto rounded-lg border border-border">
+            {friends.isLoading ? (
+              <div className="p-4 text-center text-sm text-muted-foreground">
+                Loading friends…
+              </div>
+            ) : candidateFriends.length === 0 ? (
+              <div className="p-4 text-center text-sm text-muted-foreground">
+                No friends to add.
+              </div>
+            ) : (
+              <ul className="divide-y divide-border">
+                {candidateFriends.map((f) => {
+                  const isPicked = picked.has(f.id);
+                  const disabled =
+                    !isPicked && conv.members.length + picked.size >= 10;
+                  return (
+                    <li key={f.id}>
+                      <button
+                        type="button"
+                        disabled={disabled}
+                        onClick={() => togglePick(f.id)}
+                        className={[
+                          "flex w-full items-center gap-3 px-3 py-2 text-left transition-colors",
+                          isPicked
+                            ? "bg-primary/10"
+                            : disabled
+                              ? "opacity-50"
+                              : "hover:bg-accent/40",
+                        ].join(" ")}
+                        data-testid={`add-member-pick-${f.id}`}
+                      >
+                        <Avatar className="h-8 w-8">
+                          {f.avatarUrl ? (
+                            <AvatarImage src={f.avatarUrl} alt={f.displayName} />
+                          ) : null}
+                          <AvatarFallback>
+                            {f.displayName.slice(0, 2).toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-semibold">
+                            {f.displayName}
+                          </p>
+                          <p className="truncate text-xs text-muted-foreground">
+                            @{f.username}
+                          </p>
+                        </div>
+                        <div
+                          className={[
+                            "h-4 w-4 rounded border",
+                            isPicked
+                              ? "border-primary bg-primary"
+                              : "border-border",
+                          ].join(" ")}
+                          aria-hidden
+                        />
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setAddOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={() =>
+                addMembers.mutate({
+                  id: conv.id,
+                  data: { userIds: Array.from(picked) },
+                })
+              }
+              disabled={picked.size === 0 || addMembers.isPending}
+              data-testid="button-confirm-add-members"
+            >
+              {addMembers.isPending && (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              )}
+              Add {picked.size > 0 ? `(${picked.size})` : ""}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
 
 export default function ConversationChat({ id }: { id: number }) {
   const qc = useQueryClient();
@@ -61,12 +444,15 @@ export default function ConversationChat({ id }: { id: number }) {
   const [draft, setDraft] = useState("");
   const [replyTo, setReplyTo] = useState<Message | null>(null);
   const [threadParent, setThreadParent] = useState<Message | null>(null);
+  const [membersOpen, setMembersOpen] = useState(false);
   const scrollerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<MentionFieldHandle>(null);
   const lastTypingPing = useRef(0);
 
   const convs = useGetConversations();
   const conv = convs.data?.find((c) => c.id === id);
+  const isGroup = conv?.kind === "group";
+  const meId = clerkUser?.id ?? "";
 
   const msgs = useGetConversationMessages(id, {
     query: {
@@ -101,7 +487,9 @@ export default function ConversationChat({ id }: { id: number }) {
     mutation: {
       onSuccess: () => {
         qc.invalidateQueries({ queryKey: getGetConversationsQueryKey() });
-        qc.invalidateQueries({ queryKey: getGetUnreadNotificationCountQueryKey() });
+        qc.invalidateQueries({
+          queryKey: getGetUnreadNotificationCountQueryKey(),
+        });
       },
     },
   });
@@ -113,8 +501,8 @@ export default function ConversationChat({ id }: { id: number }) {
     typingPing.mutate({ id });
   }
 
-  // Mark conversation read whenever new messages arrive (or on mount).
-  const lastMsgId = msgs.data && msgs.data.length > 0 ? msgs.data[msgs.data.length - 1].id : null;
+  const lastMsgId =
+    msgs.data && msgs.data.length > 0 ? msgs.data[msgs.data.length - 1].id : null;
   useEffect(() => {
     if (lastMsgId !== null) {
       markRead.mutate({ id, data: { messageId: lastMsgId } });
@@ -134,8 +522,8 @@ export default function ConversationChat({ id }: { id: number }) {
   }, [id, lastMsgId]);
 
   const { toast } = useToast();
-  const otherUserId = conv?.otherUser.id;
-  const otherDisplayName = conv?.otherUser.displayName ?? "this user";
+  const otherUserId = conv?.otherUser?.id;
+  const otherDisplayName = conv?.otherUser?.displayName ?? "this user";
   const onRelationshipChange = () => {
     qc.invalidateQueries({ queryKey: getGetMyRelationshipsQueryKey() });
     qc.invalidateQueries({ queryKey: getGetConversationsQueryKey() });
@@ -144,7 +532,10 @@ export default function ConversationChat({ id }: { id: number }) {
     mutation: {
       onSuccess: () => {
         onRelationshipChange();
-        toast({ title: "Blocked", description: `You won't see ${otherDisplayName} anymore.` });
+        toast({
+          title: "Blocked",
+          description: `You won't see ${otherDisplayName} anymore.`,
+        });
       },
     },
   });
@@ -152,7 +543,10 @@ export default function ConversationChat({ id }: { id: number }) {
     mutation: {
       onSuccess: () => {
         onRelationshipChange();
-        toast({ title: "Muted", description: `Hidden ${otherDisplayName} from feeds.` });
+        toast({
+          title: "Muted",
+          description: `Hidden ${otherDisplayName} from feeds.`,
+        });
       },
     },
   });
@@ -162,19 +556,24 @@ export default function ConversationChat({ id }: { id: number }) {
 
   const setBg = useSetConversationBackground({
     mutation: {
-      onSuccess: () => qc.invalidateQueries({ queryKey: getGetConversationsQueryKey() }),
+      onSuccess: () =>
+        qc.invalidateQueries({ queryKey: getGetConversationsQueryKey() }),
     },
   });
   const clearBg = useClearConversationBackground({
     mutation: {
-      onSuccess: () => qc.invalidateQueries({ queryKey: getGetConversationsQueryKey() }),
+      onSuccess: () =>
+        qc.invalidateQueries({ queryKey: getGetConversationsQueryKey() }),
     },
   });
   const bgInputRef = useRef<HTMLInputElement>(null);
   const { uploadFile: uploadBg, isUploading: bgUploading } = useUpload({
     basePath: `${basePath}/api/storage`,
     onSuccess: (r) =>
-      setBg.mutate({ id, data: { backgroundUrl: `${basePath}/api/storage${r.objectPath}` } }),
+      setBg.mutate({
+        id,
+        data: { backgroundUrl: `${basePath}/api/storage${r.objectPath}` },
+      }),
   });
 
   function sendImage(imageUrl: string, suggestedAlt?: string) {
@@ -188,14 +587,12 @@ export default function ConversationChat({ id }: { id: number }) {
       },
     });
   }
-
   function sendAudio(audioUrl: string, peaks: number[] | null) {
     send.mutate({
       id,
       data: { content: "", audioUrl, audioWaveform: peaks, replyToId: replyTo?.id ?? null },
     });
   }
-
   function sendGif(gifUrl: string) {
     send.mutate({
       id,
@@ -236,13 +633,16 @@ export default function ConversationChat({ id }: { id: number }) {
 
   const typingUsers = typingQuery.data?.users ?? [];
 
-  const initials =
-    conv?.otherUser.displayName
-      .split(" ")
-      .map((s) => s[0])
-      .slice(0, 2)
-      .join("")
-      .toUpperCase() ?? "?";
+  const headerTitle =
+    conv && isGroup
+      ? groupTitle(conv)
+      : conv?.otherUser?.displayName ?? "";
+  const headerInitials = headerTitle
+    .split(" ")
+    .map((s) => s[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase() || "?";
 
   const hasBg = !!conv?.backgroundUrl;
 
@@ -279,39 +679,72 @@ export default function ConversationChat({ id }: { id: number }) {
         </Link>
         {conv ? (
           <>
-            <Avatar className="h-9 w-9">
-              {conv.otherUser.avatarUrl ? (
-                <AvatarImage
-                  src={conv.otherUser.avatarUrl}
-                  alt={conv.otherUser.displayName}
-                />
-              ) : null}
-              <AvatarFallback className="bg-primary/15 text-primary">
-                {initials}
-              </AvatarFallback>
-            </Avatar>
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-1.5">
-                <Link
-                  href={`/app/u/${conv.otherUser.username}`}
-                  className="truncate text-sm font-semibold text-foreground hover:underline"
-                  data-testid="link-conv-profile"
-                >
-                  {conv.otherUser.displayName}
-                </Link>
-                {conv.otherUser.featuredHashtag && (
-                  <span className="hidden items-center gap-0.5 rounded-full bg-accent px-1.5 py-0.5 text-[10px] font-medium text-accent-foreground sm:inline-flex">
-                    <Hash className="h-2.5 w-2.5" />
-                    {conv.otherUser.featuredHashtag}
-                  </span>
-                )}
-              </div>
-              <p className="truncate text-[11px] text-muted-foreground">
-                @{conv.otherUser.username}
-              </p>
-            </div>
-            <CallButton conversationId={id} kind="voice" testId="button-conv-call-voice" />
-            <CallButton conversationId={id} kind="video" testId="button-conv-call-video" />
+            {isGroup ? (
+              <button
+                type="button"
+                onClick={() => setMembersOpen(true)}
+                className="flex min-w-0 flex-1 items-center gap-2 text-left"
+                data-testid="button-open-group-info"
+              >
+                <Avatar className="h-9 w-9">
+                  <AvatarFallback className="bg-primary/15 text-primary">
+                    <Users className="h-4 w-4" />
+                  </AvatarFallback>
+                </Avatar>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-semibold text-foreground">
+                    {headerTitle}
+                  </p>
+                  <p className="truncate text-[11px] text-muted-foreground">
+                    {conv.members.length} members · tap for details
+                  </p>
+                </div>
+              </button>
+            ) : (
+              <>
+                <Avatar className="h-9 w-9">
+                  {conv.otherUser?.avatarUrl ? (
+                    <AvatarImage
+                      src={conv.otherUser.avatarUrl}
+                      alt={conv.otherUser.displayName}
+                    />
+                  ) : null}
+                  <AvatarFallback className="bg-primary/15 text-primary">
+                    {headerInitials}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-1.5">
+                    <Link
+                      href={`/app/u/${conv.otherUser?.username ?? ""}`}
+                      className="truncate text-sm font-semibold text-foreground hover:underline"
+                      data-testid="link-conv-profile"
+                    >
+                      {conv.otherUser?.displayName}
+                    </Link>
+                    {conv.otherUser?.featuredHashtag && (
+                      <span className="hidden items-center gap-0.5 rounded-full bg-accent px-1.5 py-0.5 text-[10px] font-medium text-accent-foreground sm:inline-flex">
+                        <Hash className="h-2.5 w-2.5" />
+                        {conv.otherUser.featuredHashtag}
+                      </span>
+                    )}
+                  </div>
+                  <p className="truncate text-[11px] text-muted-foreground">
+                    @{conv.otherUser?.username}
+                  </p>
+                </div>
+              </>
+            )}
+            <CallButton
+              conversationId={id}
+              kind="voice"
+              testId="button-conv-call-voice"
+            />
+            <CallButton
+              conversationId={id}
+              kind="video"
+              testId="button-conv-call-video"
+            />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
@@ -328,6 +761,17 @@ export default function ConversationChat({ id }: { id: number }) {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
+                {isGroup && (
+                  <>
+                    <DropdownMenuItem
+                      onSelect={() => setMembersOpen(true)}
+                      data-testid="menu-open-members"
+                    >
+                      <Users className="mr-2 h-4 w-4" /> Group info
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                  </>
+                )}
                 <DropdownMenuItem
                   onSelect={() => bgInputRef.current?.click()}
                   data-testid="menu-set-background"
@@ -342,7 +786,7 @@ export default function ConversationChat({ id }: { id: number }) {
                     <Trash2 className="mr-2 h-4 w-4" /> Clear background
                   </DropdownMenuItem>
                 )}
-                {otherUserId && (
+                {!isGroup && otherUserId && (
                   <>
                     <DropdownMenuItem
                       onSelect={() => unfollow.mutate({ id: otherUserId })}
@@ -394,33 +838,35 @@ export default function ConversationChat({ id }: { id: number }) {
         data-testid="conv-message-list"
       >
         <div className="relative">
-        {msgs.isLoading ? (
-          <div className="flex h-full items-center justify-center">
-            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground/70" />
-          </div>
-        ) : msgs.data && msgs.data.length > 0 ? (
-          <div className="mx-auto flex max-w-2xl flex-col gap-3" data-msg-list>
-            {msgs.data.map((m) => {
-              const mine = m.senderId === clerkUser?.id;
-              return (
-                <MessageBubble
-                  key={m.id}
-                  message={m}
-                  variant="dm"
-                  isMine={mine}
-                  onReply={startReply}
-                  onInvalidate={invalidateMessages}
-                  onOpenThread={openThread}
-                  showReadReceipt
-                />
-              );
-            })}
-          </div>
-        ) : (
-          <div className="flex h-full items-center justify-center text-muted-foreground">
-            Say hi to start the conversation 👋
-          </div>
-        )}
+          {msgs.isLoading ? (
+            <div className="flex h-full items-center justify-center">
+              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground/70" />
+            </div>
+          ) : msgs.data && msgs.data.length > 0 ? (
+            <div className="mx-auto flex max-w-2xl flex-col gap-3" data-msg-list>
+              {msgs.data.map((m) => {
+                const mine = m.senderId === clerkUser?.id;
+                return (
+                  <MessageBubble
+                    key={m.id}
+                    message={m}
+                    variant={isGroup ? "room" : "dm"}
+                    isMine={mine}
+                    onReply={startReply}
+                    onInvalidate={invalidateMessages}
+                    onOpenThread={openThread}
+                    showReadReceipt={!isGroup}
+                  />
+                );
+              })}
+            </div>
+          ) : (
+            <div className="flex h-full items-center justify-center text-muted-foreground">
+              {isGroup
+                ? "Say hi to the group 👋"
+                : "Say hi to start the conversation 👋"}
+            </div>
+          )}
         </div>
       </div>
 
@@ -464,20 +910,38 @@ export default function ConversationChat({ id }: { id: number }) {
             data-testid="typing-indicator"
           >
             <span className="inline-flex items-center gap-0.5">
-              <span className="inline-block h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground" style={{ animationDelay: "0ms" }} />
-              <span className="inline-block h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground" style={{ animationDelay: "120ms" }} />
-              <span className="inline-block h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground" style={{ animationDelay: "240ms" }} />
+              <span
+                className="inline-block h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground"
+                style={{ animationDelay: "0ms" }}
+              />
+              <span
+                className="inline-block h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground"
+                style={{ animationDelay: "120ms" }}
+              />
+              <span
+                className="inline-block h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground"
+                style={{ animationDelay: "240ms" }}
+              />
             </span>
-            <span>{typingUsers.map((u) => u.displayName).join(", ")} is typing…</span>
+            <span>
+              {typingUsers.map((u) => u.displayName).join(", ")}{" "}
+              {typingUsers.length === 1 ? "is" : "are"} typing…
+            </span>
           </div>
         )}
         <div className="flex items-center gap-2">
-          <ImageUploadButton onUploaded={sendImage} testId="button-upload-dm-image" />
+          <ImageUploadButton
+            onUploaded={sendImage}
+            testId="button-upload-dm-image"
+          />
           <GifPickerButton
             onPick={(g) => sendGif(g.url)}
             testId="button-pick-dm-gif"
           />
-          <VoiceMessageButton onUploaded={sendAudio} testId="button-record-dm-voice" />
+          <VoiceMessageButton
+            onUploaded={sendAudio}
+            testId="button-record-dm-voice"
+          />
           <MentionTextarea
             ref={inputRef}
             placeholder="Type a message…"
@@ -485,7 +949,13 @@ export default function ConversationChat({ id }: { id: number }) {
             onChange={setDraft}
             onSubmit={() => {
               if (draft.trim() && !send.isPending) {
-                send.mutate({ id, data: { content: draft.trim(), replyToId: replyTo?.id ?? null } });
+                send.mutate({
+                  id,
+                  data: {
+                    content: draft.trim(),
+                    replyToId: replyTo?.id ?? null,
+                  },
+                });
               }
             }}
             onUserActivity={pingTyping}
@@ -514,6 +984,14 @@ export default function ConversationChat({ id }: { id: number }) {
         parentId={threadParent?.id ?? null}
         scope={{ type: "conversation", id }}
       />
+      {conv && isGroup && (
+        <GroupMembersPanel
+          open={membersOpen}
+          onOpenChange={setMembersOpen}
+          conv={conv}
+          meId={meId}
+        />
+      )}
     </div>
   );
 }

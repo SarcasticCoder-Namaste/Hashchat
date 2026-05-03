@@ -5,11 +5,11 @@ import {
   notificationMutesTable,
   hashtagsTable,
   usersTable,
-  conversationsTable,
+  conversationMembersTable,
   conversationReadsTable,
   messagesTable,
 } from "@workspace/db";
-import { and, desc, eq, gt, inArray, isNull, or, sql } from "drizzle-orm";
+import { and, desc, eq, gt, inArray, isNull, ne, sql } from "drizzle-orm";
 import { requireAuth, getUserId } from "../middlewares/requireAuth";
 import { buildHref } from "../lib/notifications";
 import { normalizeTag } from "../lib/hashtags";
@@ -96,16 +96,15 @@ router.get(
         ),
       );
 
-    // Compute DM badge: number of conversations with unread messages from other.
-    const convos = await db
-      .select()
-      .from(conversationsTable)
-      .where(
-        or(eq(conversationsTable.userAId, me), eq(conversationsTable.userBId, me)),
-      );
+    // Compute DM badge: number of conversations with unread messages from
+    // someone other than me. Includes both direct and group conversations.
+    const memberships = await db
+      .select({ conversationId: conversationMembersTable.conversationId })
+      .from(conversationMembersTable)
+      .where(eq(conversationMembersTable.userId, me));
     let dms = 0;
-    if (convos.length > 0) {
-      const convoIds = convos.map((c) => c.id);
+    if (memberships.length > 0) {
+      const convoIds = memberships.map((m) => m.conversationId);
       const reads = await db
         .select()
         .from(conversationReadsTable)
@@ -116,15 +115,15 @@ router.get(
           ),
         );
       const readMap = new Map(reads.map((r) => [r.conversationId, r.lastReadAt]));
-      for (const c of convos) {
-        const lastReadAt = readMap.get(c.id) ?? new Date(0);
+      for (const cid of convoIds) {
+        const lastReadAt = readMap.get(cid) ?? new Date(0);
         const [u] = await db
           .select({ count: sql<number>`count(*)::int` })
           .from(messagesTable)
           .where(
             and(
-              eq(messagesTable.conversationId, c.id),
-              sql`${messagesTable.senderId} <> ${me}`,
+              eq(messagesTable.conversationId, cid),
+              ne(messagesTable.senderId, me),
               gt(messagesTable.createdAt, lastReadAt),
             ),
           );

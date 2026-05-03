@@ -9,6 +9,7 @@ import {
   uniqueIndex,
   index,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 
 export const usersTable = pgTable("users", {
   id: text("id").primaryKey(),
@@ -93,12 +94,17 @@ export const conversationsTable = pgTable(
   "conversations",
   {
     id: serial("id").primaryKey(),
-    userAId: text("user_a_id")
-      .notNull()
-      .references(() => usersTable.id, { onDelete: "cascade" }),
-    userBId: text("user_b_id")
-      .notNull()
-      .references(() => usersTable.id, { onDelete: "cascade" }),
+    kind: text("kind").notNull().default("direct"),
+    title: text("title"),
+    creatorId: text("creator_id").references(() => usersTable.id, {
+      onDelete: "set null",
+    }),
+    userAId: text("user_a_id").references(() => usersTable.id, {
+      onDelete: "cascade",
+    }),
+    userBId: text("user_b_id").references(() => usersTable.id, {
+      onDelete: "cascade",
+    }),
     backgroundUrl: text("background_url"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
@@ -107,7 +113,31 @@ export const conversationsTable = pgTable(
       .notNull()
       .defaultNow(),
   },
-  (t) => [uniqueIndex("conversations_pair").on(t.userAId, t.userBId)],
+  (t) => [
+    uniqueIndex("conversations_pair")
+      .on(t.userAId, t.userBId)
+      .where(sql`${t.kind} = 'direct'`),
+  ],
+);
+
+export const conversationMembersTable = pgTable(
+  "conversation_members",
+  {
+    conversationId: integer("conversation_id")
+      .notNull()
+      .references(() => conversationsTable.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => usersTable.id, { onDelete: "cascade" }),
+    joinedAt: timestamp("joined_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    mutedAt: timestamp("muted_at", { withTimezone: true }),
+  },
+  (t) => [
+    primaryKey({ columns: [t.conversationId, t.userId] }),
+    index("conversation_members_user_idx").on(t.userId),
+  ],
 );
 
 export const conversationBackgroundsTable = pgTable(
@@ -191,6 +221,7 @@ export const messagesTable = pgTable(
       .notNull()
       .references(() => usersTable.id, { onDelete: "cascade" }),
     content: text("content").notNull(),
+    kind: text("kind").notNull().default("user"),
     imageUrl: text("image_url"),
     imageAlt: text("image_alt"),
     audioUrl: text("audio_url"),

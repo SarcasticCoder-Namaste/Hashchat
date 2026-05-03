@@ -63,6 +63,20 @@ export function MessageBubble({
     minute: "2-digit",
   });
 
+  if (message.kind === "system") {
+    return (
+      <div
+        className="my-1 flex justify-center"
+        data-testid={`msg-${message.id}`}
+        data-system-message="true"
+      >
+        <span className="rounded-full bg-muted/70 px-3 py-1 text-[11px] text-muted-foreground">
+          {message.senderName} {message.content}
+        </span>
+      </div>
+    );
+  }
+
   if (message.poll) {
     return (
       <motion.div
