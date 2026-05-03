@@ -3412,14 +3412,14 @@ components:
       type: object
       properties:
         id: { type: integer }
-        kind: { type: string, enum: [mention, reply, reaction, follow, dm] }
+        kind: { type: string, enum: [mention, reply, reaction, follow, dm, event_starting] }
         actor:
           oneOf:
             - { $ref: "#/components/schemas/NotificationActor" }
             - { type: "null" }
         targetType:
           type: ["string", "null"]
-          enum: [message, post, conversation, user, "null"]
+          enum: [message, post, conversation, user, event, "null"]
         targetId:
           type: ["integer", "null"]
         targetTextId:

@@ -25,6 +25,7 @@ import {
   MessageSquare,
   UserPlus,
   Loader2,
+  CalendarClock,
 } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 
@@ -58,6 +59,8 @@ function kindIcon(kind: string) {
       return <UserPlus className="h-3.5 w-3.5" />;
     case "dm":
       return <MessageSquare className="h-3.5 w-3.5" />;
+    case "event_starting":
+      return <CalendarClock className="h-3.5 w-3.5" />;
     default:
       return null;
   }
@@ -76,6 +79,8 @@ function kindLabel(n: Notification): string {
       return `${who} started following you`;
     case "dm":
       return `${who} sent you a message`;
+    case "event_starting":
+      return `Event starting soon`;
     default:
       return who;
   }

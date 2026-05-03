@@ -29,6 +29,8 @@ const PREF_KEY_BY_KIND: Record<
   reaction: { email: "emailReactions", push: "pushReactions" },
   follow: { email: "emailFollows", push: "pushFollows" },
   dm: { email: "emailDms", push: "pushDms" },
+  // Event reminders piggyback on mention preferences for now.
+  event_starting: { email: "emailMentions", push: "pushMentions" },
 };
 
 const EMAIL_FIELDS = {
@@ -59,6 +61,8 @@ function titleFor(kind: NotificationKind, actor: string | null): string {
       return `${a} started following you`;
     case "dm":
       return `New message from ${a}`;
+    case "event_starting":
+      return `Event starting soon on HashChat`;
   }
 }
 

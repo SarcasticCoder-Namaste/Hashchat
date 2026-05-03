@@ -1200,7 +1200,14 @@ export const GetNotificationsResponse = zod.object({
   items: zod.array(
     zod.object({
       id: zod.number(),
-      kind: zod.enum(["mention", "reply", "reaction", "follow", "dm"]),
+      kind: zod.enum([
+        "mention",
+        "reply",
+        "reaction",
+        "follow",
+        "dm",
+        "event_starting",
+      ]),
       actor: zod
         .union([
           zod.object({
@@ -1213,7 +1220,7 @@ export const GetNotificationsResponse = zod.object({
         ])
         .optional(),
       targetType: zod
-        .enum(["message", "post", "conversation", "user", "null"])
+        .enum(["message", "post", "conversation", "user", "event", "null"])
         .nullish(),
       targetId: zod.number().nullish(),
       targetTextId: zod.string().nullish(),

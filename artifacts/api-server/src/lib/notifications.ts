@@ -6,13 +6,15 @@ export type NotificationKind =
   | "reply"
   | "reaction"
   | "follow"
-  | "dm";
+  | "dm"
+  | "event_starting";
 
 export type NotificationTargetType =
   | "message"
   | "post"
   | "conversation"
-  | "user";
+  | "user"
+  | "event";
 
 export interface CreateNotificationInput {
   recipientId: string;
@@ -117,6 +119,10 @@ export function buildHref(
     // We store the routing hint as targetTextId for messages, e.g. "room:dogs" or "conv:42"
     if (targetTextId.startsWith("room:")) return `/app/rooms/${targetTextId.slice(5)}`;
     if (targetTextId.startsWith("conv:")) return `/app/messages/${targetTextId.slice(5)}`;
+  }
+  if (targetType === "event" && targetTextId) {
+    // targetTextId is the room tag for event notifications.
+    return `/app/rooms/${targetTextId}`;
   }
   return null;
 }

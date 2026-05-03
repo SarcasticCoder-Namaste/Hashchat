@@ -1152,6 +1152,7 @@ export const NotificationKind = {
   reaction: "reaction",
   follow: "follow",
   dm: "dm",
+  event_starting: "event_starting",
 } as const;
 
 /**
@@ -1166,6 +1167,7 @@ export const NotificationTargetType = {
   post: "post",
   conversation: "conversation",
   user: "user",
+  event: "event",
   null: "null",
 } as const;
 

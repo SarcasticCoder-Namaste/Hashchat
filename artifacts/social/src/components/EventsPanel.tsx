@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   useGetRoomEvents,
   useCreateRoomEvent,
@@ -388,11 +388,32 @@ export function LiveEventBanner({ tag }: { tag: string }) {
     },
   });
   const live = (data ?? []).find((e) => e.isLive);
+  const previousLiveIdRef = useRef<number | null>(null);
+  const [flash, setFlash] = useState(false);
+
+  useEffect(() => {
+    const liveId = live ? live.id : null;
+    if (liveId !== null && liveId !== previousLiveIdRef.current) {
+      setFlash(true);
+      const t = setTimeout(() => setFlash(false), 2400);
+      previousLiveIdRef.current = liveId;
+      return () => clearTimeout(t);
+    }
+    if (liveId === null) {
+      previousLiveIdRef.current = null;
+    }
+    return undefined;
+  }, [live]);
+
   if (!live) return null;
   return (
     <div
-      className="flex items-center gap-2 border-b border-red-500/30 bg-red-500/10 px-3 py-1.5 text-xs"
+      className={[
+        "flex items-center gap-2 border-b border-red-500/30 bg-red-500/10 px-3 py-1.5 text-xs transition-colors",
+        flash ? "animate-pulse bg-red-500/30" : "",
+      ].join(" ")}
       data-testid={`live-banner-${live.id}`}
+      data-flash={flash ? "true" : "false"}
     >
       <Radio className="h-3.5 w-3.5 animate-pulse text-red-600" />
       <span className="font-semibold text-red-600 dark:text-red-400">
