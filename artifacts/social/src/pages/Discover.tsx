@@ -93,7 +93,10 @@ export default function Discover() {
   const { data: explore, isLoading } = useGetExplore({
     query: {
       queryKey: getGetExploreQueryKey(),
-      refetchOnWindowFocus: false,
+      refetchOnWindowFocus: true,
+      refetchInterval: 60_000,
+      refetchIntervalInBackground: false,
+      staleTime: 30_000,
     },
   });
   const search = useSearch();
