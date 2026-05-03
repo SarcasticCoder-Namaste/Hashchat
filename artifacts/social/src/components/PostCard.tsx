@@ -330,13 +330,19 @@ export function PostCard({ post, meId, onDeleted, onChanged }: PostCardProps) {
                 {isGifUrl(u) ? (
                   <GifMedia
                     src={u}
-                    alt={`GIF attached by ${post.author.displayName}`}
+                    alt={
+                      post.imageAlts?.[i]?.trim() ||
+                      `Image attached by ${post.author.displayName}`
+                    }
                     className="aspect-square w-full object-cover"
                   />
                 ) : (
                   <img
                     src={u}
-                    alt={`Image attached by ${post.author.displayName}`}
+                    alt={
+                      post.imageAlts?.[i]?.trim() ||
+                      `Image attached by ${post.author.displayName}`
+                    }
                     className="aspect-square w-full object-cover"
                     loading="lazy"
                   />

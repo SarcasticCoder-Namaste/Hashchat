@@ -2907,6 +2907,8 @@ components:
         replyCount: { type: integer }
         imageUrl:
           type: ["string", "null"]
+        imageAlt:
+          type: ["string", "null"]
         audioUrl:
           type: ["string", "null"]
         audioWaveform:
@@ -2942,6 +2944,8 @@ components:
         replyToId:
           type: ["integer", "null"]
         imageUrl:
+          type: ["string", "null"]
+        imageAlt:
           type: ["string", "null"]
         audioUrl:
           type: ["string", "null"]
@@ -3471,6 +3475,9 @@ components:
         imageUrls:
           type: array
           items: { type: string }
+        imageAlts:
+          type: array
+          items: { type: string }
         reactions:
           type: array
           items: { $ref: "#/components/schemas/Reaction" }
@@ -3503,6 +3510,9 @@ components:
         imageUrls:
           type: array
           items: { type: string }
+        imageAlts:
+          type: array
+          items: { type: string }
         createdAt: { type: string, format: date-time }
         unavailable: { type: boolean }
       required: [id, content, imageUrls, createdAt, unavailable]
@@ -3515,6 +3525,9 @@ components:
           type: array
           items: { type: string }
         imageUrls:
+          type: array
+          items: { type: string }
+        imageAlts:
           type: array
           items: { type: string }
         scheduledFor:
@@ -3550,6 +3563,9 @@ components:
         imageUrls:
           type: array
           items: { type: string }
+        imageAlts:
+          type: array
+          items: { type: string }
         quotedPost:
           oneOf:
             - { $ref: "#/components/schemas/QuotedPost" }
@@ -3566,6 +3582,9 @@ components:
           type: array
           items: { type: string }
         imageUrls:
+          type: array
+          items: { type: string }
+        imageAlts:
           type: array
           items: { type: string }
         quotedPostId:

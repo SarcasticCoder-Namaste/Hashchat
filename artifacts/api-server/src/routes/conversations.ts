@@ -41,7 +41,7 @@ function pair(a: string, b: string): [string, string] {
   return a < b ? [a, b] : [b, a];
 }
 
-async function buildMessages(rows: { id: number; conversationId: number | null; roomTag: string | null; senderId: string; content: string; imageUrl: string | null; audioUrl: string | null; audioWaveform: string | null; audioTranscript: string | null; replyToId: number | null; createdAt: Date }[], myUserId: string) {
+async function buildMessages(rows: { id: number; conversationId: number | null; roomTag: string | null; senderId: string; content: string; imageUrl: string | null; imageAlt: string | null; audioUrl: string | null; audioWaveform: string | null; audioTranscript: string | null; replyToId: number | null; createdAt: Date }[], myUserId: string) {
   return sharedBuildMessages(rows, myUserId);
 }
 
@@ -328,6 +328,10 @@ router.post("/conversations/:id/messages", requireAuth, async (req, res): Promis
       // gif URLs are mirrored into imageUrl so legacy clients still render
       // them; the kind="gif" attachment row preserves the distinction.
       imageUrl: parsed.data.imageUrl ?? parsed.data.gifUrl ?? null,
+      imageAlt:
+        (parsed.data.imageUrl ?? parsed.data.gifUrl) != null
+          ? (parsed.data.imageAlt ?? null)
+          : null,
       audioUrl: parsed.data.audioUrl ?? null,
       audioWaveform: waveformJson,
       replyToId,

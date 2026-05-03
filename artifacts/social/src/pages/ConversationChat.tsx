@@ -177,10 +177,15 @@ export default function ConversationChat({ id }: { id: number }) {
       setBg.mutate({ id, data: { backgroundUrl: `${basePath}/api/storage${r.objectPath}` } }),
   });
 
-  function sendImage(imageUrl: string) {
+  function sendImage(imageUrl: string, suggestedAlt?: string) {
     send.mutate({
       id,
-      data: { content: "", imageUrl, replyToId: replyTo?.id ?? null },
+      data: {
+        content: "",
+        imageUrl,
+        imageAlt: suggestedAlt?.trim() || null,
+        replyToId: replyTo?.id ?? null,
+      },
     });
   }
 

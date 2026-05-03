@@ -49,6 +49,7 @@ async function loadQuotedPosts(
       author: ReturnType<typeof serializeAuthor> | null;
       content: string;
       imageUrls: string[];
+      imageAlts: string[];
       createdAt: string;
       unavailable: boolean;
     }
@@ -61,6 +62,7 @@ async function loadQuotedPosts(
       author: ReturnType<typeof serializeAuthor> | null;
       content: string;
       imageUrls: string[];
+      imageAlts: string[];
       createdAt: string;
       unavailable: boolean;
     }
@@ -98,9 +100,12 @@ async function loadQuotedPosts(
         .orderBy(postMediaTable.position)
     : [];
   const mediaByPost = new Map<number, string[]>();
+  const altsByPost = new Map<number, string[]>();
   for (const m of mediaRows) {
     if (!mediaByPost.has(m.postId)) mediaByPost.set(m.postId, []);
     mediaByPost.get(m.postId)!.push(m.imageUrl);
+    if (!altsByPost.has(m.postId)) altsByPost.set(m.postId, []);
+    altsByPost.get(m.postId)!.push(m.imageAlt ?? "");
   }
 
   const blockChecks = await Promise.all(
@@ -120,6 +125,7 @@ async function loadQuotedPosts(
         author: null,
         content: "",
         imageUrls: [],
+        imageAlts: [],
         createdAt: new Date(0).toISOString(),
         unavailable: true,
       });
@@ -131,6 +137,7 @@ async function loadQuotedPosts(
         author: null,
         content: "",
         imageUrls: [],
+        imageAlts: [],
         createdAt: r.createdAt.toISOString(),
         unavailable: true,
       });
@@ -142,6 +149,7 @@ async function loadQuotedPosts(
       author: serializeAuthor(a, r.authorId),
       content: r.content,
       imageUrls: mediaByPost.get(r.id) ?? [],
+      imageAlts: altsByPost.get(r.id) ?? [],
       createdAt: r.createdAt.toISOString(),
       unavailable: false,
     });
@@ -218,9 +226,12 @@ async function buildPosts(rows: PostRow[], myUserId: string) {
     .where(inArray(postMediaTable.postId, ids))
     .orderBy(postMediaTable.position);
   const mediaByPost = new Map<number, string[]>();
+  const altsByPost = new Map<number, string[]>();
   for (const m of mediaRows) {
     if (!mediaByPost.has(m.postId)) mediaByPost.set(m.postId, []);
     mediaByPost.get(m.postId)!.push(m.imageUrl);
+    if (!altsByPost.has(m.postId)) altsByPost.set(m.postId, []);
+    altsByPost.get(m.postId)!.push(m.imageAlt ?? "");
   }
 
   const reactionRows = await db
@@ -286,6 +297,7 @@ async function buildPosts(rows: PostRow[], myUserId: string) {
       content: r.content,
       hashtags: tagsByPost.get(r.id) ?? [],
       imageUrls: mediaByPost.get(r.id) ?? [],
+      imageAlts: altsByPost.get(r.id) ?? [],
       reactions: reactionsByPost.get(r.id) ?? [],
       mentions: mentionsByPost.get(r.id) ?? [],
       status: r.status === "scheduled" ? "scheduled" : "published",
@@ -327,6 +339,12 @@ router.post("/posts", requireAuth, async (req, res): Promise<void> => {
       return;
     }
   }
+  const imageAltsInput = parsed.data.imageAlts ?? [];
+  const imageAlts = imageUrls.map((_, i) =>
+    typeof imageAltsInput[i] === "string"
+      ? imageAltsInput[i]!.trim().slice(0, 1000)
+      : "",
+  );
 
   let scheduledFor: Date | null = null;
   let status: "published" | "scheduled" = "published";
@@ -390,6 +408,7 @@ router.post("/posts", requireAuth, async (req, res): Promise<void> => {
       imageUrls.map((imageUrl, position) => ({
         postId: created.id,
         imageUrl,
+        imageAlt: imageAlts[position] || null,
         position,
       })),
     );
@@ -787,17 +806,25 @@ async function buildDrafts(
   return rows.map((r) => {
     let hashtags: string[] = [];
     let imageUrls: string[] = [];
+    let imageAlts: string[] = [];
     try {
       hashtags = JSON.parse(r.hashtags);
     } catch {}
     try {
       imageUrls = JSON.parse(r.imageUrls);
     } catch {}
+    try {
+      const parsed = JSON.parse(r.imageAlts);
+      if (Array.isArray(parsed)) {
+        imageAlts = parsed.map((v) => (typeof v === "string" ? v : ""));
+      }
+    } catch {}
     return {
       id: r.id,
       content: r.content,
       hashtags,
       imageUrls,
+      imageAlts: imageUrls.map((_, i) => imageAlts[i] ?? ""),
       quotedPost:
         r.quotedPostId != null ? quotedMap.get(r.quotedPostId) ?? null : null,
       updatedAt: r.updatedAt.toISOString(),
@@ -811,6 +838,7 @@ function validateDraftBody(body: unknown):
       content: string;
       hashtags: string[];
       imageUrls: string[];
+      imageAlts: string[];
       quotedPostId: number | null;
     }
   | { error: string } {
@@ -825,9 +853,13 @@ function validateDraftBody(body: unknown):
   for (const u of imageUrls) {
     if (!isValidStorageUrl(u)) return { error: "Invalid imageUrl" };
   }
+  const altsInput = parsed.data.imageAlts ?? [];
+  const imageAlts = imageUrls.map((_, i) =>
+    typeof altsInput[i] === "string" ? altsInput[i]!.slice(0, 1000) : "",
+  );
   const quotedPostId =
     parsed.data.quotedPostId != null ? Number(parsed.data.quotedPostId) : null;
-  return { content, hashtags, imageUrls, quotedPostId };
+  return { content, hashtags, imageUrls, imageAlts, quotedPostId };
 }
 
 router.get("/me/drafts", requireAuth, async (req, res): Promise<void> => {
@@ -855,6 +887,7 @@ router.post("/me/drafts", requireAuth, async (req, res): Promise<void> => {
       content: v.content,
       hashtags: JSON.stringify(v.hashtags),
       imageUrls: JSON.stringify(v.imageUrls),
+      imageAlts: JSON.stringify(v.imageAlts),
       quotedPostId: v.quotedPostId,
     })
     .returning();
@@ -893,6 +926,7 @@ router.patch(
         content: v.content,
         hashtags: JSON.stringify(v.hashtags),
         imageUrls: JSON.stringify(v.imageUrls),
+        imageAlts: JSON.stringify(v.imageAlts),
         quotedPostId: v.quotedPostId,
         updatedAt: new Date(),
       })

@@ -231,7 +231,10 @@ export function ThreadDrawer({ open, onOpenChange, parentId, scope }: Props) {
             >
               <img
                 src={message.imageUrl}
-                alt=""
+                alt={
+                  message.imageAlt?.trim() ||
+                  `Image from ${message.senderName}`
+                }
                 className="max-h-48 max-w-full rounded-md object-cover"
               />
             </a>

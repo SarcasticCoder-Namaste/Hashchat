@@ -21,6 +21,7 @@ type RawMessage = {
   senderId: string;
   content: string;
   imageUrl: string | null;
+  imageAlt: string | null;
   audioUrl: string | null;
   audioWaveform: string | null;
   audioTranscript: string | null;
@@ -362,6 +363,7 @@ export async function buildMessages(rows: RawMessage[], myUserId: string) {
       senderAvatarUrl: sender?.avatarUrl ?? null,
       content: r.content,
       imageUrl: r.imageUrl,
+      imageAlt: r.imageAlt,
       audioUrl: r.audioUrl,
       audioWaveform: parseWaveform(r.audioWaveform),
       audioTranscript: r.audioTranscript,

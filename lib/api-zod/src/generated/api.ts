@@ -394,6 +394,7 @@ export const GetForYouFeedResponseItem = zod.object({
         content: zod.string(),
         hashtags: zod.array(zod.string()),
         imageUrls: zod.array(zod.string()),
+        imageAlts: zod.array(zod.string()).optional(),
         reactions: zod.array(
           zod.object({
             emoji: zod.string(),
@@ -432,6 +433,7 @@ export const GetForYouFeedResponseItem = zod.object({
                 .optional(),
               content: zod.string(),
               imageUrls: zod.array(zod.string()),
+              imageAlts: zod.array(zod.string()).optional(),
               createdAt: zod.coerce.date(),
               unavailable: zod.boolean(),
             }),
@@ -466,6 +468,7 @@ export const GetForYouFeedResponseItem = zod.object({
               replyToSenderName: zod.string().nullish(),
               replyCount: zod.number(),
               imageUrl: zod.string().nullish(),
+              imageAlt: zod.string().nullish(),
               audioUrl: zod.string().nullish(),
               audioWaveform: zod
                 .array(
@@ -671,6 +674,7 @@ export const GetExploreResponse = zod.object({
             replyToSenderName: zod.string().nullish(),
             replyCount: zod.number(),
             imageUrl: zod.string().nullish(),
+            imageAlt: zod.string().nullish(),
             audioUrl: zod.string().nullish(),
             audioWaveform: zod
               .array(
@@ -806,6 +810,7 @@ export const GetExploreResponse = zod.object({
         content: zod.string(),
         hashtags: zod.array(zod.string()),
         imageUrls: zod.array(zod.string()),
+        imageAlts: zod.array(zod.string()).optional(),
         reactions: zod.array(
           zod.object({
             emoji: zod.string(),
@@ -844,6 +849,7 @@ export const GetExploreResponse = zod.object({
                 .optional(),
               content: zod.string(),
               imageUrls: zod.array(zod.string()),
+              imageAlts: zod.array(zod.string()).optional(),
               createdAt: zod.coerce.date(),
               unavailable: zod.boolean(),
             }),
@@ -881,6 +887,7 @@ export const GetExploreResponse = zod.object({
             content: zod.string(),
             hashtags: zod.array(zod.string()),
             imageUrls: zod.array(zod.string()),
+            imageAlts: zod.array(zod.string()).optional(),
             reactions: zod.array(
               zod.object({
                 emoji: zod.string(),
@@ -919,6 +926,7 @@ export const GetExploreResponse = zod.object({
                     .optional(),
                   content: zod.string(),
                   imageUrls: zod.array(zod.string()),
+                  imageAlts: zod.array(zod.string()).optional(),
                   createdAt: zod.coerce.date(),
                   unavailable: zod.boolean(),
                 }),
@@ -953,6 +961,7 @@ export const GetExploreResponse = zod.object({
                   replyToSenderName: zod.string().nullish(),
                   replyCount: zod.number(),
                   imageUrl: zod.string().nullish(),
+                  imageAlt: zod.string().nullish(),
                   audioUrl: zod.string().nullish(),
                   audioWaveform: zod
                     .array(
@@ -1108,6 +1117,7 @@ export const GetHotInYourHashtagsResponseItem = zod.object({
     content: zod.string(),
     hashtags: zod.array(zod.string()),
     imageUrls: zod.array(zod.string()),
+    imageAlts: zod.array(zod.string()).optional(),
     reactions: zod.array(
       zod.object({
         emoji: zod.string(),
@@ -1146,6 +1156,7 @@ export const GetHotInYourHashtagsResponseItem = zod.object({
             .optional(),
           content: zod.string(),
           imageUrls: zod.array(zod.string()),
+          imageAlts: zod.array(zod.string()).optional(),
           createdAt: zod.coerce.date(),
           unavailable: zod.boolean(),
         }),
@@ -1504,6 +1515,7 @@ export const GetConversationsResponseItem = zod.object({
         replyToSenderName: zod.string().nullish(),
         replyCount: zod.number(),
         imageUrl: zod.string().nullish(),
+        imageAlt: zod.string().nullish(),
         audioUrl: zod.string().nullish(),
         audioWaveform: zod
           .array(
@@ -1661,6 +1673,7 @@ export const OpenConversationResponse = zod.object({
         replyToSenderName: zod.string().nullish(),
         replyCount: zod.number(),
         imageUrl: zod.string().nullish(),
+        imageAlt: zod.string().nullish(),
         audioUrl: zod.string().nullish(),
         audioWaveform: zod
           .array(
@@ -1773,6 +1786,7 @@ export const GetConversationMessagesResponseItem = zod.object({
   replyToSenderName: zod.string().nullish(),
   replyCount: zod.number(),
   imageUrl: zod.string().nullish(),
+  imageAlt: zod.string().nullish(),
   audioUrl: zod.string().nullish(),
   audioWaveform: zod
     .array(
@@ -1872,6 +1886,7 @@ export const SendConversationMessageBody = zod.object({
   content: zod.string(),
   replyToId: zod.number().nullish(),
   imageUrl: zod.string().nullish(),
+  imageAlt: zod.string().nullish(),
   audioUrl: zod.string().nullish(),
   audioWaveform: zod
     .array(
@@ -1933,6 +1948,7 @@ export const GetMessageRepliesResponse = zod.object({
     replyToSenderName: zod.string().nullish(),
     replyCount: zod.number(),
     imageUrl: zod.string().nullish(),
+    imageAlt: zod.string().nullish(),
     audioUrl: zod.string().nullish(),
     audioWaveform: zod
       .array(
@@ -2028,6 +2044,7 @@ export const GetMessageRepliesResponse = zod.object({
       replyToSenderName: zod.string().nullish(),
       replyCount: zod.number(),
       imageUrl: zod.string().nullish(),
+      imageAlt: zod.string().nullish(),
       audioUrl: zod.string().nullish(),
       audioWaveform: zod
         .array(
@@ -2312,6 +2329,7 @@ export const GetRoomsResponseItem = zod.object({
         replyToSenderName: zod.string().nullish(),
         replyCount: zod.number(),
         imageUrl: zod.string().nullish(),
+        imageAlt: zod.string().nullish(),
         audioUrl: zod.string().nullish(),
         audioWaveform: zod
           .array(
@@ -2435,6 +2453,7 @@ export const GetTrendingRoomsResponseItem = zod.object({
         replyToSenderName: zod.string().nullish(),
         replyCount: zod.number(),
         imageUrl: zod.string().nullish(),
+        imageAlt: zod.string().nullish(),
         audioUrl: zod.string().nullish(),
         audioWaveform: zod
           .array(
@@ -2548,6 +2567,7 @@ export const GetRoomMessagesResponseItem = zod.object({
   replyToSenderName: zod.string().nullish(),
   replyCount: zod.number(),
   imageUrl: zod.string().nullish(),
+  imageAlt: zod.string().nullish(),
   audioUrl: zod.string().nullish(),
   audioWaveform: zod
     .array(
@@ -2645,6 +2665,7 @@ export const SendRoomMessageBody = zod.object({
   content: zod.string(),
   replyToId: zod.number().nullish(),
   imageUrl: zod.string().nullish(),
+  imageAlt: zod.string().nullish(),
   audioUrl: zod.string().nullish(),
   audioWaveform: zod
     .array(
@@ -3536,6 +3557,7 @@ export const CreatePostBody = zod.object({
   content: zod.string().max(createPostBodyContentMax),
   hashtags: zod.array(zod.string()).optional(),
   imageUrls: zod.array(zod.string()).optional(),
+  imageAlts: zod.array(zod.string()).optional(),
   scheduledFor: zod.coerce.date().nullish(),
   quotedPostId: zod.number().nullish(),
   fromDraftId: zod.number().nullish(),
@@ -3578,6 +3600,7 @@ export const UpdatePostResponse = zod.object({
   content: zod.string(),
   hashtags: zod.array(zod.string()),
   imageUrls: zod.array(zod.string()),
+  imageAlts: zod.array(zod.string()).optional(),
   reactions: zod.array(
     zod.object({
       emoji: zod.string(),
@@ -3616,6 +3639,7 @@ export const UpdatePostResponse = zod.object({
           .optional(),
         content: zod.string(),
         imageUrls: zod.array(zod.string()),
+        imageAlts: zod.array(zod.string()).optional(),
         createdAt: zod.coerce.date(),
         unavailable: zod.boolean(),
       }),
@@ -3646,6 +3670,7 @@ export const GetMyDraftsResponseItem = zod.object({
   content: zod.string(),
   hashtags: zod.array(zod.string()),
   imageUrls: zod.array(zod.string()),
+  imageAlts: zod.array(zod.string()).optional(),
   quotedPost: zod
     .union([
       zod.object({
@@ -3666,6 +3691,7 @@ export const GetMyDraftsResponseItem = zod.object({
           .optional(),
         content: zod.string(),
         imageUrls: zod.array(zod.string()),
+        imageAlts: zod.array(zod.string()).optional(),
         createdAt: zod.coerce.date(),
         unavailable: zod.boolean(),
       }),
@@ -3686,6 +3712,7 @@ export const CreateDraftBody = zod.object({
   content: zod.string().max(createDraftBodyContentMax),
   hashtags: zod.array(zod.string()).optional(),
   imageUrls: zod.array(zod.string()).optional(),
+  imageAlts: zod.array(zod.string()).optional(),
   quotedPostId: zod.number().nullish(),
 });
 
@@ -3702,6 +3729,7 @@ export const UpdateDraftBody = zod.object({
   content: zod.string().max(updateDraftBodyContentMax),
   hashtags: zod.array(zod.string()).optional(),
   imageUrls: zod.array(zod.string()).optional(),
+  imageAlts: zod.array(zod.string()).optional(),
   quotedPostId: zod.number().nullish(),
 });
 
@@ -3710,6 +3738,7 @@ export const UpdateDraftResponse = zod.object({
   content: zod.string(),
   hashtags: zod.array(zod.string()),
   imageUrls: zod.array(zod.string()),
+  imageAlts: zod.array(zod.string()).optional(),
   quotedPost: zod
     .union([
       zod.object({
@@ -3730,6 +3759,7 @@ export const UpdateDraftResponse = zod.object({
           .optional(),
         content: zod.string(),
         imageUrls: zod.array(zod.string()),
+        imageAlts: zod.array(zod.string()).optional(),
         createdAt: zod.coerce.date(),
         unavailable: zod.boolean(),
       }),
@@ -3767,6 +3797,7 @@ export const GetMyScheduledPostsResponseItem = zod.object({
   content: zod.string(),
   hashtags: zod.array(zod.string()),
   imageUrls: zod.array(zod.string()),
+  imageAlts: zod.array(zod.string()).optional(),
   reactions: zod.array(
     zod.object({
       emoji: zod.string(),
@@ -3805,6 +3836,7 @@ export const GetMyScheduledPostsResponseItem = zod.object({
           .optional(),
         content: zod.string(),
         imageUrls: zod.array(zod.string()),
+        imageAlts: zod.array(zod.string()).optional(),
         createdAt: zod.coerce.date(),
         unavailable: zod.boolean(),
       }),
@@ -4095,6 +4127,7 @@ export const GetMyFeedPostsResponseItem = zod.object({
   content: zod.string(),
   hashtags: zod.array(zod.string()),
   imageUrls: zod.array(zod.string()),
+  imageAlts: zod.array(zod.string()).optional(),
   reactions: zod.array(
     zod.object({
       emoji: zod.string(),
@@ -4133,6 +4166,7 @@ export const GetMyFeedPostsResponseItem = zod.object({
           .optional(),
         content: zod.string(),
         imageUrls: zod.array(zod.string()),
+        imageAlts: zod.array(zod.string()).optional(),
         createdAt: zod.coerce.date(),
         unavailable: zod.boolean(),
       }),
@@ -4179,6 +4213,7 @@ export const GetHashtagPostsResponseItem = zod.object({
   content: zod.string(),
   hashtags: zod.array(zod.string()),
   imageUrls: zod.array(zod.string()),
+  imageAlts: zod.array(zod.string()).optional(),
   reactions: zod.array(
     zod.object({
       emoji: zod.string(),
@@ -4217,6 +4252,7 @@ export const GetHashtagPostsResponseItem = zod.object({
           .optional(),
         content: zod.string(),
         imageUrls: zod.array(zod.string()),
+        imageAlts: zod.array(zod.string()).optional(),
         createdAt: zod.coerce.date(),
         unavailable: zod.boolean(),
       }),
@@ -4263,6 +4299,7 @@ export const GetUserPostsResponseItem = zod.object({
   content: zod.string(),
   hashtags: zod.array(zod.string()),
   imageUrls: zod.array(zod.string()),
+  imageAlts: zod.array(zod.string()).optional(),
   reactions: zod.array(
     zod.object({
       emoji: zod.string(),
@@ -4301,6 +4338,7 @@ export const GetUserPostsResponseItem = zod.object({
           .optional(),
         content: zod.string(),
         imageUrls: zod.array(zod.string()),
+        imageAlts: zod.array(zod.string()).optional(),
         createdAt: zod.coerce.date(),
         unavailable: zod.boolean(),
       }),
@@ -4726,6 +4764,7 @@ export const GetCommunityResponse = zod.object({
             replyToSenderName: zod.string().nullish(),
             replyCount: zod.number(),
             imageUrl: zod.string().nullish(),
+            imageAlt: zod.string().nullish(),
             audioUrl: zod.string().nullish(),
             audioWaveform: zod
               .array(
@@ -4949,6 +4988,7 @@ export const JoinCommunityResponse = zod.object({
             replyToSenderName: zod.string().nullish(),
             replyCount: zod.number(),
             imageUrl: zod.string().nullish(),
+            imageAlt: zod.string().nullish(),
             audioUrl: zod.string().nullish(),
             audioWaveform: zod
               .array(
@@ -5172,6 +5212,7 @@ export const LeaveCommunityResponse = zod.object({
             replyToSenderName: zod.string().nullish(),
             replyCount: zod.number(),
             imageUrl: zod.string().nullish(),
+            imageAlt: zod.string().nullish(),
             audioUrl: zod.string().nullish(),
             audioWaveform: zod
               .array(

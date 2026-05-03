@@ -76,8 +76,11 @@ function toLocalInputValue(d: Date): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
-function imagesFromUrls(urls: string[]): AttachedImage[] {
-  return urls.map((u) => ({ url: u, alt: "" }));
+function imagesFromDraft(
+  urls: string[],
+  alts: string[] | undefined,
+): AttachedImage[] {
+  return urls.map((u, i) => ({ url: u, alt: alts?.[i] ?? "" }));
 }
 
 export function PostComposer({
@@ -94,7 +97,7 @@ export function PostComposer({
   const qc = useQueryClient();
   const [content, setContent] = useState(initialDraft?.content ?? "");
   const [images, setImages] = useState<AttachedImage[]>(
-    initialDraft ? imagesFromUrls(initialDraft.imageUrls) : [],
+    initialDraft ? imagesFromDraft(initialDraft.imageUrls, initialDraft.imageAlts) : [],
   );
   const [draftId, setDraftId] = useState<number | null>(
     initialDraft?.id ?? null,
@@ -164,9 +167,11 @@ export function PostComposer({
     const trimmed = content.trim();
     if (!trimmed && images.length === 0 && !quoted) return;
     const imageUrls = images.map((i) => i.url);
+    const imageAlts = images.map((i) => i.alt);
     const snapshot = JSON.stringify({
       content: trimmed,
       imageUrls,
+      imageAlts,
       quoted: quoted?.id ?? null,
       defaultHashtag,
     });
@@ -178,6 +183,7 @@ export function PostComposer({
           content: trimmed || " ",
           hashtags: hashtagsForBody,
           imageUrls,
+          imageAlts,
           quotedPostId: quoted?.id ?? null,
         };
         if (draftId == null) {
@@ -206,6 +212,7 @@ export function PostComposer({
     const body: CreatePostBody = {
       content: trimmed,
       imageUrls: images.map((i) => i.url),
+      imageAlts: images.map((i) => i.alt),
       hashtags: hashtagsForBody,
       quotedPostId: quoted?.id ?? null,
       fromDraftId: draftId,
@@ -223,6 +230,7 @@ export function PostComposer({
     const body: CreatePostBody = {
       content: trimmed,
       imageUrls: images.map((i) => i.url),
+      imageAlts: images.map((i) => i.alt),
       hashtags: hashtagsForBody,
       quotedPostId: quoted?.id ?? null,
       fromDraftId: draftId,
@@ -241,7 +249,7 @@ export function PostComposer({
 
   function loadDraft(d: PostDraft) {
     setContent(d.content);
-    setImages(imagesFromUrls(d.imageUrls));
+    setImages(imagesFromDraft(d.imageUrls, d.imageAlts));
     setQuoted(d.quotedPost ?? null);
     setDraftId(d.id);
     lastSavedRef.current = "";

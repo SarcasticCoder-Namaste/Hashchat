@@ -158,10 +158,15 @@ export default function RoomChat({ tag }: { tag: string }) {
     });
   }
 
-  function sendImage(imageUrl: string) {
+  function sendImage(imageUrl: string, suggestedAlt?: string) {
     send.mutate({
       tag: cleanTag,
-      data: { content: "", imageUrl, replyToId: replyTo?.id ?? null },
+      data: {
+        content: "",
+        imageUrl,
+        imageAlt: suggestedAlt?.trim() || null,
+        replyToId: replyTo?.id ?? null,
+      },
     });
   }
 

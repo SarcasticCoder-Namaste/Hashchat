@@ -192,6 +192,7 @@ export const messagesTable = pgTable(
       .references(() => usersTable.id, { onDelete: "cascade" }),
     content: text("content").notNull(),
     imageUrl: text("image_url"),
+    imageAlt: text("image_alt"),
     audioUrl: text("audio_url"),
     audioWaveform: text("audio_waveform"),
     audioTranscript: text("audio_transcript"),
@@ -469,6 +470,7 @@ export const postDraftsTable = pgTable(
     content: text("content").notNull().default(""),
     hashtags: text("hashtags").notNull().default("[]"),
     imageUrls: text("image_urls").notNull().default("[]"),
+    imageAlts: text("image_alts").notNull().default("[]"),
     quotedPostId: integer("quoted_post_id"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
@@ -504,6 +506,7 @@ export const postMediaTable = pgTable(
       .notNull()
       .references(() => postsTable.id, { onDelete: "cascade" }),
     imageUrl: text("image_url").notNull(),
+    imageAlt: text("image_alt"),
     position: integer("position").notNull().default(0),
   },
   (t) => [index("post_media_post_idx").on(t.postId, t.position)],

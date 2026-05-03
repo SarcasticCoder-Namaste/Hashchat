@@ -408,6 +408,8 @@ export interface Message {
   /** @nullable */
   imageUrl?: string | null;
   /** @nullable */
+  imageAlt?: string | null;
+  /** @nullable */
   audioUrl?: string | null;
   /** @nullable */
   audioWaveform?: number[] | null;
@@ -548,6 +550,8 @@ export interface SendMessageBody {
   replyToId?: number | null;
   /** @nullable */
   imageUrl?: string | null;
+  /** @nullable */
+  imageAlt?: string | null;
   /** @nullable */
   audioUrl?: string | null;
   /** @nullable */
@@ -989,6 +993,7 @@ export interface QuotedPost {
   author?: PostAuthor;
   content: string;
   imageUrls: string[];
+  imageAlts?: string[];
   createdAt: string;
   unavailable: boolean;
 }
@@ -999,6 +1004,7 @@ export interface Post {
   content: string;
   hashtags: string[];
   imageUrls: string[];
+  imageAlts?: string[];
   reactions: Reaction[];
   mentions: MentionedUser[];
   status: PostStatus;
@@ -1017,6 +1023,7 @@ export interface CreatePostBody {
   content: string;
   hashtags?: string[];
   imageUrls?: string[];
+  imageAlts?: string[];
   /** @nullable */
   scheduledFor?: string | null;
   /** @nullable */
@@ -1040,6 +1047,7 @@ export interface PostDraft {
   content: string;
   hashtags: string[];
   imageUrls: string[];
+  imageAlts?: string[];
   quotedPost?: QuotedPost | null;
   updatedAt: string;
   createdAt: string;
@@ -1050,6 +1058,7 @@ export interface PostDraftBody {
   content: string;
   hashtags?: string[];
   imageUrls?: string[];
+  imageAlts?: string[];
   /** @nullable */
   quotedPostId?: number | null;
 }

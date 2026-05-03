@@ -157,14 +157,20 @@ export function MessageBubble({
                 {isGifUrl(message.imageUrl) ? (
                   <GifMedia
                     src={message.imageUrl}
-                    alt={`GIF from ${message.senderName}`}
+                    alt={
+                      message.imageAlt?.trim() ||
+                      `Image from ${message.senderName}`
+                    }
                     className="block max-h-80 w-full object-cover"
                     testId={`msg-image-${message.id}`}
                   />
                 ) : (
                   <img
                     src={message.imageUrl}
-                    alt={`Image from ${message.senderName}`}
+                    alt={
+                      message.imageAlt?.trim() ||
+                      `Image from ${message.senderName}`
+                    }
                     className="block max-h-80 w-full object-cover"
                     data-testid={`msg-image-${message.id}`}
                   />
@@ -314,14 +320,20 @@ export function MessageBubble({
             {isGifUrl(message.imageUrl) ? (
               <GifMedia
                 src={message.imageUrl}
-                alt={`GIF from ${message.senderName}`}
+                alt={
+                  message.imageAlt?.trim() ||
+                  `Image from ${message.senderName}`
+                }
                 className="max-h-80 max-w-full rounded-lg object-cover"
                 testId={`msg-image-${message.id}`}
               />
             ) : (
               <img
                 src={message.imageUrl}
-                alt={`Image from ${message.senderName}`}
+                alt={
+                  message.imageAlt?.trim() ||
+                  `Image from ${message.senderName}`
+                }
                 className="max-h-80 max-w-full rounded-lg object-cover"
                 data-testid={`msg-image-${message.id}`}
               />

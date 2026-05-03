@@ -274,6 +274,10 @@ router.post("/rooms/:tag/messages", requireAuth, async (req, res): Promise<void>
       // gif URLs are mirrored into imageUrl so legacy clients still render
       // them; the kind="gif" attachment row preserves the distinction.
       imageUrl: parsed.data.imageUrl ?? parsed.data.gifUrl ?? null,
+      imageAlt:
+        (parsed.data.imageUrl ?? parsed.data.gifUrl) != null
+          ? (parsed.data.imageAlt ?? null)
+          : null,
       audioUrl: parsed.data.audioUrl ?? null,
       audioWaveform: waveformJson,
       replyToId,
