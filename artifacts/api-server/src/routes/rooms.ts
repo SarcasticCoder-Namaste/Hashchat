@@ -20,6 +20,7 @@ import { transcribeMessageAudio } from "../lib/transcribeAudio";
 import { isAllowedGifUrl } from "../lib/giphy";
 import { SendRoomMessageBody } from "@workspace/api-zod";
 import { normalizeTag } from "../lib/hashtags";
+import { checkRateLimit } from "../lib/aiRateCache";
 import {
   presenceStateFor,
   publicCurrentRoom,
@@ -230,6 +231,8 @@ router.get("/rooms/:tag/messages", requireAuth, async (req, res): Promise<void> 
 // ----- "Catch me up" room summary -----
 
 const SUMMARY_TTL_MS = 5 * 60 * 1000;
+const SUMMARY_RATE_LIMIT = 30;
+const SUMMARY_WINDOW_MS = 60 * 1000;
 
 router.get(
   "/rooms/:tag/summary",
@@ -330,6 +333,19 @@ router.get(
         new Set(visible.map((v) => v.displayName ?? v.username)).size
       } people in the last ${hours}h. AI summary is unavailable right now.`;
     } else {
+      const rate = checkRateLimit(
+        `room-summary:${me}`,
+        SUMMARY_RATE_LIMIT,
+        SUMMARY_WINDOW_MS,
+      );
+      if (!rate.ok) {
+        res.setHeader("Retry-After", String(rate.retryAfterSeconds));
+        res.status(429).json({
+          error: `You're requesting room summaries too quickly. Try again in ${rate.retryAfterSeconds}s.`,
+          retryAfterSeconds: rate.retryAfterSeconds,
+        });
+        return;
+      }
       const transcript = visible
         .slice(-150)
         .map((v) => `${v.displayName ?? v.username}: ${(v.content ?? "").slice(0, 400)}`)

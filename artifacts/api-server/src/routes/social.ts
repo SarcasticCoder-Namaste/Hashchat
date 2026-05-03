@@ -16,6 +16,11 @@ import { and, desc, eq, gt, inArray, isNull, ne, or, sql } from "drizzle-orm";
 import { getOpenAIClient } from "../lib/openaiClient";
 import { requireAuth, getUserId } from "../middlewares/requireAuth";
 import { normalizeTag } from "../lib/hashtags";
+import {
+  checkRateLimit,
+  hashNormalizedText,
+  TtlCache,
+} from "../lib/aiRateCache";
 import { loadFriendStatuses } from "./friends";
 import {
   presenceStateFor,
@@ -356,10 +361,19 @@ router.delete(
 
 // ----- AI hashtag suggestions -----
 
+const SUGGEST_HASHTAGS_RATE_LIMIT = 30;
+const SUGGEST_HASHTAGS_WINDOW_MS = 60 * 1000;
+const SUGGEST_HASHTAGS_CACHE_TTL_MS = 5 * 60 * 1000;
+const suggestHashtagsCache = new TtlCache<string[]>(
+  SUGGEST_HASHTAGS_CACHE_TTL_MS,
+  1000,
+);
+
 router.post(
   "/ai/suggest-hashtags",
   requireAuth,
   async (req, res): Promise<void> => {
+    const me = getUserId(req);
     const body = (req.body ?? {}) as { text?: unknown; max?: unknown };
     const text = typeof body.text === "string" ? body.text.trim() : "";
     const max = Math.max(
@@ -368,6 +382,25 @@ router.post(
     );
     if (!text || text.length < 3) {
       res.json({ tags: [] });
+      return;
+    }
+    const cacheKey = `${hashNormalizedText(text)}:${max}`;
+    const cached = suggestHashtagsCache.get(cacheKey);
+    if (cached) {
+      res.json({ tags: cached, cached: true });
+      return;
+    }
+    const rate = checkRateLimit(
+      `suggest-hashtags:${me}`,
+      SUGGEST_HASHTAGS_RATE_LIMIT,
+      SUGGEST_HASHTAGS_WINDOW_MS,
+    );
+    if (!rate.ok) {
+      res.setHeader("Retry-After", String(rate.retryAfterSeconds));
+      res.status(429).json({
+        error: `You're suggesting hashtags too quickly. Try again in ${rate.retryAfterSeconds}s.`,
+        retryAfterSeconds: rate.retryAfterSeconds,
+      });
       return;
     }
     const client = getOpenAIClient();
@@ -411,7 +444,8 @@ router.post(
         seen.add(t);
         return true;
       }).slice(0, max);
-      res.json({ tags: dedup });
+      suggestHashtagsCache.set(cacheKey, dedup);
+      res.json({ tags: dedup, cached: false });
     } catch (err) {
       req.log.warn({ err }, "ai hashtag suggestion failed");
       res.json({ tags: [] });
