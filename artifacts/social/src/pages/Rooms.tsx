@@ -8,8 +8,10 @@ import { Hash, MessageCircle, Users, Sparkles, Flame } from "lucide-react";
 import { CardSkeleton } from "@/components/Skeleton";
 import { EmptyState } from "@/components/EmptyState";
 import { Button } from "@/components/ui/button";
+import { useTranslation } from "@/lib/i18n";
 
 export default function Rooms() {
+  const { t } = useTranslation();
   const myRooms = useGetRooms();
   const trending = useGetTrendingRooms({ limit: 10 });
 
@@ -19,10 +21,10 @@ export default function Rooms() {
         <div className="hero-grid absolute inset-0 opacity-40" aria-hidden="true" />
         <div className="relative">
           <h1 className="text-3xl font-bold text-foreground md:text-4xl">
-            Hashtag <span className="brand-gradient-text">rooms</span>
+            {t("rooms.title")} <span className="brand-gradient-text">{t("rooms.titleAccent")}</span>
           </h1>
           <p className="mt-2 max-w-xl text-muted-foreground">
-            Live group chats around your favorite topics. Drop in, say something, make friends.
+            {t("rooms.subtitle")}
           </p>
         </div>
       </div>
@@ -30,8 +32,8 @@ export default function Rooms() {
       <section>
         <SectionHeader
           icon={<Hash className="h-5 w-5 text-primary" />}
-          title="Your rooms"
-          subtitle="Rooms based on the hashtags you follow."
+          title={t("rooms.yourRooms")}
+          subtitle={t("rooms.yourRoomsSubtitle")}
         />
         {myRooms.isLoading ? (
           <div className="grid gap-3 sm:grid-cols-2">
@@ -54,11 +56,11 @@ export default function Rooms() {
         ) : (
           <EmptyState
             icon={Hash}
-            title="No rooms yet"
-            description="Pick or follow some hashtags from your profile to populate this list."
+            title={t("rooms.emptyTitle")}
+            description={t("rooms.emptyDescription")}
             action={
               <Button asChild variant="secondary">
-                <Link href="/app/settings">Pick hashtags →</Link>
+                <Link href="/app/settings">{t("rooms.pickHashtags")}</Link>
               </Button>
             }
           />
@@ -68,8 +70,8 @@ export default function Rooms() {
       <section>
         <SectionHeader
           icon={<Sparkles className="h-5 w-5 text-pink-500" />}
-          title="Discover trending rooms"
-          subtitle="The fastest growing conversations right now."
+          title={t("rooms.discover")}
+          subtitle={t("rooms.discoverSubtitle")}
         />
         {trending.isLoading ? (
           <div className="grid gap-3 sm:grid-cols-2">
@@ -90,7 +92,7 @@ export default function Rooms() {
             ))}
           </div>
         ) : (
-          <p className="text-sm text-muted-foreground">Nothing trending — check back soon.</p>
+          <p className="text-sm text-muted-foreground">{t("rooms.nothingTrending")}</p>
         )}
       </section>
     </div>
@@ -132,6 +134,7 @@ function RoomCard({
     lastMessage?: { content: string; senderName: string } | null;
   };
 }) {
+  const { t } = useTranslation();
   const hot = r.recentMessages > 0;
   return (
     <Link
@@ -161,7 +164,7 @@ function RoomCard({
             </span>
             {hot && (
               <span className="rounded-full bg-pink-500/15 px-1.5 py-0.5 font-medium text-pink-500">
-                {r.recentMessages} new
+                {t("rooms.cardNew", { count: r.recentMessages })}
               </span>
             )}
           </p>

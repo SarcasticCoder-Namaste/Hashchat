@@ -11,8 +11,10 @@ import { PostFeed } from "@/components/PostFeed";
 import { PostComposer } from "@/components/PostComposer";
 import { Button } from "@/components/ui/button";
 import { Hash, Home as HomeIcon, Loader2 } from "lucide-react";
+import { useTranslation } from "@/lib/i18n";
 
 export default function Home() {
+  const { t } = useTranslation();
   const meQ = useGetMe();
   const meId = meQ.data?.id ?? null;
   const followedQ = useGetMyFollowedHashtags();
@@ -46,9 +48,9 @@ export default function Home() {
           <HomeIcon className="h-5 w-5 text-primary" />
         </div>
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Home</h1>
+          <h1 className="text-3xl font-bold text-foreground">{t("home.title")}</h1>
           <p className="text-sm text-muted-foreground">
-            The latest posts from rooms you follow.
+            {t("home.subtitle")}
           </p>
         </div>
       </div>
@@ -61,10 +63,10 @@ export default function Home() {
         <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-border bg-card/40 p-8 text-center">
           <Hash className="h-8 w-8 text-muted-foreground/70" />
           <p className="text-sm text-muted-foreground">
-            Follow some hashtag rooms to start filling up your home feed.
+            {t("home.emptyFollow")}
           </p>
           <Link href="/app/trending">
-            <Button data-testid="link-find-rooms">Find rooms</Button>
+            <Button data-testid="link-find-rooms">{t("home.findRooms")}</Button>
           </Link>
         </div>
       ) : (
@@ -85,7 +87,7 @@ export default function Home() {
               aria-pressed={selectedTag === null}
               data-testid="chip-tag-all"
             >
-              All
+              {t("home.chipAll")}
             </button>
             {followed.map((f) => {
               const active = selectedTag === f.tag;
@@ -113,8 +115,8 @@ export default function Home() {
           <PostComposer
             placeholder={
               selectedTag
-                ? `Share something in #${selectedTag}…`
-                : "Share something with the rooms you follow…"
+                ? t("home.composerPlaceholderTag", { tag: selectedTag })
+                : t("home.composerPlaceholderAll")
             }
             onPosted={() => {
               qc.invalidateQueries({
@@ -132,14 +134,14 @@ export default function Home() {
               key={`tag-${selectedTag}`}
               scope={{ kind: "hashtag", tag: selectedTag }}
               meId={meId}
-              emptyMessage={`No posts in #${selectedTag} yet — be the first!`}
+              emptyMessage={t("home.emptyTagFeed", { tag: selectedTag })}
             />
           ) : (
             <PostFeed
               key="home-all"
               scope={{ kind: "home" }}
               meId={meId}
-              emptyMessage="No posts yet from the rooms you follow — check back soon!"
+              emptyMessage={t("home.emptyAllFeed")}
             />
           )}
         </div>

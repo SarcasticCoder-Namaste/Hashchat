@@ -22,7 +22,9 @@ import {
   Play,
   LogIn,
 } from "lucide-react";
+import { useTranslation } from "@/lib/i18n";
 
+type TranslateFn = (key: string, vars?: Record<string, string | number>) => string;
 type Kind = "short" | "long";
 
 const SHORTS_QUERIES = [
@@ -91,17 +93,17 @@ function formatCount(n: number | null | undefined): string {
   return `${(n / 1_000_000_000).toFixed(1)}B`.replace(".0", "");
 }
 
-function formatRelative(iso: string): string {
-  const t = new Date(iso).getTime();
-  if (Number.isNaN(t)) return "";
-  const diff = Math.max(0, Date.now() - t) / 1000;
-  if (diff < 60) return "just now";
-  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
-  if (diff < 86400 * 7) return `${Math.floor(diff / 86400)}d ago`;
-  if (diff < 86400 * 30) return `${Math.floor(diff / (86400 * 7))}w ago`;
-  if (diff < 86400 * 365) return `${Math.floor(diff / (86400 * 30))}mo ago`;
-  return `${Math.floor(diff / (86400 * 365))}y ago`;
+function formatRelative(iso: string, t: TranslateFn): string {
+  const at = new Date(iso).getTime();
+  if (Number.isNaN(at)) return "";
+  const diff = Math.max(0, Date.now() - at) / 1000;
+  if (diff < 60) return t("reels.timeJustNow");
+  if (diff < 3600) return t("reels.timeMinutesAgo", { count: Math.floor(diff / 60) });
+  if (diff < 86400) return t("reels.timeHoursAgo", { count: Math.floor(diff / 3600) });
+  if (diff < 86400 * 7) return t("reels.timeDaysAgo", { count: Math.floor(diff / 86400) });
+  if (diff < 86400 * 30) return t("reels.timeWeeksAgo", { count: Math.floor(diff / (86400 * 7)) });
+  if (diff < 86400 * 365) return t("reels.timeMonthsAgo", { count: Math.floor(diff / (86400 * 30)) });
+  return t("reels.timeYearsAgo", { count: Math.floor(diff / (86400 * 365)) });
 }
 
 const SAVED_KEY = "hashchat:saved-reels";
@@ -128,6 +130,7 @@ function persistSaved(items: Reel[]) {
 const PAGE_SIZE = 12;
 
 export default function Reels() {
+  const { t } = useTranslation();
   const [kind, setKind] = useState<Kind>("short");
   const [query, setQuery] = useState("trending");
   const [active, setActive] = useState("trending");
@@ -237,9 +240,9 @@ export default function Reels() {
             <Film className="h-6 w-6" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Watch</h1>
+            <h1 className="text-3xl font-bold text-foreground">{t("reels.title")}</h1>
             <p className="text-sm text-muted-foreground">
-              YouTube Shorts and full-length videos in one place.
+              {t("reels.subtitle")}
             </p>
           </div>
         </div>
@@ -253,7 +256,7 @@ export default function Reels() {
               className="rounded-full border-red-200 text-red-600 hover:bg-red-50"
             >
               <Youtube className="mr-1.5 h-4 w-4 text-red-500" />
-              YouTube · Signed in
+              {t("reels.signedIn")}
             </Button>
           ) : (
             <Button
@@ -264,7 +267,7 @@ export default function Reels() {
               className="rounded-full border-red-200 text-red-600 hover:bg-red-50"
             >
               <LogIn className="mr-1.5 h-4 w-4" />
-              Sign in to YouTube
+              {t("reels.signIn")}
             </Button>
           )}
         </div>
@@ -279,7 +282,7 @@ export default function Reels() {
             setView("feed");
           }}
           icon={<Sparkles className="h-4 w-4" />}
-          label="Shorts"
+          label={t("reels.tabShorts")}
           testId="tab-reels-shorts"
         />
         <TabButton
@@ -289,14 +292,14 @@ export default function Reels() {
             setView("feed");
           }}
           icon={<Play className="h-4 w-4" />}
-          label="Videos"
+          label={t("reels.tabVideos")}
           testId="tab-reels-videos"
         />
         <TabButton
           active={view === "saved"}
           onClick={() => setView("saved")}
           icon={<Bookmark className="h-4 w-4" />}
-          label={`Saved${saved.length > 0 ? ` (${saved.length})` : ""}`}
+          label={saved.length > 0 ? t("reels.tabSavedCount", { count: saved.length }) : t("reels.tabSaved")}
           testId="tab-reels-saved"
         />
       </div>
@@ -314,8 +317,8 @@ export default function Reels() {
                 }}
                 placeholder={
                   kind === "short"
-                    ? "Search YouTube Shorts..."
-                    : "Search YouTube videos..."
+                    ? t("reels.searchShorts")
+                    : t("reels.searchVideos")
                 }
                 data-testid="input-reels-search"
               />
@@ -324,7 +327,7 @@ export default function Reels() {
               onClick={() => runSearch(query)}
               data-testid="button-reels-search"
             >
-              Search
+              {t("reels.search")}
             </Button>
           </div>
 
@@ -354,10 +357,10 @@ export default function Reels() {
           <Youtube className="h-5 w-5 text-red-500" />
           <h2 className="text-lg font-semibold text-foreground">
             {view === "saved"
-              ? "Your Saved"
+              ? t("reels.yourSaved")
               : kind === "short"
-                ? "YouTube Shorts"
-                : "YouTube Videos"}
+                ? t("reels.ytShorts")
+                : t("reels.ytVideos")}
           </h2>
           {view === "feed" && isFetching && !isLoading && (
             <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
@@ -401,7 +404,7 @@ export default function Reels() {
                   {isFetchingNextPage ? (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   ) : null}
-                  Load more
+                  {t("reels.loadMore")}
                 </Button>
               </div>
             )}
@@ -412,14 +415,14 @@ export default function Reels() {
             data-testid="reels-saved-empty"
           >
             <Bookmark className="mx-auto h-8 w-8 text-muted-foreground/50" />
-            <p className="mt-3 font-medium text-foreground">No saved reels yet</p>
+            <p className="mt-3 font-medium text-foreground">{t("reels.noSavedTitle")}</p>
             <p className="mt-1">
-              Tap the heart on any short or video to save it for later.
+              {t("reels.noSavedDesc")}
             </p>
           </div>
         ) : (
           <p className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
-            No {kind === "short" ? "shorts" : "videos"} found. Try another search.
+            {kind === "short" ? t("reels.notFoundShorts") : t("reels.notFoundVideos")}
           </p>
         )}
       </section>
@@ -501,6 +504,7 @@ function ReelThumb({
   onPlay: () => void;
   onToggleSave: () => void;
 }) {
+  const { t } = useTranslation();
   return (
     <motion.div
       initial={{ opacity: 0, y: 12 }}
@@ -548,7 +552,7 @@ function ReelThumb({
           onToggleSave();
         }}
         data-testid={`reel-save-${reel.id}`}
-        aria-label={saved ? "Remove from saved" : "Save reel"}
+        aria-label={saved ? t("reels.removeFromSaved") : t("reels.saveReel")}
         className={[
           "absolute right-2 top-2 rounded-full p-1.5 backdrop-blur transition-colors",
           saved
@@ -585,6 +589,7 @@ function ReelPlayerModal({
   hasMore: boolean;
   isFetchingMore: boolean;
 }) {
+  const { t } = useTranslation();
   const containerRef = useRef<HTMLDivElement | null>(null);
   const itemRefs = useRef<(HTMLElement | null)[]>([]);
   const closeBtnRef = useRef<HTMLButtonElement | null>(null);
@@ -741,12 +746,12 @@ function ReelPlayerModal({
       data-testid="reel-player-modal"
       role="dialog"
       aria-modal="true"
-      aria-label={kind === "short" ? "Shorts player" : "Videos player"}
+      aria-label={kind === "short" ? t("reels.shortsPlayer") : t("reels.videosPlayer")}
     >
       <div className="pointer-events-none absolute inset-x-0 top-0 z-30 flex items-center justify-between p-4">
         <div className="pointer-events-auto flex items-center gap-2">
           <span className="rounded bg-red-600 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide text-white shadow-md">
-            {kind === "short" ? "Shorts" : "Videos"}
+            {kind === "short" ? t("reels.shortsBadge") : t("reels.videosBadge")}
           </span>
           <div
             className="rounded-full bg-black/55 px-3 py-1 text-xs font-medium text-white backdrop-blur"
@@ -759,7 +764,7 @@ function ReelPlayerModal({
           ref={closeBtnRef}
           type="button"
           onClick={onClose}
-          aria-label="Close"
+          aria-label={t("reels.close")}
           data-testid="button-reel-close"
           className="pointer-events-auto rounded-full bg-black/55 p-2 text-white backdrop-blur transition hover:bg-black/75 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white"
         >
@@ -818,7 +823,7 @@ function ReelPlayerModal({
                     type="button"
                     onClick={() => scrollToIndex(i)}
                     className="absolute inset-0 h-full w-full"
-                    aria-label={`Play ${reel.title}`}
+                    aria-label={t("reels.playTitle", { title: reel.title })}
                   >
                     <img
                       src={reel.thumbnail}
@@ -869,7 +874,7 @@ function ReelPlayerModal({
                       data-testid="button-reel-subscribe"
                       className="pointer-events-auto ml-1 rounded-full bg-white px-3 py-1 text-[11px] font-bold uppercase tracking-wide text-black shadow-sm transition hover:bg-white/90"
                     >
-                      Subscribe
+                      {t("reels.subscribe")}
                     </a>
                   </div>
                   <p className="line-clamp-2 text-sm font-semibold text-white drop-shadow-md md:text-base">
@@ -879,11 +884,11 @@ function ReelPlayerModal({
                     {reel.viewCount != null && (
                       <span className="inline-flex items-center gap-1">
                         <Eye className="h-3 w-3" />
-                        {formatCount(reel.viewCount)} views
+                        {t("reels.views", { count: formatCount(reel.viewCount) })}
                       </span>
                     )}
                     {reel.publishedAt && (
-                      <span>{formatRelative(reel.publishedAt)}</span>
+                      <span>{formatRelative(reel.publishedAt, t)}</span>
                     )}
                   </div>
                 </div>
@@ -899,7 +904,7 @@ function ReelPlayerModal({
                     }
                     target="_blank"
                     rel="noopener noreferrer"
-                    aria-label={`Open channel ${reel.channel}`}
+                    aria-label={t("reels.openChannel", { name: reel.channel })}
                     className="relative h-12 w-12 overflow-hidden rounded-full border-2 border-white shadow-lg"
                   >
                     <img
@@ -916,7 +921,7 @@ function ReelPlayerModal({
                   label={
                     reel.likeCount != null
                       ? formatCount(reel.likeCount)
-                      : "Like"
+                      : t("reels.like")
                   }
                   onClick={() => onToggleSave(reel)}
                   testId="button-reel-modal-save"
@@ -935,7 +940,7 @@ function ReelPlayerModal({
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex flex-col items-center gap-1 text-white/90 hover:text-white"
-                    aria-label="Open comments on YouTube"
+                    aria-label={t("reels.openComments")}
                   >
                     <span className="rounded-full bg-black/60 p-3 backdrop-blur transition hover:bg-black/80">
                       <MessageCircle className="h-6 w-6" />
@@ -946,14 +951,14 @@ function ReelPlayerModal({
                   </a>
                 )}
                 <ActionButton
-                  label="Share"
+                  label={t("reels.share")}
                   onClick={() => share(reel)}
                   testId="button-reel-share"
                 >
                   <Share2 className="h-6 w-6" />
                 </ActionButton>
                 <ActionButton
-                  label={saved ? "Saved" : "Save"}
+                  label={saved ? t("reels.saved") : t("reels.save")}
                   onClick={() => onToggleSave(reel)}
                   testId="button-reel-modal-bookmark"
                   active={saved}
@@ -976,7 +981,7 @@ function ReelPlayerModal({
                     <ExternalLink className="h-6 w-6" />
                   </span>
                   <span className="text-[11px] font-medium drop-shadow">
-                    YouTube
+                    {t("reels.youtube")}
                   </span>
                 </a>
               </div>
@@ -988,10 +993,10 @@ function ReelPlayerModal({
           <div className="flex h-20 items-center justify-center text-white/70">
             {isFetchingMore ? (
               <span className="flex items-center gap-2 text-xs">
-                <Loader2 className="h-4 w-4 animate-spin" /> Loading more {kind === "short" ? "shorts" : "videos"}…
+                <Loader2 className="h-4 w-4 animate-spin" /> {kind === "short" ? t("reels.loadingMoreShorts") : t("reels.loadingMoreVideos")}
               </span>
             ) : (
-              <span className="text-xs">Keep scrolling for more</span>
+              <span className="text-xs">{t("reels.keepScrolling")}</span>
             )}
           </div>
         )}
@@ -1006,7 +1011,7 @@ function ReelPlayerModal({
           onClick={() => scrollToIndex(Math.max(activeIndex - 1, 0))}
           disabled={!canScrollPrev}
           data-testid="button-reel-scroll-prev"
-          aria-label={kind === "short" ? "Previous short" : "Previous video"}
+          aria-label={kind === "short" ? t("reels.previousShort") : t("reels.previousVideo")}
           className="rounded-full bg-white/15 p-3 text-white backdrop-blur transition hover:bg-white/30 disabled:cursor-not-allowed disabled:opacity-30"
         >
           <svg
@@ -1029,7 +1034,7 @@ function ReelPlayerModal({
           }
           disabled={!canScrollNext}
           data-testid="button-reel-scroll-next"
-          aria-label={kind === "short" ? "Next short" : "Next video"}
+          aria-label={kind === "short" ? t("reels.nextShort") : t("reels.nextVideo")}
           className="rounded-full bg-white/15 p-3 text-white backdrop-blur transition hover:bg-white/30 disabled:cursor-not-allowed disabled:opacity-30"
         >
           <svg
@@ -1051,17 +1056,17 @@ function ReelPlayerModal({
         type="button"
         onClick={() => setMuted((m) => !m)}
         data-testid="button-reel-mute"
-        aria-label={muted ? "Unmute" : "Mute"}
+        aria-label={muted ? t("reels.unmute") : t("reels.mute")}
         className="absolute right-4 top-16 z-30 rounded-full bg-black/55 px-3 py-1 text-xs font-medium text-white backdrop-blur transition hover:bg-black/75"
       >
-        {muted ? "🔇 Tap to unmute" : "🔊 Sound on"}
+        {muted ? t("reels.tapUnmute") : t("reels.soundOn")}
       </button>
 
       <div className="pointer-events-none absolute bottom-3 left-1/2 z-20 -translate-x-1/2 rounded-full bg-black/55 px-3 py-1 text-[11px] text-white/80 backdrop-blur md:hidden">
-        Swipe up for next
+        {t("reels.swipeUp")}
       </div>
       <div className="pointer-events-none absolute bottom-3 left-1/2 z-20 -translate-x-1/2 hidden rounded-full bg-black/55 px-3 py-1 text-[11px] text-white/80 backdrop-blur md:block">
-        ↑/↓ scroll · S save · M mute · Esc close
+        {t("reels.keyboardHint")}
       </div>
     </motion.div>
   );
@@ -1125,6 +1130,7 @@ function ReelGridSkeleton({ kind }: { kind: Kind }) {
 }
 
 function ConfigCard() {
+  const { t } = useTranslation();
   return (
     <div
       className="rounded-xl border border-dashed border-border bg-card p-8 text-center"
@@ -1132,10 +1138,10 @@ function ConfigCard() {
     >
       <Youtube className="mx-auto h-10 w-10 text-muted-foreground/40" />
       <p className="mt-3 font-semibold text-foreground">
-        YouTube isn't connected yet
+        {t("reels.notConnectedTitle")}
       </p>
       <p className="mt-1 text-sm text-muted-foreground">
-        An admin needs to add a YouTube Data API key to enable this feed.
+        {t("reels.notConnectedDesc")}
       </p>
     </div>
   );

@@ -42,6 +42,7 @@ import {
   Hash,
   Sparkles,
 } from "lucide-react";
+import { useTranslation } from "@/lib/i18n";
 
 function useInvalidateFriends() {
   const qc = useQueryClient();
@@ -53,6 +54,7 @@ function useInvalidateFriends() {
 }
 
 export default function Friends() {
+  const { t } = useTranslation();
   const friendsQ = useGetMyFriends({
     query: { queryKey: getGetMyFriendsQueryKey() },
   });
@@ -70,9 +72,9 @@ export default function Friends() {
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-6 md:px-8 md:py-10">
-      <h1 className="text-3xl font-bold text-foreground">Friends</h1>
+      <h1 className="text-3xl font-bold text-foreground">{t("friends.title")}</h1>
       <p className="mt-1 text-muted-foreground">
-        Send friend requests to people you vibe with on HashChat.
+        {t("friends.subtitle")}
       </p>
 
       <div className="mt-6 grid gap-4 md:grid-cols-2">
@@ -90,14 +92,14 @@ export default function Friends() {
         <TabsList>
           <TabsTrigger value="friends" data-testid="tab-friends">
             <Users className="mr-1.5 h-4 w-4" />
-            Friends ({friends.length})
+            {t("friends.tabFriends", { count: friends.length })}
           </TabsTrigger>
           <TabsTrigger value="incoming" data-testid="tab-incoming">
             <UserPlus className="mr-1.5 h-4 w-4" />
-            Requests ({incoming.length})
+            {t("friends.tabRequests", { count: incoming.length })}
           </TabsTrigger>
           <TabsTrigger value="outgoing" data-testid="tab-outgoing">
-            Sent ({outgoing.length})
+            {t("friends.tabSent", { count: outgoing.length })}
           </TabsTrigger>
         </TabsList>
 
@@ -105,7 +107,7 @@ export default function Friends() {
           <UserList
             users={friends}
             loading={friendsQ.isLoading}
-            empty="No friends yet — head to Discover and send a request."
+            empty={t("friends.emptyFriends")}
             renderActions={(u) => (
               <FriendsActions user={u} />
             )}
@@ -115,7 +117,7 @@ export default function Friends() {
           <UserList
             users={incoming}
             loading={reqsQ.isLoading}
-            empty="No incoming requests."
+            empty={t("friends.emptyIncoming")}
             renderActions={(u) => <IncomingActions user={u} />}
           />
         </TabsContent>
@@ -123,7 +125,7 @@ export default function Friends() {
           <UserList
             users={outgoing}
             loading={reqsQ.isLoading}
-            empty="You haven't sent any requests."
+            empty={t("friends.emptyOutgoing")}
             renderActions={(u) => <OutgoingActions user={u} />}
           />
         </TabsContent>
@@ -207,6 +209,7 @@ function UserList({
 }
 
 function FriendsActions({ user }: { user: MatchUser }) {
+  const { t } = useTranslation();
   const [, setLocation] = useLocation();
   const invalidate = useInvalidateFriends();
   const open = useOpenConversation({
@@ -225,7 +228,7 @@ function FriendsActions({ user }: { user: MatchUser }) {
         data-testid={`button-message-${user.username}`}
       >
         <MessageCircle className="mr-1 h-3.5 w-3.5" />
-        Message
+        {t("friends.message")}
       </Button>
       <Button
         size="sm"
@@ -241,6 +244,7 @@ function FriendsActions({ user }: { user: MatchUser }) {
 }
 
 function IncomingActions({ user }: { user: MatchUser }) {
+  const { t } = useTranslation();
   const invalidate = useInvalidateFriends();
   const accept = useAcceptFriendRequest({
     mutation: { onSuccess: invalidate },
@@ -257,7 +261,7 @@ function IncomingActions({ user }: { user: MatchUser }) {
         data-testid={`button-accept-${user.username}`}
       >
         <Check className="mr-1 h-3.5 w-3.5" />
-        Accept
+        {t("friends.accept")}
       </Button>
       <Button
         size="sm"
@@ -273,6 +277,7 @@ function IncomingActions({ user }: { user: MatchUser }) {
 }
 
 function OutgoingActions({ user }: { user: MatchUser }) {
+  const { t } = useTranslation();
   const invalidate = useInvalidateFriends();
   const cancel = useCancelFriendRequest({
     mutation: { onSuccess: invalidate },
@@ -285,7 +290,7 @@ function OutgoingActions({ user }: { user: MatchUser }) {
       disabled={cancel.isPending}
       data-testid={`button-cancel-${user.username}`}
     >
-      Cancel request
+      {t("friends.cancelRequest")}
     </Button>
   );
 }
@@ -300,22 +305,23 @@ function YourCodeCard({
   username: string;
   discriminator: string | null;
 }) {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const handle = `${username}${discriminator ? `#${discriminator}` : ""}`;
   const code = friendCode ?? handle;
   const copy = async () => {
     try {
       await navigator.clipboard.writeText(code);
-      toast({ title: "Copied!", description: "Friend code copied to clipboard." });
+      toast({ title: t("common.copied"), description: t("friends.copyTooltip") });
     } catch {
-      toast({ title: "Copy failed", variant: "destructive" });
+      toast({ title: t("friends.copyFailed"), variant: "destructive" });
     }
   };
   return (
     <div className="rounded-xl border bg-card p-4">
       <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
         <Sparkles className="h-4 w-4" />
-        Your friend code
+        {t("friends.yourCode")}
       </div>
       <div className="mt-2 flex items-center gap-2">
         <code
@@ -331,14 +337,14 @@ function YourCodeCard({
           data-testid="button-copy-code"
         >
           <Copy className="mr-1.5 h-4 w-4" />
-          Copy
+          {t("common.copy")}
         </Button>
       </div>
       <p className="mt-2 text-xs text-muted-foreground">
-        Share this so friends can find you instantly.
+        {t("friends.shareCode")}
         {friendCode && (
           <>
-            {" "}Or use your handle: <span className="font-mono">@{handle}</span>
+            {" "}{t("friends.orHandle")} <span className="font-mono">@{handle}</span>
           </>
         )}
       </p>
@@ -347,6 +353,7 @@ function YourCodeCard({
 }
 
 function FindByCodeCard() {
+  const { t } = useTranslation();
   const [code, setCode] = useState("");
   const [result, setResult] = useState<MatchUser | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -369,7 +376,7 @@ function FindByCodeCard() {
       const status = (e as { status?: number })?.status;
       const msg =
         data?.error ??
-        (status === 404 ? "No user found with that code" : "Search failed — try again");
+        (status === 404 ? t("friends.notFound") : t("friends.searchFailed"));
       setError(msg);
     } finally {
       setLoading(false);
@@ -380,11 +387,11 @@ function FindByCodeCard() {
     if (!result) return;
     try {
       await sendReq.mutateAsync({ id: result.id });
-      toast({ title: "Request sent!", description: `Friend request sent to ${result.displayName ?? result.username}.` });
+      toast({ title: t("friends.requestSent"), description: t("friends.requestSentDesc", { name: result.displayName ?? result.username }) });
       invalidate();
       setResult({ ...result, friendStatus: "request_sent" });
     } catch {
-      toast({ title: "Could not send request", variant: "destructive" });
+      toast({ title: t("friends.requestFailed"), variant: "destructive" });
     }
   };
 
@@ -392,7 +399,7 @@ function FindByCodeCard() {
     <div className="rounded-xl border bg-card p-4">
       <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
         <Hash className="h-4 w-4" />
-        Add by friend code or handle
+        {t("friends.findHeading")}
       </div>
       <form
         onSubmit={(e) => {
@@ -404,7 +411,7 @@ function FindByCodeCard() {
         <Input
           value={code}
           onChange={(e) => setCode(e.target.value)}
-          placeholder="ABC-1234 or username#1234"
+          placeholder={t("friends.findPlaceholder")}
           data-testid="input-friend-code"
           className="font-mono text-sm"
         />
@@ -450,11 +457,11 @@ function FindByCodeCard() {
             </div>
           </div>
           {result.friendStatus === "friends" ? (
-            <span className="text-xs text-muted-foreground">Already friends</span>
+            <span className="text-xs text-muted-foreground">{t("friends.alreadyFriends")}</span>
           ) : result.friendStatus === "request_sent" ? (
-            <span className="text-xs text-muted-foreground">Request sent</span>
+            <span className="text-xs text-muted-foreground">{t("friends.requestSentLabel")}</span>
           ) : result.friendStatus === "request_received" ? (
-            <span className="text-xs text-muted-foreground">Check Requests tab</span>
+            <span className="text-xs text-muted-foreground">{t("friends.checkRequestsTab")}</span>
           ) : (
             <Button
               size="sm"
@@ -463,7 +470,7 @@ function FindByCodeCard() {
               data-testid="button-add-result"
             >
               <UserPlus className="mr-1.5 h-4 w-4" />
-              Add
+              {t("friends.add")}
             </Button>
           )}
         </div>

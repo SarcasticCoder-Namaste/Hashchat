@@ -11,14 +11,16 @@ import { Bookmark as BookmarkIcon, Trash2, Pencil, Save, X, MessageSquare, FileT
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
+import { useTranslation } from "@/lib/i18n";
 
 const TABS = [
-  { id: "all", label: "All", icon: BookmarkIcon },
-  { id: "message", label: "Messages", icon: MessageSquare },
-  { id: "post", label: "Posts", icon: FileText },
+  { id: "all", labelKey: "saved.tabAll", icon: BookmarkIcon },
+  { id: "message", labelKey: "saved.tabMessages", icon: MessageSquare },
+  { id: "post", labelKey: "saved.tabPosts", icon: FileText },
 ] as const;
 
 export default function Saved() {
+  const { t } = useTranslation();
   const [tab, setTab] = useState<(typeof TABS)[number]["id"]>("all");
   const qc = useQueryClient();
   const { toast } = useToast();
@@ -50,14 +52,14 @@ export default function Saved() {
     <div className="mx-auto max-w-3xl space-y-4 p-4 md:p-6">
       <header className="flex items-center gap-2">
         <BookmarkIcon className="h-5 w-5 text-primary" />
-        <h1 className="text-xl font-semibold">Saved</h1>
+        <h1 className="text-xl font-semibold">{t("saved.title")}</h1>
       </header>
       <p className="text-sm text-muted-foreground">
-        Your bookmarked messages and posts. Notes are private to you.
+        {t("saved.subtitle")}
       </p>
 
       <div className="flex flex-wrap gap-1">
-        {TABS.map(({ id, label, icon: Icon }) => (
+        {TABS.map(({ id, labelKey, icon: Icon }) => (
           <Button
             key={id}
             variant={tab === id ? "default" : "ghost"}
@@ -66,23 +68,23 @@ export default function Saved() {
             data-testid={`tab-saved-${id}`}
           >
             <Icon className="mr-1 h-3.5 w-3.5" />
-            {label}
+            {t(labelKey)}
           </Button>
         ))}
       </div>
 
       {isLoading ? (
         <div className="rounded-lg border border-border p-6 text-center text-sm text-muted-foreground">
-          Loading saved items…
+          {t("saved.loading")}
         </div>
       ) : !data || data.length === 0 ? (
         <div className="rounded-lg border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
-          You haven't saved anything yet. Tap the bookmark icon on a message or post to save it here.
+          {t("saved.empty")}
         </div>
       ) : (
         <ul className="space-y-3">
           {data.map((b) => {
-            const t = b.target;
+            const target = b.target;
             const editing = editingId === b.id;
             return (
               <li
@@ -97,23 +99,23 @@ export default function Saved() {
                     ) : (
                       <FileText className="h-3.5 w-3.5" />
                     )}
-                    {b.kind === "message" ? "Message" : "Post"}
-                    {t?.author && (
+                    {b.kind === "message" ? t("saved.message") : t("saved.post")}
+                    {target?.author && (
                       <>
                         <span>·</span>
                         <Link
-                          href={`/app/u/${t.author.username}`}
+                          href={`/app/u/${target.author.username}`}
                           className="hover:underline"
                         >
-                          @{t.author.username}
+                          @{target.author.username}
                         </Link>
                       </>
                     )}
-                    {t?.roomTag && (
+                    {target?.roomTag && (
                       <>
                         <span>·</span>
-                        <Link href={`/app/rooms/${t.roomTag}`} className="hover:underline">
-                          #{t.roomTag}
+                        <Link href={`/app/rooms/${target.roomTag}`} className="hover:underline">
+                          #{target.roomTag}
                         </Link>
                       </>
                     )}
@@ -129,7 +131,7 @@ export default function Saved() {
                           setEditingId(b.id);
                           setEditNote(b.note ?? "");
                         }}
-                        aria-label="Edit note"
+                        aria-label={t("saved.editNote")}
                         data-testid={`button-edit-note-${b.id}`}
                       >
                         <Pencil className="h-3.5 w-3.5" />
@@ -142,9 +144,9 @@ export default function Saved() {
                       className="h-7 w-7 text-destructive"
                       onClick={() => {
                         remove.mutate({ id: b.id });
-                        toast({ title: "Removed from saved" });
+                        toast({ title: t("saved.removed") });
                       }}
-                      aria-label="Remove"
+                      aria-label={t("saved.remove")}
                       data-testid={`button-remove-saved-${b.id}`}
                     >
                       <Trash2 className="h-3.5 w-3.5" />
@@ -152,23 +154,23 @@ export default function Saved() {
                   </div>
                 </div>
 
-                {t?.snippet && (
+                {target?.snippet && (
                   <p
                     className={`mt-2 whitespace-pre-wrap text-sm ${
-                      t.deleted ? "italic text-muted-foreground" : "text-foreground"
+                      target.deleted ? "italic text-muted-foreground" : "text-foreground"
                     }`}
                   >
-                    {t.snippet}
+                    {target.snippet}
                   </p>
                 )}
 
-                {t?.href && !t.deleted && (
+                {target?.href && !target.deleted && (
                   <Link
-                    href={t.href}
+                    href={target.href}
                     className="mt-1 inline-block text-xs text-primary hover:underline"
                     data-testid={`link-open-saved-${b.id}`}
                   >
-                    Open →
+                    {t("common.open")}
                   </Link>
                 )}
 
@@ -177,7 +179,7 @@ export default function Saved() {
                     <Textarea
                       value={editNote}
                       onChange={(e) => setEditNote(e.target.value.slice(0, 1000))}
-                      placeholder="Private note…"
+                      placeholder={t("saved.notePlaceholder")}
                       rows={2}
                       data-testid={`textarea-saved-${b.id}`}
                     />
@@ -188,7 +190,7 @@ export default function Saved() {
                         variant="ghost"
                         onClick={() => setEditingId(null)}
                       >
-                        <X className="mr-1 h-3.5 w-3.5" /> Cancel
+                        <X className="mr-1 h-3.5 w-3.5" /> {t("common.cancel")}
                       </Button>
                       <Button
                         type="button"
@@ -201,13 +203,13 @@ export default function Saved() {
                         }}
                         data-testid={`button-save-note-${b.id}`}
                       >
-                        <Save className="mr-1 h-3.5 w-3.5" /> Save
+                        <Save className="mr-1 h-3.5 w-3.5" /> {t("common.save")}
                       </Button>
                     </div>
                   </div>
                 ) : b.note ? (
                   <div className="mt-2 rounded-md border border-dashed border-border bg-muted/40 p-2 text-xs italic text-muted-foreground">
-                    Note: {b.note}
+                    {t("saved.notePrefix", { note: b.note })}
                   </div>
                 ) : null}
               </li>

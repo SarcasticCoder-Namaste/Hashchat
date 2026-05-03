@@ -26,18 +26,7 @@ import {
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useMemo } from "react";
-
-function timeAgo(iso: string) {
-  const then = new Date(iso).getTime();
-  const diff = Math.max(0, Date.now() - then);
-  const m = Math.floor(diff / 60000);
-  if (m < 1) return "just now";
-  if (m < 60) return `${m}m`;
-  const h = Math.floor(m / 60);
-  if (h < 24) return `${h}h`;
-  const d = Math.floor(h / 24);
-  return `${d}d`;
-}
+import { useTranslation } from "@/lib/i18n";
 
 function conversationDisplay(c: Conversation): {
   title: string;
@@ -266,6 +255,18 @@ function GroupCreateDialog({
 }
 
 export default function Conversations() {
+  const { t } = useTranslation();
+  const timeAgo = (iso: string) => {
+    const then = new Date(iso).getTime();
+    const diff = Math.max(0, Date.now() - then);
+    const m = Math.floor(diff / 60000);
+    if (m < 1) return t("messages.timeJustNow");
+    if (m < 60) return `${m}m`;
+    const h = Math.floor(m / 60);
+    if (h < 24) return `${h}h`;
+    const d = Math.floor(h / 24);
+    return `${d}d`;
+  };
   const { data: convs, isLoading } = useGetConversations({
     query: { queryKey: getGetConversationsQueryKey(), refetchInterval: 5000 },
   });
@@ -291,9 +292,9 @@ export default function Conversations() {
     <div className="relative mx-auto max-w-2xl px-4 py-6 md:px-8 md:py-10">
       <div className="flex items-end justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Messages</h1>
+          <h1 className="text-3xl font-bold text-foreground">{t("messages.title")}</h1>
           <p className="mt-1 text-muted-foreground">
-            Direct conversations and group chats with your matches.
+            {t("messages.subtitle")}
           </p>
         </div>
         {totalUnread > 0 && (
@@ -304,7 +305,7 @@ export default function Conversations() {
             className="rounded-full bg-gradient-to-r from-violet-500 to-pink-500 px-3 py-1 text-xs font-semibold text-white shadow"
             data-testid="unread-total"
           >
-            {totalUnread} unread
+            {t("messages.unread", { count: totalUnread })}
           </motion.span>
         )}
       </div>
@@ -316,7 +317,7 @@ export default function Conversations() {
             type="search"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search messages…"
+            placeholder={t("messages.searchPlaceholder")}
             className="w-full rounded-xl border border-border bg-card py-2 pl-9 pr-3 text-sm outline-none ring-0 transition focus:border-primary/50 focus:bg-background"
             data-testid="input-search-messages"
           />
@@ -327,7 +328,7 @@ export default function Conversations() {
           data-testid="button-new-group"
         >
           <Users className="mr-2 h-4 w-4" />
-          New group
+          {t("messages.newGroup")}
         </Button>
       </div>
 
@@ -388,7 +389,7 @@ export default function Conversations() {
                           </p>
                           {isGroup && (
                             <span className="shrink-0 rounded-full bg-accent px-1.5 py-0.5 text-[10px] text-accent-foreground">
-                              group
+                              {t("messages.group")}
                             </span>
                           )}
                           {!isGroup && c.otherUser?.discriminator && (
@@ -413,11 +414,11 @@ export default function Conversations() {
                           ? c.lastMessage.kind === "system"
                             ? `${c.lastMessage.senderName} ${c.lastMessage.content}`
                             : isGroup
-                              ? `${c.lastMessage.senderName}: ${c.lastMessage.content || "[media]"}`
-                              : c.lastMessage.content || "[media]"
+                              ? `${c.lastMessage.senderName}: ${c.lastMessage.content || t("messages.mediaPlaceholder")}`
+                              : c.lastMessage.content || t("messages.mediaPlaceholder")
                           : isGroup
                             ? display.subtitle
-                            : "Start the conversation"}
+                            : t("messages.startConversation")}
                       </p>
                       {!isGroup &&
                         c.otherUser &&
@@ -428,7 +429,7 @@ export default function Conversations() {
                             data-testid={`conversation-presence-${c.id}`}
                           >
                             {c.otherUser.presenceState === "online"
-                              ? "Active now"
+                              ? t("messages.activeNow")
                               : null}
                             {c.otherUser.currentRoomTag ? (
                               <span className="text-primary">
@@ -462,18 +463,18 @@ export default function Conversations() {
           </ul>
         ) : search ? (
           <div className="p-10 text-center text-sm text-muted-foreground">
-            No conversations match “{search}”.
+            {t("messages.noResults", { q: search })}
           </div>
         ) : (
           <div className="p-4">
             <EmptyState
               icon={MessageCircle}
-              title="No conversations yet"
-              description="Find someone interesting on Discover and say hi — your chats will appear here."
+              title={t("messages.emptyTitle")}
+              description={t("messages.emptyDesc")}
               action={
                 <Button asChild>
                   <Link href="/app/discover" data-testid="link-go-discover">
-                    Find people →
+                    {t("messages.findPeople")}
                   </Link>
                 </Button>
               }
@@ -487,8 +488,8 @@ export default function Conversations() {
         onClick={() => setGroupOpen(true)}
         data-testid="fab-new-chat"
         className="fab fixed bottom-20 right-5 z-20 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-violet-500 to-pink-500 text-white md:bottom-8"
-        aria-label="Start a new group chat"
-        title="Start a new group chat"
+        aria-label={t("messages.startNewGroup")}
+        title={t("messages.startNewGroup")}
       >
         <Plus className="h-6 w-6" />
       </button>

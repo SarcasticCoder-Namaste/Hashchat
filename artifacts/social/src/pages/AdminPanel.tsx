@@ -37,8 +37,10 @@ import {
   BarChart3,
   Radio,
 } from "lucide-react";
+import { useTranslation } from "@/lib/i18n";
 
 export default function AdminPanel() {
+  const { t } = useTranslation();
   const { data: me } = useGetMe();
   const role = me?.role;
 
@@ -55,10 +57,10 @@ export default function AdminPanel() {
       <div className="mx-auto max-w-xl px-4 py-16 text-center">
         <ShieldAlert className="mx-auto h-10 w-10 text-muted-foreground/40" />
         <h1 className="mt-4 text-2xl font-bold text-foreground">
-          Admins only
+          {t("admin.adminsOnly")}
         </h1>
         <p className="mt-2 text-muted-foreground">
-          You don't have access to the admin panel.
+          {t("admin.noAccess")}
         </p>
       </div>
     );
@@ -68,22 +70,22 @@ export default function AdminPanel() {
     <div className="mx-auto max-w-5xl px-4 py-6 md:px-8 md:py-10">
       <div className="flex items-center gap-3">
         <Crown className="h-6 w-6 text-amber-500" />
-        <h1 className="text-3xl font-bold text-foreground">Admin panel</h1>
+        <h1 className="text-3xl font-bold text-foreground">{t("admin.title")}</h1>
       </div>
       <p className="mt-1 text-muted-foreground">
-        Moderate users, hand out MVP codes, and keep an eye on the platform.
+        {t("admin.subtitle")}
       </p>
 
       <Tabs defaultValue="users" className="mt-6">
         <TabsList>
           <TabsTrigger value="users" data-testid="tab-admin-users">
-            <Users className="mr-1.5 h-4 w-4" /> Users
+            <Users className="mr-1.5 h-4 w-4" /> {t("admin.tabUsers")}
           </TabsTrigger>
           <TabsTrigger value="codes" data-testid="tab-admin-codes">
-            <KeyRound className="mr-1.5 h-4 w-4" /> MVP Codes
+            <KeyRound className="mr-1.5 h-4 w-4" /> {t("admin.tabCodes")}
           </TabsTrigger>
           <TabsTrigger value="stats" data-testid="tab-admin-stats">
-            <BarChart3 className="mr-1.5 h-4 w-4" /> Stats
+            <BarChart3 className="mr-1.5 h-4 w-4" /> {t("admin.tabStats")}
           </TabsTrigger>
         </TabsList>
         <TabsContent value="users" className="mt-4">
@@ -101,6 +103,7 @@ export default function AdminPanel() {
 }
 
 function UsersTab({ isAdmin }: { isAdmin: boolean }) {
+  const { t } = useTranslation();
   const qc = useQueryClient();
   const { data, isLoading } = useAdminListUsers();
   const [filter, setFilter] = useState("");
@@ -123,7 +126,7 @@ function UsersTab({ isAdmin }: { isAdmin: boolean }) {
   return (
     <div className="space-y-3">
       <Input
-        placeholder="Search users..."
+        placeholder={t("admin.searchUsers")}
         value={filter}
         onChange={(e) => setFilter(e.target.value)}
         data-testid="input-admin-user-filter"
@@ -134,7 +137,7 @@ function UsersTab({ isAdmin }: { isAdmin: boolean }) {
         </div>
       ) : users.length === 0 ? (
         <p className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
-          No users match.
+          {t("admin.noUsersMatch")}
         </p>
       ) : (
         <ul className="overflow-hidden rounded-xl border border-border bg-card">
@@ -171,7 +174,7 @@ function UsersTab({ isAdmin }: { isAdmin: boolean }) {
               </div>
               {u.bannedAt && (
                 <span className="rounded-full bg-destructive/15 px-2 py-0.5 text-[10px] font-semibold text-destructive">
-                  Banned
+                  {t("admin.banned")}
                 </span>
               )}
               <div className="flex gap-1">
@@ -184,7 +187,7 @@ function UsersTab({ isAdmin }: { isAdmin: boolean }) {
                     }
                     data-testid={`button-promote-admin-${u.username}`}
                   >
-                    <Crown className="mr-1 h-3.5 w-3.5" /> Admin
+                    <Crown className="mr-1 h-3.5 w-3.5" /> {t("admin.adminBtn")}
                   </Button>
                 )}
                 {isAdmin && u.role === "user" && (
@@ -196,7 +199,7 @@ function UsersTab({ isAdmin }: { isAdmin: boolean }) {
                     }
                     data-testid={`button-promote-mod-${u.username}`}
                   >
-                    <ShieldCheck className="mr-1 h-3.5 w-3.5" /> Mod
+                    <ShieldCheck className="mr-1 h-3.5 w-3.5" /> {t("admin.modBtn")}
                   </Button>
                 )}
                 {isAdmin && u.role !== "user" && (
@@ -208,7 +211,7 @@ function UsersTab({ isAdmin }: { isAdmin: boolean }) {
                     }
                     data-testid={`button-demote-${u.username}`}
                   >
-                    Demote
+                    {t("admin.demote")}
                   </Button>
                 )}
                 {u.bannedAt ? (
@@ -218,7 +221,7 @@ function UsersTab({ isAdmin }: { isAdmin: boolean }) {
                     onClick={() => unban.mutate({ id: u.id })}
                     data-testid={`button-unban-${u.username}`}
                   >
-                    Unban
+                    {t("admin.unban")}
                   </Button>
                 ) : (
                   u.role !== "admin" && (
@@ -228,7 +231,7 @@ function UsersTab({ isAdmin }: { isAdmin: boolean }) {
                       onClick={() => ban.mutate({ id: u.id })}
                       data-testid={`button-ban-${u.username}`}
                     >
-                      <Ban className="mr-1 h-3.5 w-3.5" /> Ban
+                      <Ban className="mr-1 h-3.5 w-3.5" /> {t("admin.ban")}
                     </Button>
                   )
                 )}
@@ -242,6 +245,7 @@ function UsersTab({ isAdmin }: { isAdmin: boolean }) {
 }
 
 function CodesTab() {
+  const { t } = useTranslation();
   const qc = useQueryClient();
   const { data, isLoading } = useAdminListMvpCodes();
   const [note, setNote] = useState("");
@@ -259,11 +263,11 @@ function CodesTab() {
     <div className="space-y-4">
       <div className="rounded-xl border border-border bg-card p-4">
         <p className="text-sm font-semibold text-foreground">
-          Generate a new MVP code
+          {t("admin.generateCode")}
         </p>
         <div className="mt-2 flex gap-2">
           <Input
-            placeholder="Optional note (e.g., for Alex)"
+            placeholder={t("admin.notePlaceholder")}
             value={note}
             onChange={(e) => setNote(e.target.value)}
             data-testid="input-mvp-note"
@@ -280,7 +284,7 @@ function CodesTab() {
             ) : (
               <Plus className="mr-2 h-4 w-4" />
             )}
-            Generate
+            {t("admin.generate")}
           </Button>
         </div>
       </div>
@@ -290,7 +294,7 @@ function CodesTab() {
         </div>
       ) : (data ?? []).length === 0 ? (
         <p className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
-          No codes yet.
+          {t("admin.noCodes")}
         </p>
       ) : (
         <ul className="overflow-hidden rounded-xl border border-border bg-card">
@@ -329,11 +333,11 @@ function CodesTab() {
               </div>
               {c.redeemedAt ? (
                 <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-semibold text-emerald-700 dark:text-emerald-300">
-                  Redeemed
+                  {t("admin.redeemed")}
                 </span>
               ) : (
                 <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
-                  Unused
+                  {t("admin.unused")}
                 </span>
               )}
             </li>
@@ -345,6 +349,7 @@ function CodesTab() {
 }
 
 function StatsTab() {
+  const { t } = useTranslation();
   const { data, isLoading } = useAdminStats();
   if (isLoading || !data) {
     return (
@@ -354,18 +359,18 @@ function StatsTab() {
     );
   }
   const cards = [
-    { label: "Users", value: data.users },
-    { label: "Messages", value: data.messages },
-    { label: "MVP", value: data.mvp },
-    { label: "Banned", value: data.banned },
+    { id: "users", label: t("admin.statUsers"), value: data.users },
+    { id: "messages", label: t("admin.statMessages"), value: data.messages },
+    { id: "mvp", label: t("admin.statMvp"), value: data.mvp },
+    { id: "banned", label: t("admin.statBanned"), value: data.banned },
   ];
   return (
     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
       {cards.map((c) => (
         <div
-          key={c.label}
+          key={c.id}
           className="rounded-xl border border-border bg-card p-5"
-          data-testid={`stat-${c.label.toLowerCase()}`}
+          data-testid={`stat-${c.id}`}
         >
           <p className="text-xs text-muted-foreground">{c.label}</p>
           <p className="mt-1 text-3xl font-bold text-foreground">

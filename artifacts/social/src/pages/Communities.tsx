@@ -24,8 +24,10 @@ import {
 import { CardSkeleton } from "@/components/Skeleton";
 import { EmptyState } from "@/components/EmptyState";
 import { useToast } from "@/hooks/use-toast";
+import { useTranslation } from "@/lib/i18n";
 
 export default function Communities() {
+  const { t } = useTranslation();
   const [showMine, setShowMine] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
   const list = useListCommunities({ mine: showMine });
@@ -38,10 +40,10 @@ export default function Communities() {
         <div className="relative flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <h1 className="text-3xl font-bold text-foreground md:text-4xl">
-              <span className="brand-gradient-text">Communities</span>
+              <span className="brand-gradient-text">{t("communities.title")}</span>
             </h1>
             <p className="mt-2 max-w-xl text-muted-foreground">
-              Curated bundles of hashtags. Join one to follow all of them in a single click.
+              {t("communities.subtitle")}
             </p>
           </div>
           <Button
@@ -50,7 +52,7 @@ export default function Communities() {
             data-testid="button-create-community"
           >
             <Plus className="mr-1.5 h-4 w-4" />
-            Create
+            {t("communities.create")}
           </Button>
         </div>
       </div>
@@ -62,7 +64,7 @@ export default function Communities() {
           onClick={() => setShowMine(false)}
           data-testid="tab-all-communities"
         >
-          Discover
+          {t("communities.discover")}
         </Button>
         <Button
           size="sm"
@@ -70,7 +72,7 @@ export default function Communities() {
           onClick={() => setShowMine(true)}
           data-testid="tab-my-communities"
         >
-          Joined
+          {t("communities.joined")}
         </Button>
       </div>
 
@@ -95,11 +97,11 @@ export default function Communities() {
       ) : (
         <EmptyState
           icon={Users}
-          title={showMine ? "You haven't joined any communities" : "No communities yet"}
+          title={showMine ? t("communities.emptyJoinedTitle") : t("communities.emptyDiscoverTitle")}
           description={
             showMine
-              ? "Switch to Discover to find a community, or create one of your own."
-              : "Be the first to create a community for the topics you love."
+              ? t("communities.emptyJoinedDesc")
+              : t("communities.emptyDiscoverDesc")
           }
           action={
             <Button
@@ -107,7 +109,7 @@ export default function Communities() {
               className="brand-gradient-bg text-white"
             >
               <Plus className="mr-1.5 h-4 w-4" />
-              Create one
+              {t("communities.createOne")}
             </Button>
           }
         />
@@ -123,6 +125,7 @@ export default function Communities() {
 }
 
 function CommunityCard({ c }: { c: Community }) {
+  const { t } = useTranslation();
   return (
     <Link
       href={`/app/communities/${c.slug}`}
@@ -136,9 +139,14 @@ function CommunityCard({ c }: { c: Community }) {
         <div className="min-w-0 flex-1">
           <p className="truncate text-base font-semibold text-foreground">{c.name}</p>
           <p className="text-xs text-muted-foreground">
-            {c.memberCount} member{c.memberCount === 1 ? "" : "s"} ·{" "}
-            {c.hashtags.length} tag{c.hashtags.length === 1 ? "" : "s"}
-            {c.isMember && <span className="ml-2 text-violet-500">· Joined</span>}
+            {c.memberCount === 1
+              ? t("communities.memberCount", { count: c.memberCount })
+              : t("communities.memberCountPlural", { count: c.memberCount })}
+            {" · "}
+            {c.hashtags.length === 1
+              ? t("communities.tagCount", { count: c.hashtags.length })
+              : t("communities.tagCountPlural", { count: c.hashtags.length })}
+            {c.isMember && <span className="ml-2 text-violet-500">{t("communities.joinedBadge")}</span>}
           </p>
         </div>
       </div>
@@ -176,6 +184,7 @@ function CreateCommunityDialog({
   onOpenChange: (v: boolean) => void;
   isPremium: boolean;
 }) {
+  const { t } = useTranslation();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [hashtagsInput, setHashtagsInput] = useState("");
@@ -186,7 +195,7 @@ function CreateCommunityDialog({
       onSuccess: () => {
         qc.invalidateQueries({ queryKey: getListCommunitiesQueryKey({ mine: false }) });
         qc.invalidateQueries({ queryKey: getListCommunitiesQueryKey({ mine: true }) });
-        toast({ title: "Community created!" });
+        toast({ title: t("communities.created") });
         setName("");
         setDescription("");
         setHashtagsInput("");
@@ -196,14 +205,14 @@ function CreateCommunityDialog({
         const e = err as { status?: number; message?: string };
         if (e?.status === 402) {
           toast({
-            title: "Free limit reached",
-            description: "Upgrade to Premium for unlimited communities.",
+            title: t("communities.freeLimit"),
+            description: t("communities.freeLimitDesc"),
             variant: "destructive",
           });
         } else {
           toast({
-            title: "Could not create community",
-            description: e?.message ?? "Please try again.",
+            title: t("communities.couldNotCreate"),
+            description: e?.message ?? t("communities.tryAgain"),
             variant: "destructive",
           });
         }
@@ -218,11 +227,11 @@ function CreateCommunityDialog({
       .map((t) => t.replace(/^#/, "").trim().toLowerCase())
       .filter((t) => t.length > 0);
     if (name.trim().length < 2) {
-      toast({ title: "Name too short", variant: "destructive" });
+      toast({ title: t("communities.nameTooShort"), variant: "destructive" });
       return;
     }
     if (hashtags.length === 0) {
-      toast({ title: "Add at least one hashtag", variant: "destructive" });
+      toast({ title: t("communities.addOneTag"), variant: "destructive" });
       return;
     }
     create.mutate({
@@ -238,49 +247,49 @@ function CreateCommunityDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Create a community</DialogTitle>
+          <DialogTitle>{t("communities.dialogTitle")}</DialogTitle>
           <DialogDescription>
-            Bundle a few hashtags so others can join them in one click.
+            {t("communities.dialogSubtitle")}
             {!isPremium && (
               <span className="mt-2 flex items-center gap-1 text-xs text-violet-500">
                 <Sparkles className="h-3 w-3" />
-                Free plan: 1 community. Upgrade to Premium for unlimited.
+                {t("communities.freePlanNote")}
               </span>
             )}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-3">
           <div>
-            <label className="mb-1 block text-xs font-medium text-muted-foreground">Name</label>
+            <label className="mb-1 block text-xs font-medium text-muted-foreground">{t("communities.fieldName")}</label>
             <Input
               value={name}
               onChange={(e) => setName(e.target.value)}
               maxLength={60}
-              placeholder="Indie game devs"
+              placeholder={t("communities.namePlaceholder")}
               data-testid="input-community-name"
             />
           </div>
           <div>
             <label className="mb-1 block text-xs font-medium text-muted-foreground">
-              Description
+              {t("communities.fieldDescription")}
             </label>
             <Textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               maxLength={280}
-              placeholder="What's this community about?"
+              placeholder={t("communities.descPlaceholder")}
               rows={2}
               data-testid="input-community-description"
             />
           </div>
           <div>
             <label className="mb-1 block text-xs font-medium text-muted-foreground">
-              Hashtags (comma or space separated, up to 12)
+              {t("communities.fieldHashtags")}
             </label>
             <Input
               value={hashtagsInput}
               onChange={(e) => setHashtagsInput(e.target.value)}
-              placeholder="gamedev, indiegames, pixelart"
+              placeholder={t("communities.tagsPlaceholder")}
               data-testid="input-community-hashtags"
             />
           </div>
@@ -291,7 +300,7 @@ function CreateCommunityDialog({
               onClick={() => onOpenChange(false)}
               disabled={create.isPending}
             >
-              Cancel
+              {t("common.cancel")}
             </Button>
             <Button
               type="submit"
@@ -300,7 +309,7 @@ function CreateCommunityDialog({
               data-testid="button-submit-community"
             >
               {create.isPending && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
-              Create
+              {t("communities.create")}
             </Button>
           </DialogFooter>
         </form>

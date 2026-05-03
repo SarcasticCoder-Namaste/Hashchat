@@ -11,69 +11,60 @@ import { useQueryClient } from "@tanstack/react-query";
 import { BadgeCheck, Sparkles, Check, Loader2, Crown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { useTranslation } from "@/lib/i18n";
 
 type Tier = "premium" | "pro";
 type Cadence = "monthly" | "annual";
 
 const TIERS: {
   id: Tier;
-  name: string;
-  tagline: string;
+  nameKey: string;
+  taglineKey: string;
   monthly: number;
-  perks: string[];
+  perkKeys: string[];
   highlight: boolean;
 }[] = [
   {
     id: "premium",
-    name: "Premium",
-    tagline: "Stand out and skip the ads.",
+    nameKey: "premium.tierPremium",
+    taglineKey: "premium.tagPremium",
     monthly: 4.99,
-    perks: [
-      "Verified blue checkmark",
-      "Unlimited private rooms & communities",
-      "Custom accent color",
-      "Ad-free For You feed",
-      "Larger uploads — up to 25MB per file",
-      "Schedule up to 20 posts at once",
+    perkKeys: [
+      "premium.perkVerified",
+      "premium.perkUnlimitedRooms",
+      "premium.perkAccent",
+      "premium.perkAdFree",
+      "premium.perkUploads",
+      "premium.perkSchedule20",
     ],
     highlight: false,
   },
   {
     id: "pro",
-    name: "Pro",
-    tagline: "Everything in Premium, plus power-user perks.",
+    nameKey: "premium.tierPro",
+    taglineKey: "premium.tagPro",
     monthly: 9.99,
-    perks: [
-      "Everything in Premium",
-      "Animated avatar (GIF/WebP)",
-      "Banner GIF",
-      "Pro badge variant",
-      "Even larger uploads — up to 100MB per file",
-      "Schedule up to 50 posts at once",
+    perkKeys: [
+      "premium.perkEverything",
+      "premium.perkAnimAvatar",
+      "premium.perkBannerGif",
+      "premium.perkProBadge",
+      "premium.perkUploadsPro",
+      "premium.perkScheduled",
     ],
     highlight: true,
   },
 ];
 
-function priceFor(monthly: number, cadence: Cadence): {
-  display: string;
-  caption: string;
-} {
-  if (cadence === "monthly") {
-    return {
-      display: `$${monthly.toFixed(2)}`,
-      caption: "per month",
-    };
-  }
-  // 20% off annual.
-  const annual = monthly * 12 * 0.8;
-  return {
-    display: `$${annual.toFixed(2)}`,
-    caption: "per year (save 20%)",
-  };
-}
-
 export default function Premium() {
+  const { t } = useTranslation();
+  const priceFor = (monthly: number, cadence: Cadence) => {
+    if (cadence === "monthly") {
+      return { display: `$${monthly.toFixed(2)}`, caption: t("premium.perMonth") };
+    }
+    const annual = monthly * 12 * 0.8;
+    return { display: `$${annual.toFixed(2)}`, caption: t("premium.perYearSave") };
+  };
   const status = useGetPremiumStatus();
   const qc = useQueryClient();
   const { toast } = useToast();
@@ -92,13 +83,13 @@ export default function Premium() {
         } else {
           invalidate();
           toast({
-            title: "Subscription activated!",
-            description: "Welcome — your perks are live.",
+            title: t("premium.activated"),
+            description: t("premium.activatedDesc"),
           });
         }
       },
       onError: () =>
-        toast({ title: "Could not start checkout", variant: "destructive" }),
+        toast({ title: t("premium.checkoutFailed"), variant: "destructive" }),
     },
   });
 
@@ -108,7 +99,7 @@ export default function Premium() {
         if (res.url) window.location.href = res.url;
       },
       onError: () =>
-        toast({ title: "Could not open billing portal", variant: "destructive" }),
+        toast({ title: t("premium.portalFailed"), variant: "destructive" }),
     },
   });
 
@@ -116,10 +107,10 @@ export default function Premium() {
     mutation: {
       onSuccess: () => {
         invalidate();
-        toast({ title: "Subscription activated (dev mode)" });
+        toast({ title: t("premium.devActivated") });
       },
       onError: () =>
-        toast({ title: "Dev confirm not available", variant: "destructive" }),
+        toast({ title: t("premium.devUnavailable"), variant: "destructive" }),
     },
   });
 
@@ -145,11 +136,10 @@ export default function Premium() {
             <Sparkles className="h-8 w-8" />
           </div>
           <h1 className="text-3xl font-bold text-foreground md:text-4xl">
-            Upgrade your <span className="brand-gradient-text">HashChat</span>
+            {t("premium.title")} <span className="brand-gradient-text">HashChat</span>
           </h1>
           <p className="mt-2 max-w-lg text-muted-foreground">
-            Pick the plan that fits — Premium for everyday perks, Pro for the
-            full experience. Annual saves 20%.
+            {t("premium.subtitle")}
           </p>
           {isActive && (
             <div
@@ -157,8 +147,8 @@ export default function Premium() {
               data-testid="premium-active-badge"
             >
               <BadgeCheck className="h-4 w-4 fill-sky-500/20" />
-              You're on{" "}
-              {currentTier === "pro" ? "Pro" : currentTier === "premium" ? "Premium" : "Free"}
+              {t("premium.activeOn")}{" "}
+              {currentTier === "pro" ? t("premium.tierPro") : currentTier === "premium" ? t("premium.tierPremium") : t("premium.tierFree")}
               {currentCadence ? ` · ${currentCadence}` : ""}
             </div>
           )}
@@ -185,41 +175,42 @@ export default function Premium() {
                 : "text-muted-foreground hover:text-foreground",
             ].join(" ")}
           >
-            {c === "monthly" ? "Monthly" : "Annual · save 20%"}
+            {c === "monthly" ? t("premium.cadenceMonthly") : t("premium.cadenceAnnual")}
           </button>
         ))}
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
-        {TIERS.map((t) => {
-          const price = priceFor(t.monthly, cadence);
-          const isCurrent = currentTier === t.id;
+        {TIERS.map((tier) => {
+          const tierName = t(tier.nameKey);
+          const price = priceFor(tier.monthly, cadence);
+          const isCurrent = currentTier === tier.id;
           const ctaLabel = isCurrent
-            ? "Current plan"
-            : currentTier === "pro" && t.id === "premium"
-              ? "Switch to Premium"
-              : currentTier === "premium" && t.id === "pro"
-                ? "Upgrade to Pro"
-                : `Choose ${t.name}`;
+            ? t("premium.currentPlan")
+            : currentTier === "pro" && tier.id === "premium"
+              ? t("premium.switchToPremium")
+              : currentTier === "premium" && tier.id === "pro"
+                ? t("premium.upgradeToPro")
+                : t("premium.choose", { tier: tierName });
           const pending = checkout.isPending || devConfirm.isPending;
           return (
             <div
-              key={t.id}
-              data-testid={`tier-card-${t.id}`}
+              key={tier.id}
+              data-testid={`tier-card-${tier.id}`}
               className={[
                 "relative flex flex-col rounded-2xl border bg-card p-6 shadow-sm",
-                t.highlight
+                tier.highlight
                   ? "border-violet-500/60 ring-2 ring-violet-500/30"
                   : "border-border",
               ].join(" ")}
             >
-              {t.highlight && (
+              {tier.highlight && (
                 <span className="absolute -top-3 right-4 inline-flex items-center gap-1 rounded-full bg-gradient-to-br from-violet-500 to-pink-500 px-2 py-0.5 text-[11px] font-semibold text-white">
-                  <Crown className="h-3 w-3" /> Best value
+                  <Crown className="h-3 w-3" /> {t("premium.bestValue")}
                 </span>
               )}
-              <h3 className="text-xl font-semibold text-foreground">{t.name}</h3>
-              <p className="mt-1 text-sm text-muted-foreground">{t.tagline}</p>
+              <h3 className="text-xl font-semibold text-foreground">{tierName}</h3>
+              <p className="mt-1 text-sm text-muted-foreground">{t(tier.taglineKey)}</p>
               <div className="mt-4">
                 <p className="text-3xl font-bold text-foreground">
                   {price.display}
@@ -227,26 +218,26 @@ export default function Premium() {
                 <p className="text-xs text-muted-foreground">{price.caption}</p>
               </div>
               <ul className="mt-5 flex-1 space-y-2">
-                {t.perks.map((perk) => (
+                {tier.perkKeys.map((perkKey) => (
                   <li
-                    key={perk}
+                    key={perkKey}
                     className="flex items-start gap-2 text-sm text-foreground"
                   >
                     <Check className="mt-0.5 h-4 w-4 shrink-0 text-violet-500" />
-                    <span>{perk}</span>
+                    <span>{t(perkKey)}</span>
                   </li>
                 ))}
               </ul>
               <Button
-                onClick={() => onChoose(t.id)}
+                onClick={() => onChoose(tier.id)}
                 disabled={isCurrent || pending}
                 className={
-                  t.highlight
+                  tier.highlight
                     ? "brand-gradient-bg mt-6 w-full text-white"
                     : "mt-6 w-full"
                 }
-                variant={t.highlight || isCurrent ? "default" : "outline"}
-                data-testid={`button-choose-${t.id}`}
+                variant={tier.highlight || isCurrent ? "default" : "outline"}
+                data-testid={`button-choose-${tier.id}`}
               >
                 {pending && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
                 {ctaLabel}
@@ -261,10 +252,10 @@ export default function Premium() {
           <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h3 className="text-base font-semibold text-foreground">
-                Manage your subscription
+                {t("premium.manageTitle")}
               </h3>
               <p className="text-sm text-muted-foreground">
-                Update billing, change plan, or cancel anytime in the Stripe portal.
+                {t("premium.manageSubtitle")}
               </p>
             </div>
             <Button
@@ -276,7 +267,7 @@ export default function Premium() {
               {portal.isPending && (
                 <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
               )}
-              Manage in portal
+              {t("premium.manageButton")}
             </Button>
           </div>
         </div>
@@ -285,16 +276,17 @@ export default function Premium() {
       {provider === "dev" && (
         <div className="rounded-2xl border border-dashed border-border bg-card p-4">
           <p className="text-xs text-muted-foreground">
-            Stripe is not connected in this environment, so the buttons above
-            simulate a successful checkout for local development.
+            {t("premium.devNote")}
           </p>
         </div>
       )}
 
       {status.data?.currentPeriodEnd && (
         <p className="text-center text-xs text-muted-foreground">
-          {status.data.cancelAtPeriodEnd ? "Cancels" : "Renews"} on{" "}
-          {new Date(status.data.currentPeriodEnd).toLocaleDateString()}.
+          {t("premium.renewsOn", {
+            action: status.data.cancelAtPeriodEnd ? t("premium.cancels") : t("premium.renews"),
+            date: new Date(status.data.currentPeriodEnd).toLocaleDateString(),
+          })}
         </p>
       )}
     </div>

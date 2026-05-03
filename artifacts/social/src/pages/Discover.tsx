@@ -67,27 +67,40 @@ import {
   Heart,
   Compass,
 } from "lucide-react";
+import { useTranslation } from "@/lib/i18n";
 
-function greeting(name?: string) {
+type TranslateFn = (key: string, vars?: Record<string, string | number>) => string;
+
+function makeGreeting(t: TranslateFn, name?: string) {
   const h = new Date().getHours();
-  const tod = h < 5 ? "Up late" : h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening";
+  const tod =
+    h < 5
+      ? t("discover.greetingLate")
+      : h < 12
+        ? t("discover.greetingMorning")
+        : h < 18
+          ? t("discover.greetingAfternoon")
+          : t("discover.greetingEvening");
   return name ? `${tod}, ${name}` : tod;
 }
 
-function formatRelative(iso: string) {
-  const t = new Date(iso).getTime();
-  const diff = t - Date.now();
-  const abs = Math.abs(diff);
-  const min = Math.round(abs / 60000);
-  if (min < 1) return diff > 0 ? "Now" : "Just now";
-  if (min < 60) return diff > 0 ? `in ${min}m` : `${min}m ago`;
-  const hr = Math.round(min / 60);
-  if (hr < 24) return diff > 0 ? `in ${hr}h` : `${hr}h ago`;
-  const day = Math.round(hr / 24);
-  return diff > 0 ? `in ${day}d` : `${day}d ago`;
+function makeFormatRelative(t: TranslateFn) {
+  return (iso: string) => {
+    const at = new Date(iso).getTime();
+    const diff = at - Date.now();
+    const abs = Math.abs(diff);
+    const min = Math.round(abs / 60000);
+    if (min < 1) return diff > 0 ? t("discover.timeNow") : t("discover.timeJustNow");
+    if (min < 60) return diff > 0 ? t("discover.timeInMinutes", { count: min }) : t("discover.timeMinutesAgo", { count: min });
+    const hr = Math.round(min / 60);
+    if (hr < 24) return diff > 0 ? t("discover.timeInHours", { count: hr }) : t("discover.timeHoursAgo", { count: hr });
+    const day = Math.round(hr / 24);
+    return diff > 0 ? t("discover.timeInDays", { count: day }) : t("discover.timeDaysAgo", { count: day });
+  };
 }
 
 export default function Discover() {
+  const { t } = useTranslation();
   const { data: me } = useGetMe();
   const { data: friends } = useGetMyFriends();
   const { data: explore, isLoading } = useGetExplore({
@@ -116,25 +129,25 @@ export default function Discover() {
   const stats = useMemo(
     () => [
       {
-        label: "Hashtags",
+        label: t("discover.statHashtags"),
         value: me?.hashtags.length ?? 0,
         icon: Hash,
         accent: "from-violet-500 to-fuchsia-500",
       },
       {
-        label: "Friends",
+        label: t("discover.statFriends"),
         value: friends?.length ?? 0,
         icon: Users,
         accent: "from-pink-500 to-rose-500",
       },
       {
-        label: "Trending",
+        label: t("discover.statTrending"),
         value: explore?.trendingHashtags.length ?? 0,
         icon: Flame,
         accent: "from-orange-500 to-amber-500",
       },
     ],
-    [me?.hashtags.length, friends?.length, explore?.trendingHashtags.length],
+    [t, me?.hashtags.length, friends?.length, explore?.trendingHashtags.length],
   );
 
   const followsAnyHashtag = (explore?.followedHashtags.length ?? 0) > 0;
@@ -151,13 +164,13 @@ export default function Discover() {
           className="relative"
         >
           <p className="text-sm font-medium text-muted-foreground">
-            {greeting(firstName)} 👋
+            {makeGreeting(t, firstName)} 👋
           </p>
           <h1 className="mt-1 text-3xl font-bold tracking-tight md:text-4xl">
-            <span className="brand-gradient-text">Explore</span> what's hot.
+            <span className="brand-gradient-text">{t("discover.exploreTitle")}</span> {t("discover.exploreSubtitle")}
           </h1>
           <p className="mt-2 max-w-xl text-muted-foreground">
-            Trending hashtags, live events, and people who share your interests.
+            {t("discover.heroSubtitle")}
           </p>
         </motion.div>
 
@@ -245,6 +258,7 @@ function SectionHeader({
   href?: string;
   testId?: string;
 }) {
+  const { t } = useTranslation();
   return (
     <div className="mb-3 flex items-center justify-between">
       <div className="flex items-center gap-2">
@@ -257,7 +271,7 @@ function SectionHeader({
           className="text-sm font-medium text-primary hover:underline"
           data-testid={testId}
         >
-          See all →
+          {t("discover.seeAll")}
         </Link>
       )}
     </div>
@@ -284,12 +298,13 @@ function TrendingHashtagsSection({
   hashtags: TrendingHashtag[];
   isLoading: boolean;
 }) {
+  const { t } = useTranslation();
   return (
     <section data-testid="explore-section-trending">
       <SectionHeader
         icon={TrendingUp}
         iconClass="h-5 w-5 text-pink-600"
-        title="Trending hashtags"
+        title={t("discover.trendingHashtags")}
         href="/app/trending"
         testId="link-all-trending"
       />
@@ -305,8 +320,8 @@ function TrendingHashtagsSection({
       ) : hashtags.length === 0 ? (
         <EmptyState
           icon={TrendingUp}
-          title="No trends yet"
-          description="Once people start chatting, hot hashtags will appear here."
+          title={t("discover.noTrendsTitle")}
+          description={t("discover.noTrendsDesc")}
         />
       ) : (
         <div className="flex flex-wrap gap-2">
@@ -350,12 +365,13 @@ function TrendingEventsSection({
   events: ApiEvent[];
   isLoading: boolean;
 }) {
+  const { t } = useTranslation();
   return (
     <section data-testid="explore-section-events">
       <SectionHeader
         icon={Calendar}
         iconClass="h-5 w-5 text-violet-600"
-        title="Trending events"
+        title={t("discover.trendingEvents")}
       />
       {isLoading && events.length === 0 ? (
         <HRail>
@@ -366,11 +382,11 @@ function TrendingEventsSection({
       ) : events.length === 0 ? (
         <EmptyState
           icon={Calendar}
-          title="No upcoming events"
-          description="Follow more hashtags to see events from rooms you care about."
+          title={t("discover.noEventsTitle")}
+          description={t("discover.noEventsDesc")}
           action={
             <Button asChild>
-              <Link href="/app/trending">Browse rooms →</Link>
+              <Link href="/app/trending">{t("discover.browseRooms")}</Link>
             </Button>
           }
         />
@@ -394,6 +410,8 @@ function TrendingEventsSection({
 }
 
 function EventCard({ e }: { e: ApiEvent }) {
+  const { t } = useTranslation();
+  const formatRelative = useMemo(() => makeFormatRelative(t), [t]);
   const qc = useQueryClient();
   const invalidate = () =>
     qc.invalidateQueries({ queryKey: getGetExploreQueryKey() });
@@ -407,7 +425,7 @@ function EventCard({ e }: { e: ApiEvent }) {
       <div className="mb-2 flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wide">
         {e.isLive ? (
           <span className="inline-flex items-center gap-1 rounded-full bg-red-500/15 px-1.5 py-0.5 text-red-600 dark:text-red-400">
-            <Radio className="h-3 w-3 animate-pulse" /> Live now
+            <Radio className="h-3 w-3 animate-pulse" /> {t("discover.liveNow")}
           </span>
         ) : (
           <span className="inline-flex items-center gap-1 text-violet-600 dark:text-violet-400">
@@ -431,7 +449,7 @@ function EventCard({ e }: { e: ApiEvent }) {
         </p>
       )}
       <div className="mt-3 flex items-center justify-between text-xs">
-        <span className="text-muted-foreground">{e.rsvpCount} going</span>
+        <span className="text-muted-foreground">{t("discover.going", { count: e.rsvpCount })}</span>
         {e.rsvpedByMe ? (
           <Button
             size="sm"
@@ -440,7 +458,7 @@ function EventCard({ e }: { e: ApiEvent }) {
             disabled={unRsvp.isPending}
             data-testid={`event-unrsvp-${e.id}`}
           >
-            <BellOff className="mr-1 h-3.5 w-3.5" /> Going
+            <BellOff className="mr-1 h-3.5 w-3.5" /> {t("discover.goingBtn")}
           </Button>
         ) : (
           <Button
@@ -449,7 +467,7 @@ function EventCard({ e }: { e: ApiEvent }) {
             disabled={rsvp.isPending}
             data-testid={`event-rsvp-${e.id}`}
           >
-            <Bell className="mr-1 h-3.5 w-3.5" /> RSVP
+            <Bell className="mr-1 h-3.5 w-3.5" /> {t("discover.rsvp")}
           </Button>
         )}
       </div>
@@ -468,12 +486,13 @@ function SuggestedRoomsSection({
   isLoading: boolean;
   followsAnyHashtag: boolean;
 }) {
+  const { t } = useTranslation();
   return (
     <section data-testid="explore-section-rooms">
       <SectionHeader
         icon={DoorOpen}
         iconClass="h-5 w-5 text-orange-500"
-        title="Suggested rooms"
+        title={t("discover.suggestedRooms")}
         href="/app/rooms"
         testId="link-all-rooms"
       />
@@ -486,16 +505,16 @@ function SuggestedRoomsSection({
       ) : rooms.length === 0 ? (
         <EmptyState
           icon={DoorOpen}
-          title="No room suggestions yet"
+          title={t("discover.noRoomsTitle")}
           description={
             followsAnyHashtag
-              ? "Things are quiet — check back when more rooms get active."
-              : "Follow a few hashtags so we can suggest rooms tailored to you."
+              ? t("discover.noRoomsQuiet")
+              : t("discover.noRoomsFollow")
           }
           action={
             !followsAnyHashtag ? (
               <Button asChild>
-                <Link href="/app/settings">Follow more hashtags →</Link>
+                <Link href="/app/settings">{t("discover.followMore")}</Link>
               </Button>
             ) : undefined
           }
@@ -520,6 +539,7 @@ function SuggestedRoomsSection({
 }
 
 function RoomCard({ r }: { r: ApiRoom }) {
+  const { t } = useTranslation();
   return (
     <Link
       href={`/app/rooms/${encodeURIComponent(r.tag)}`}
@@ -536,7 +556,7 @@ function RoomCard({ r }: { r: ApiRoom }) {
             {r.tag}
           </p>
           <p className="text-xs text-muted-foreground">
-            {r.memberCount} members · {r.recentMessages} recent
+            {t("discover.roomMeta", { members: r.memberCount, recent: r.recentMessages })}
           </p>
         </div>
       </div>
@@ -555,12 +575,13 @@ function PeopleToFollowSection({
   isLoading: boolean;
   hasOwnHashtags: boolean;
 }) {
+  const { t } = useTranslation();
   return (
     <section data-testid="explore-section-people">
       <SectionHeader
         icon={Users}
         iconClass="h-5 w-5 text-pink-600"
-        title="People to follow"
+        title={t("discover.peopleToFollow")}
         href="/app/discover/people"
         testId="link-all-people"
       />
@@ -573,16 +594,16 @@ function PeopleToFollowSection({
       ) : people.length === 0 ? (
         <EmptyState
           icon={Users}
-          title="No one to suggest yet"
+          title={t("discover.noPeopleTitle")}
           description={
             hasOwnHashtags
-              ? "We'll surface more people as they join."
-              : "Add a few hashtags to your profile and we'll match you with people who share them."
+              ? t("discover.noPeopleSurface")
+              : t("discover.noPeopleAdd")
           }
           action={
             !hasOwnHashtags ? (
               <Button asChild>
-                <Link href="/app/settings">Add hashtags →</Link>
+                <Link href="/app/settings">{t("discover.addHashtags")}</Link>
               </Button>
             ) : undefined
           }
@@ -616,12 +637,13 @@ function HotInYourHashtagsSection({
   isLoading: boolean;
   followsAnyHashtag: boolean;
 }) {
+  const { t } = useTranslation();
   return (
     <section data-testid="explore-section-hot">
       <SectionHeader
         icon={Flame}
         iconClass="h-5 w-5 text-orange-500"
-        title="What's hot in your hashtags"
+        title={t("discover.hotInHashtags")}
       />
       {isLoading && items.length === 0 ? (
         <div className="space-y-3">
@@ -634,18 +656,18 @@ function HotInYourHashtagsSection({
           icon={Flame}
           title={
             followsAnyHashtag
-              ? "No hot posts in your hashtags yet"
-              : "Follow hashtags to see hot posts"
+              ? t("discover.noHotInTags")
+              : t("discover.noHotFollow")
           }
           description={
             followsAnyHashtag
-              ? "Check back soon — we surface the top posts of the last 24 hours."
-              : "Once you follow a few hashtags, the top engaging posts will appear here."
+              ? t("discover.noHotDesc")
+              : t("discover.noHotFollowDesc")
           }
           action={
             !followsAnyHashtag ? (
               <Button asChild>
-                <Link href="/app/settings">Follow more hashtags →</Link>
+                <Link href="/app/settings">{t("discover.followMore")}</Link>
               </Button>
             ) : undefined
           }
@@ -669,6 +691,7 @@ function HotInYourHashtagsSection({
 }
 
 function HotPostCard({ h }: { h: HotPost }) {
+  const { t } = useTranslation();
   return (
     <article
       className="rounded-xl border border-border bg-card p-4 shadow-sm"
@@ -678,7 +701,7 @@ function HotPostCard({ h }: { h: HotPost }) {
         <Flame className="h-3 w-3 text-orange-500" />
         {h.matchedHashtag ? (
           <>
-            Hot in{" "}
+            {t("discover.hotIn")}{" "}
             <Link
               href={`/app/tag/${encodeURIComponent(h.matchedHashtag)}`}
               className="text-primary hover:underline"
@@ -687,7 +710,7 @@ function HotPostCard({ h }: { h: HotPost }) {
             </Link>
           </>
         ) : (
-          <>Trending now</>
+          <>{t("discover.trendingNow")}</>
         )}
         <span className="ml-auto inline-flex items-center gap-1 normal-case text-foreground">
           <Heart className="h-3 w-3 text-pink-500" /> {h.engagement}
@@ -768,12 +791,13 @@ function ForYouPreviewSection({
   items: ForYouItem[];
   isLoading: boolean;
 }) {
+  const { t } = useTranslation();
   return (
     <section data-testid="explore-section-foryou">
       <SectionHeader
         icon={Compass}
         iconClass="h-5 w-5 text-violet-600"
-        title="For you"
+        title={t("discover.forYou")}
         href="/app/foryou"
         testId="link-all-foryou"
       />
@@ -786,11 +810,11 @@ function ForYouPreviewSection({
       ) : items.length === 0 ? (
         <EmptyState
           icon={Sparkles}
-          title="Nothing personalized yet"
-          description="Add hashtags or follow people and we'll fill this with picks made for you."
+          title={t("discover.noPersonalTitle")}
+          description={t("discover.noPersonalDesc")}
           action={
             <Button asChild>
-              <Link href="/app/settings">Add hashtags →</Link>
+              <Link href="/app/settings">{t("discover.addHashtags")}</Link>
             </Button>
           }
         />
@@ -813,6 +837,7 @@ function ForYouPreviewSection({
 }
 
 function ForYouRow({ item }: { item: ForYouItem }) {
+  const { t } = useTranslation();
   if (item.kind === "post" && item.post) {
     const p = item.post;
     return (
@@ -848,11 +873,11 @@ function ForYouRow({ item }: { item: ForYouItem }) {
               {r.tag}
             </p>
             <p className="text-xs text-muted-foreground">
-              {r.memberCount} members · {r.recentMessages} recent messages
+              {t("discover.roomMetaLong", { members: r.memberCount, recent: r.recentMessages })}
             </p>
           </div>
           <Button size="sm" variant="outline">
-            Open room
+            {t("discover.openRoom")}
           </Button>
         </div>
       </Link>
@@ -874,6 +899,7 @@ function ForYouRow({ item }: { item: ForYouItem }) {
 // --------------------------- Match card (reused) ---------------------------
 
 function MatchCard({ m }: { m: MatchUser }) {
+  const { t } = useTranslation();
   const [, setLocation] = useLocation();
   const qc = useQueryClient();
   const { toast } = useToast();
@@ -903,7 +929,7 @@ function MatchCard({ m }: { m: MatchUser }) {
     mutation: {
       onSuccess: () => {
         invalidate();
-        toast({ title: "Muted", description: `Hidden ${m.displayName} from feeds.` });
+        toast({ title: t("discover.muted"), description: t("discover.mutedDesc", { name: m.displayName }) });
       },
     },
   });
@@ -911,7 +937,7 @@ function MatchCard({ m }: { m: MatchUser }) {
     mutation: {
       onSuccess: () => {
         invalidate();
-        toast({ title: "Blocked", description: `You won't see ${m.displayName} anymore.` });
+        toast({ title: t("discover.blocked"), description: t("discover.blockedDesc", { name: m.displayName }) });
       },
     },
   });
@@ -929,7 +955,7 @@ function MatchCard({ m }: { m: MatchUser }) {
           disabled
           data-testid={`friend-status-${m.username}`}
         >
-          <UserCheck className="mr-1 h-3.5 w-3.5" /> Friends
+          <UserCheck className="mr-1 h-3.5 w-3.5" /> {t("discover.friends")}
         </Button>
       );
     }
@@ -942,7 +968,7 @@ function MatchCard({ m }: { m: MatchUser }) {
           disabled={friendBusy}
           data-testid={`friend-status-${m.username}`}
         >
-          Requested
+          {t("discover.requested")}
         </Button>
       );
     }
@@ -954,7 +980,7 @@ function MatchCard({ m }: { m: MatchUser }) {
           disabled={friendBusy}
           data-testid={`friend-status-${m.username}`}
         >
-          <Check className="mr-1 h-3.5 w-3.5" /> Accept
+          <Check className="mr-1 h-3.5 w-3.5" /> {t("discover.accept")}
         </Button>
       );
     }
@@ -966,7 +992,7 @@ function MatchCard({ m }: { m: MatchUser }) {
         disabled={friendBusy}
         data-testid={`friend-status-${m.username}`}
       >
-        <UserPlus className="mr-1 h-3.5 w-3.5" /> Add friend
+        <UserPlus className="mr-1 h-3.5 w-3.5" /> {t("discover.addFriend")}
       </Button>
     );
   }
@@ -998,7 +1024,7 @@ function MatchCard({ m }: { m: MatchUser }) {
             </Link>
             {m.role === "admin" && (
               <span className="inline-flex items-center gap-0.5 rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700 dark:text-amber-300">
-                <Crown className="h-2.5 w-2.5" /> Admin
+                <Crown className="h-2.5 w-2.5" /> {t("discover.adminBadge")}
               </span>
             )}
             {m.mvpPlan && (
@@ -1070,7 +1096,7 @@ function MatchCard({ m }: { m: MatchUser }) {
           ) : (
             <MessageCircle className="mr-2 h-4 w-4" />
           )}
-          Say hi
+          {t("discover.sayHi")}
         </Button>
         {m.isFollowing ? (
           <Button
@@ -1080,7 +1106,7 @@ function MatchCard({ m }: { m: MatchUser }) {
             disabled={unfollow.isPending}
             data-testid={`button-unfollow-${m.username}`}
           >
-            <UserCheck className="mr-1 h-3.5 w-3.5" /> Following
+            <UserCheck className="mr-1 h-3.5 w-3.5" /> {t("discover.following")}
           </Button>
         ) : (
           <Button
@@ -1090,7 +1116,7 @@ function MatchCard({ m }: { m: MatchUser }) {
             disabled={follow.isPending}
             data-testid={`button-follow-${m.username}`}
           >
-            <UserPlus className="mr-1 h-3.5 w-3.5" /> Follow
+            <UserPlus className="mr-1 h-3.5 w-3.5" /> {t("discover.follow")}
           </Button>
         )}
         <FriendButton />
@@ -1099,7 +1125,7 @@ function MatchCard({ m }: { m: MatchUser }) {
             <Button
               size="icon"
               variant="ghost"
-              aria-label="More actions"
+              aria-label={t("discover.moreActions")}
               data-testid={`button-more-${m.username}`}
             >
               <MoreHorizontal className="h-4 w-4" />
@@ -1110,7 +1136,7 @@ function MatchCard({ m }: { m: MatchUser }) {
               onSelect={() => mute.mutate({ id: m.id })}
               data-testid={`menu-mute-${m.username}`}
             >
-              <EyeOff className="mr-2 h-4 w-4" /> Mute
+              <EyeOff className="mr-2 h-4 w-4" /> {t("discover.mute")}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
@@ -1118,7 +1144,7 @@ function MatchCard({ m }: { m: MatchUser }) {
               onSelect={() => block.mutate({ id: m.id })}
               data-testid={`menu-block-${m.username}`}
             >
-              <Ban className="mr-2 h-4 w-4" /> Block
+              <Ban className="mr-2 h-4 w-4" /> {t("discover.block")}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
