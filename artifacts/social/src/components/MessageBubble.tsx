@@ -167,6 +167,13 @@ export function MessageBubble({
                 peaks={message.audioWaveform ?? null}
                 isMine={isMine}
                 testId={`msg-audio-${message.id}`}
+                conversationKey={
+                  message.conversationId != null
+                    ? `dm:${message.conversationId}`
+                    : message.roomTag
+                      ? `room:${message.roomTag}`
+                      : null
+                }
               />
             )}
             <div className="px-3.5 py-2" data-msg-pad>
@@ -307,6 +314,13 @@ export function MessageBubble({
               src={message.audioUrl}
               peaks={message.audioWaveform ?? null}
               testId={`msg-audio-${message.id}`}
+              conversationKey={
+                message.conversationId != null
+                  ? `dm:${message.conversationId}`
+                  : message.roomTag
+                    ? `room:${message.roomTag}`
+                    : null
+              }
             />
           </div>
         )}

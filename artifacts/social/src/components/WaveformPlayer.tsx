@@ -66,9 +66,37 @@ interface Props {
   peaks: number[] | null | undefined;
   isMine?: boolean;
   testId?: string;
+  conversationKey?: string | number | null;
 }
 
-export function WaveformPlayer({ src, peaks, isMine, testId }: Props) {
+const SPEED_OPTIONS = [1, 1.5, 2] as const;
+type Speed = (typeof SPEED_OPTIONS)[number];
+
+function speedStorageKey(conversationKey: string | number | null | undefined): string | null {
+  if (conversationKey === null || conversationKey === undefined || conversationKey === "") {
+    return null;
+  }
+  return `hashchat:voice-speed:${String(conversationKey)}`;
+}
+
+function readStoredSpeed(conversationKey: string | number | null | undefined): Speed {
+  const key = speedStorageKey(conversationKey);
+  if (!key || typeof window === "undefined") return 1;
+  try {
+    const raw = window.localStorage.getItem(key);
+    const parsed = raw ? Number(raw) : NaN;
+    if (SPEED_OPTIONS.includes(parsed as Speed)) return parsed as Speed;
+  } catch {
+    // ignore storage errors
+  }
+  return 1;
+}
+
+function formatSpeed(s: Speed): string {
+  return Number.isInteger(s) ? `${s}x` : `${s}x`;
+}
+
+export function WaveformPlayer({ src, peaks, isMine, testId, conversationKey }: Props) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [duration, setDuration] = useState(0);
@@ -78,10 +106,36 @@ export function WaveformPlayer({ src, peaks, isMine, testId }: Props) {
     peaks && peaks.length > 0 ? peaks : null,
   );
   const [decoding, setDecoding] = useState(false);
+  const [speed, setSpeed] = useState<Speed>(() => readStoredSpeed(conversationKey));
 
   useEffect(() => {
     setLivePeaks(peaks && peaks.length > 0 ? peaks : null);
   }, [peaks]);
+
+  useEffect(() => {
+    setSpeed(readStoredSpeed(conversationKey));
+  }, [conversationKey]);
+
+  useEffect(() => {
+    const a = audioRef.current;
+    if (a) a.playbackRate = speed;
+    const key = speedStorageKey(conversationKey);
+    if (key && typeof window !== "undefined") {
+      try {
+        window.localStorage.setItem(key, String(speed));
+      } catch {
+        // ignore storage errors
+      }
+    }
+  }, [speed, conversationKey, src]);
+
+  function cycleSpeed() {
+    setSpeed((prev) => {
+      const idx = SPEED_OPTIONS.indexOf(prev);
+      const next = SPEED_OPTIONS[(idx + 1) % SPEED_OPTIONS.length];
+      return next;
+    });
+  }
 
   useEffect(() => {
     const a = audioRef.current;
@@ -213,6 +267,20 @@ export function WaveformPlayer({ src, peaks, isMine, testId }: Props) {
         {fmt(playing || current > 0 ? current : displayDuration)}
         {displayDuration > 0 && (current > 0 || playing) ? ` / ${fmt(displayDuration)}` : ""}
       </span>
+      <button
+        type="button"
+        onClick={cycleSpeed}
+        className={[
+          "shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-semibold tabular-nums transition-colors",
+          isMine
+            ? "bg-primary-foreground/20 text-primary-foreground hover:bg-primary-foreground/30"
+            : "bg-primary/15 text-primary hover:bg-primary/25",
+        ].join(" ")}
+        aria-label={`Playback speed ${formatSpeed(speed)}, click to change`}
+        data-testid={testId ? `${testId}-speed` : "waveform-speed"}
+      >
+        {formatSpeed(speed)}
+      </button>
     </div>
   );
 }
