@@ -92,6 +92,7 @@ import {
   ShieldOff,
   QrCode,
   Search,
+  BarChart3,
 } from "lucide-react";
 import { ImageUploadButton } from "@/components/ImageUploadButton";
 import { FriendCodeQRDialog } from "@/components/FriendCodeQRDialog";
@@ -344,6 +345,27 @@ export default function Settings() {
       </div>
 
       <FriendCodeCard />
+
+      <a
+        href={`${basePath}/app/analytics`}
+        className="lift flex items-center justify-between rounded-2xl border border-border bg-gradient-to-br from-violet-500/10 via-card to-pink-500/10 p-4 transition hover:bg-accent/50"
+        data-testid="link-creator-analytics"
+      >
+        <div className="flex items-center gap-3">
+          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500 to-pink-500 text-white shadow-sm">
+            <BarChart3 className="h-5 w-5" />
+          </span>
+          <div>
+            <p className="text-sm font-semibold text-foreground">
+              Creator analytics
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Followers, impressions, top posts.
+            </p>
+          </div>
+        </div>
+        <span className="text-xs font-medium text-muted-foreground">View →</span>
+      </a>
 
       <Tabs defaultValue="profile">
         <TabsList className="grid h-auto w-full grid-cols-3 gap-1 p-1 sm:grid-cols-10">

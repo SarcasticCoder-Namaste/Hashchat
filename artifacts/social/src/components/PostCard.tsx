@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "wouter";
 import {
   useDeletePost,
@@ -32,6 +32,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
+  BarChart3,
   Trash2,
   BadgeCheck,
   Smile,
@@ -42,9 +43,11 @@ import {
 } from "lucide-react";
 import { BookmarkButton } from "./BookmarkButton";
 import { GifMedia, isGifUrl } from "./GifMedia";
+import { PostStatsSheet } from "./PostStatsSheet";
 import { renderRichContent } from "@/lib/mentions";
 import { QuotedPostPreview } from "./QuotedPostPreview";
 import { PostComposer } from "./PostComposer";
+import { usePostImpression, recordPostClick } from "@/hooks/usePostImpression";
 
 const QUICK_REACTIONS = ["👍", "❤️", "😂", "😮", "😢", "🔥", "🎉", "🙌"];
 
@@ -74,6 +77,9 @@ export function PostCard({ post, meId, onDeleted, onChanged }: PostCardProps) {
   const [editText, setEditText] = useState(post.content);
   const [quoteOpen, setQuoteOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [statsOpen, setStatsOpen] = useState(false);
+  const articleRef = useRef<HTMLElement | null>(null);
+  usePostImpression(articleRef, post.id, !!meId && !isMine);
 
   useEffect(() => {
     setEditText(post.content);
@@ -122,6 +128,7 @@ export function PostCard({ post, meId, onDeleted, onChanged }: PostCardProps) {
 
   return (
     <article
+      ref={articleRef}
       className="group flex gap-3 rounded-xl border border-border bg-card p-3"
       data-testid={`post-${post.id}`}
       aria-label={`Post by ${post.author.displayName}`}
@@ -145,6 +152,9 @@ export function PostCard({ post, meId, onDeleted, onChanged }: PostCardProps) {
             href={`/app/u/${post.author.username}`}
             className="truncate text-sm font-semibold text-foreground hover:underline"
             data-testid={`link-author-${post.id}`}
+            onClick={() => {
+              if (!isMine && meId) recordPostClick(post.id, "profile_click");
+            }}
           >
             {post.author.displayName}
           </Link>
@@ -184,6 +194,19 @@ export function PostCard({ post, meId, onDeleted, onChanged }: PostCardProps) {
           )}
           <div className="ml-auto flex items-center gap-0.5">
             <BookmarkButton kind="post" targetId={post.id} />
+            {isMine && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                onClick={() => setStatsOpen(true)}
+                data-testid={`button-post-stats-${post.id}`}
+                aria-label="View post stats"
+                title="View stats"
+              >
+                <BarChart3 className="h-3.5 w-3.5" />
+              </Button>
+            )}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
@@ -300,6 +323,9 @@ export function PostCard({ post, meId, onDeleted, onChanged }: PostCardProps) {
                 target="_blank"
                 rel="noreferrer"
                 className="block"
+                onClick={() => {
+                  if (!isMine && meId) recordPostClick(post.id, "link_click");
+                }}
               >
                 {isGifUrl(u) ? (
                   <GifMedia
@@ -389,6 +415,13 @@ export function PostCard({ post, meId, onDeleted, onChanged }: PostCardProps) {
           <DialogFooter />
         </DialogContent>
       </Dialog>
+      {isMine && (
+        <PostStatsSheet
+          postId={post.id}
+          open={statsOpen}
+          onOpenChange={setStatsOpen}
+        />
+      )}
     </article>
   );
 }

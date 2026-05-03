@@ -54,6 +54,7 @@ import InviteRedeem from "@/pages/InviteRedeem";
 import AdminPanel from "@/pages/AdminPanel";
 import SearchResults from "@/pages/SearchResults";
 import Saved from "@/pages/Saved";
+import Analytics from "@/pages/Analytics";
 import NotFound from "@/pages/not-found";
 import AppShell from "@/components/AppShell";
 import { SolanaProvider } from "@/components/SolanaProvider";
@@ -470,6 +471,11 @@ function ClerkProviderWithRoutes() {
             <Route path="/app/saved">
               <ProtectedShell>
                 <Saved />
+              </ProtectedShell>
+            </Route>
+            <Route path="/app/analytics">
+              <ProtectedShell>
+                <Analytics />
               </ProtectedShell>
             </Route>
             <Route path="/app/settings">

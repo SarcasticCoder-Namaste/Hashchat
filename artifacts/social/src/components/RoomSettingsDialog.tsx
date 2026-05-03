@@ -23,7 +23,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Loader2, Copy, Check, X, Sparkles } from "lucide-react";
+import { Loader2, Copy, Check, X, Sparkles, BarChart3 } from "lucide-react";
+import { RoomAnalyticsPanel } from "./RoomAnalyticsPanel";
 import { useToast } from "@/hooks/use-toast";
 
 export function RoomSettingsDialog({
@@ -89,7 +90,7 @@ export function RoomSettingsDialog({
           </div>
         ) : (
           <Tabs defaultValue="visibility">
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="visibility" data-testid="tab-visibility">
                 Visibility
               </TabsTrigger>
@@ -98,6 +99,14 @@ export function RoomSettingsDialog({
               </TabsTrigger>
               <TabsTrigger value="requests" data-testid="tab-requests" disabled={!isPrivate}>
                 Requests
+              </TabsTrigger>
+              <TabsTrigger
+                value="analytics"
+                data-testid="tab-room-analytics"
+                disabled={!canManage}
+                className="gap-1"
+              >
+                <BarChart3 className="h-3.5 w-3.5" /> Stats
               </TabsTrigger>
             </TabsList>
 
@@ -142,6 +151,10 @@ export function RoomSettingsDialog({
 
             <TabsContent value="requests" className="space-y-3 pt-4">
               <JoinRequestsPanel tag={tag} canManage={canManage} />
+            </TabsContent>
+
+            <TabsContent value="analytics" className="space-y-3 pt-4">
+              <RoomAnalyticsPanel tag={tag} canManage={canManage} />
             </TabsContent>
           </Tabs>
         )}

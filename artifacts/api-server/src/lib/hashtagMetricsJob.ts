@@ -63,6 +63,90 @@ export async function aggregateHashtagMetrics(sinceDays = 2): Promise<void> {
     GROUP BY ufh.tag, day
     ON CONFLICT (tag, day) DO UPDATE SET new_followers = EXCLUDED.new_followers, updated_at = now()
   `);
+
+  // Roll up per-post stats: impressions, unique viewers, profile/link clicks.
+  await db.execute(sql`
+    DELETE FROM post_stats_daily WHERE day >= ${sinceDay}
+  `);
+  await db.execute(sql`
+    INSERT INTO post_stats_daily (post_id, day, impressions, unique_viewers, profile_clicks, link_clicks, likes, updated_at)
+    SELECT
+      pi.post_id,
+      to_char(date_trunc('day', pi.created_at AT TIME ZONE 'UTC'), 'YYYY-MM-DD') AS day,
+      count(*) filter (where pi.kind = 'view')::int,
+      count(distinct pi.viewer_id) filter (where pi.kind = 'view')::int,
+      count(*) filter (where pi.kind = 'profile_click')::int,
+      count(*) filter (where pi.kind = 'link_click')::int,
+      0,
+      now()
+    FROM post_impressions pi
+    WHERE pi.created_at >= ${sinceIso}::timestamptz
+    GROUP BY pi.post_id, day
+    ON CONFLICT (post_id, day) DO UPDATE SET
+      impressions = EXCLUDED.impressions,
+      unique_viewers = EXCLUDED.unique_viewers,
+      profile_clicks = EXCLUDED.profile_clicks,
+      link_clicks = EXCLUDED.link_clicks,
+      updated_at = now()
+  `);
+  await db.execute(sql`
+    INSERT INTO post_stats_daily (post_id, day, impressions, unique_viewers, profile_clicks, link_clicks, likes, updated_at)
+    SELECT
+      pr.post_id,
+      to_char(date_trunc('day', pr.created_at AT TIME ZONE 'UTC'), 'YYYY-MM-DD') AS day,
+      0, 0, 0, 0, count(*)::int, now()
+    FROM post_reactions pr
+    WHERE pr.created_at >= ${sinceIso}::timestamptz
+    GROUP BY pr.post_id, day
+    ON CONFLICT (post_id, day) DO UPDATE SET
+      likes = EXCLUDED.likes,
+      updated_at = now()
+  `);
+
+  // Roll up per-user follower / posting / impression activity.
+  await db.execute(sql`
+    DELETE FROM user_follower_stats_daily WHERE day >= ${sinceDay}
+  `);
+  await db.execute(sql`
+    INSERT INTO user_follower_stats_daily (user_id, day, new_followers, total_followers, posts, impressions, updated_at)
+    SELECT
+      uf.followee_id,
+      to_char(date_trunc('day', uf.created_at AT TIME ZONE 'UTC'), 'YYYY-MM-DD') AS day,
+      count(*)::int, 0, 0, 0, now()
+    FROM user_follows uf
+    WHERE uf.created_at >= ${sinceIso}::timestamptz
+    GROUP BY uf.followee_id, day
+    ON CONFLICT (user_id, day) DO UPDATE SET
+      new_followers = EXCLUDED.new_followers,
+      updated_at = now()
+  `);
+  await db.execute(sql`
+    INSERT INTO user_follower_stats_daily (user_id, day, new_followers, total_followers, posts, impressions, updated_at)
+    SELECT
+      p.author_id,
+      to_char(date_trunc('day', p.created_at AT TIME ZONE 'UTC'), 'YYYY-MM-DD') AS day,
+      0, 0, count(*)::int, 0, now()
+    FROM posts p
+    WHERE p.deleted_at IS NULL AND p.created_at >= ${sinceIso}::timestamptz
+    GROUP BY p.author_id, day
+    ON CONFLICT (user_id, day) DO UPDATE SET
+      posts = EXCLUDED.posts,
+      updated_at = now()
+  `);
+  await db.execute(sql`
+    INSERT INTO user_follower_stats_daily (user_id, day, new_followers, total_followers, posts, impressions, updated_at)
+    SELECT
+      p.author_id,
+      to_char(date_trunc('day', pi.created_at AT TIME ZONE 'UTC'), 'YYYY-MM-DD') AS day,
+      0, 0, 0, count(*) filter (where pi.kind = 'view')::int, now()
+    FROM post_impressions pi
+    JOIN posts p ON p.id = pi.post_id
+    WHERE pi.created_at >= ${sinceIso}::timestamptz
+    GROUP BY p.author_id, day
+    ON CONFLICT (user_id, day) DO UPDATE SET
+      impressions = EXCLUDED.impressions,
+      updated_at = now()
+  `);
 }
 
 let scheduled = false;

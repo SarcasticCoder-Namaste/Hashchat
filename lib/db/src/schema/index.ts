@@ -702,6 +702,71 @@ export const eventRsvpsTable = pgTable(
   (t) => [primaryKey({ columns: [t.eventId, t.userId] })],
 );
 
+export const postImpressionsTable = pgTable(
+  "post_impressions",
+  {
+    postId: integer("post_id")
+      .notNull()
+      .references(() => postsTable.id, { onDelete: "cascade" }),
+    viewerId: text("viewer_id")
+      .notNull()
+      .references(() => usersTable.id, { onDelete: "cascade" }),
+    hourBucket: text("hour_bucket").notNull(),
+    kind: text("kind").notNull().default("view"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.postId, t.viewerId, t.hourBucket, t.kind] }),
+    index("post_impressions_post_idx").on(t.postId, t.createdAt),
+    index("post_impressions_kind_idx").on(t.postId, t.kind),
+  ],
+);
+
+export const postStatsDailyTable = pgTable(
+  "post_stats_daily",
+  {
+    postId: integer("post_id")
+      .notNull()
+      .references(() => postsTable.id, { onDelete: "cascade" }),
+    day: text("day").notNull(),
+    impressions: integer("impressions").notNull().default(0),
+    uniqueViewers: integer("unique_viewers").notNull().default(0),
+    profileClicks: integer("profile_clicks").notNull().default(0),
+    linkClicks: integer("link_clicks").notNull().default(0),
+    likes: integer("likes").notNull().default(0),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.postId, t.day] }),
+    index("post_stats_daily_day_idx").on(t.day),
+  ],
+);
+
+export const userFollowerStatsDailyTable = pgTable(
+  "user_follower_stats_daily",
+  {
+    userId: text("user_id")
+      .notNull()
+      .references(() => usersTable.id, { onDelete: "cascade" }),
+    day: text("day").notNull(),
+    newFollowers: integer("new_followers").notNull().default(0),
+    totalFollowers: integer("total_followers").notNull().default(0),
+    posts: integer("posts").notNull().default(0),
+    impressions: integer("impressions").notNull().default(0),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.userId, t.day] }),
+    index("user_follower_stats_daily_day_idx").on(t.day),
+  ],
+);
+
 export const hashtagMetricsDailyTable = pgTable(
   "hashtag_metrics_daily",
   {

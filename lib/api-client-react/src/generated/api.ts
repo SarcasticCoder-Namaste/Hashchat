@@ -55,10 +55,12 @@ import type {
   GetHotInYourHashtagsParams,
   GetLinkPreviewParams,
   GetMentionSuggestionsParams,
+  GetMyAnalyticsParams,
   GetMyBookmarksParams,
   GetMyFeedPostsParams,
   GetNotificationsParams,
   GetRecentGifsParams,
+  GetRoomAnalyticsParams,
   GetTrendingEventsParams,
   GetTrendingHashtagsParams,
   GetTrendingRoomsParams,
@@ -85,6 +87,7 @@ import type {
   Message,
   MessageThread,
   MvpCode,
+  MyAnalytics,
   MyRelationships,
   NotificationMutes,
   NotificationsResponse,
@@ -96,6 +99,7 @@ import type {
   PostDraft,
   PostDraftBody,
   PostEdit,
+  PostStats,
   PremiumCheckoutBody,
   PremiumCheckoutResponse,
   PremiumPortalResponse,
@@ -106,12 +110,14 @@ import type {
   PushSubscribeBody,
   PushUnsubscribeBody,
   ReactionBody,
+  RecordPostImpressionBody,
   RedeemCodeBody,
   ReelsConfigError,
   ReelsList,
   RemoveMessageReactionParams,
   RemovePostReactionParams,
   Room,
+  RoomAnalytics,
   RoomInvite,
   RoomInvitePeek,
   RoomJoinRequest,
@@ -9544,6 +9550,385 @@ export function useGetMyScheduledPosts<
   request?: SecondParameter<typeof customFetch>;
 }): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getGetMyScheduledPostsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Record an impression / click event for a post (deduped per hour)
+ */
+export const getRecordPostImpressionUrl = (id: number) => {
+  return `/api/posts/${id}/impression`;
+};
+
+export const recordPostImpression = async (
+  id: number,
+  recordPostImpressionBody?: RecordPostImpressionBody,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getRecordPostImpressionUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(recordPostImpressionBody),
+  });
+};
+
+export const getRecordPostImpressionMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof recordPostImpression>>,
+    TError,
+    { id: number; data: BodyType<RecordPostImpressionBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof recordPostImpression>>,
+  TError,
+  { id: number; data: BodyType<RecordPostImpressionBody> },
+  TContext
+> => {
+  const mutationKey = ["recordPostImpression"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof recordPostImpression>>,
+    { id: number; data: BodyType<RecordPostImpressionBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return recordPostImpression(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RecordPostImpressionMutationResult = NonNullable<
+  Awaited<ReturnType<typeof recordPostImpression>>
+>;
+export type RecordPostImpressionMutationBody =
+  BodyType<RecordPostImpressionBody>;
+export type RecordPostImpressionMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Record an impression / click event for a post (deduped per hour)
+ */
+export const useRecordPostImpression = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof recordPostImpression>>,
+    TError,
+    { id: number; data: BodyType<RecordPostImpressionBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof recordPostImpression>>,
+  TError,
+  { id: number; data: BodyType<RecordPostImpressionBody> },
+  TContext
+> => {
+  return useMutation(getRecordPostImpressionMutationOptions(options));
+};
+
+/**
+ * @summary Stats for one of my posts (author only)
+ */
+export const getGetPostStatsUrl = (id: number) => {
+  return `/api/posts/${id}/stats`;
+};
+
+export const getPostStats = async (
+  id: number,
+  options?: RequestInit,
+): Promise<PostStats> => {
+  return customFetch<PostStats>(getGetPostStatsUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetPostStatsQueryKey = (id: number) => {
+  return [`/api/posts/${id}/stats`] as const;
+};
+
+export const getGetPostStatsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getPostStats>>,
+  TError = ErrorType<unknown>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getPostStats>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetPostStatsQueryKey(id);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getPostStats>>> = ({
+    signal,
+  }) => getPostStats(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getPostStats>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetPostStatsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getPostStats>>
+>;
+export type GetPostStatsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Stats for one of my posts (author only)
+ */
+
+export function useGetPostStats<
+  TData = Awaited<ReturnType<typeof getPostStats>>,
+  TError = ErrorType<unknown>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getPostStats>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetPostStatsQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Creator analytics for the current user
+ */
+export const getGetMyAnalyticsUrl = (params?: GetMyAnalyticsParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/me/analytics?${stringifiedParams}`
+    : `/api/me/analytics`;
+};
+
+export const getMyAnalytics = async (
+  params?: GetMyAnalyticsParams,
+  options?: RequestInit,
+): Promise<MyAnalytics> => {
+  return customFetch<MyAnalytics>(getGetMyAnalyticsUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetMyAnalyticsQueryKey = (params?: GetMyAnalyticsParams) => {
+  return [`/api/me/analytics`, ...(params ? [params] : [])] as const;
+};
+
+export const getGetMyAnalyticsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getMyAnalytics>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: GetMyAnalyticsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getMyAnalytics>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetMyAnalyticsQueryKey(params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getMyAnalytics>>> = ({
+    signal,
+  }) => getMyAnalytics(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getMyAnalytics>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetMyAnalyticsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getMyAnalytics>>
+>;
+export type GetMyAnalyticsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Creator analytics for the current user
+ */
+
+export function useGetMyAnalytics<
+  TData = Awaited<ReturnType<typeof getMyAnalytics>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: GetMyAnalyticsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getMyAnalytics>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetMyAnalyticsQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Analytics for a hashtag room (owner / moderator only)
+ */
+export const getGetRoomAnalyticsUrl = (
+  tag: string,
+  params?: GetRoomAnalyticsParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/rooms/${tag}/analytics?${stringifiedParams}`
+    : `/api/rooms/${tag}/analytics`;
+};
+
+export const getRoomAnalytics = async (
+  tag: string,
+  params?: GetRoomAnalyticsParams,
+  options?: RequestInit,
+): Promise<RoomAnalytics> => {
+  return customFetch<RoomAnalytics>(getGetRoomAnalyticsUrl(tag, params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetRoomAnalyticsQueryKey = (
+  tag: string,
+  params?: GetRoomAnalyticsParams,
+) => {
+  return [`/api/rooms/${tag}/analytics`, ...(params ? [params] : [])] as const;
+};
+
+export const getGetRoomAnalyticsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getRoomAnalytics>>,
+  TError = ErrorType<void>,
+>(
+  tag: string,
+  params?: GetRoomAnalyticsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getRoomAnalytics>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetRoomAnalyticsQueryKey(tag, params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getRoomAnalytics>>
+  > = ({ signal }) =>
+    getRoomAnalytics(tag, params, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!tag,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getRoomAnalytics>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetRoomAnalyticsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getRoomAnalytics>>
+>;
+export type GetRoomAnalyticsQueryError = ErrorType<void>;
+
+/**
+ * @summary Analytics for a hashtag room (owner / moderator only)
+ */
+
+export function useGetRoomAnalytics<
+  TData = Awaited<ReturnType<typeof getRoomAnalytics>>,
+  TError = ErrorType<void>,
+>(
+  tag: string,
+  params?: GetRoomAnalyticsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getRoomAnalytics>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetRoomAnalyticsQueryOptions(tag, params, options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;

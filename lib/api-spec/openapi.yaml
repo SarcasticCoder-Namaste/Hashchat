@@ -1599,6 +1599,65 @@ paths:
                 type: array
                 items: { $ref: "#/components/schemas/Post" }
 
+  /posts/{id}/impression:
+    post:
+      operationId: recordPostImpression
+      tags: [posts]
+      summary: Record an impression / click event for a post (deduped per hour)
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/RecordPostImpressionBody" }
+      responses:
+        "204": { description: No content }
+
+  /posts/{id}/stats:
+    get:
+      operationId: getPostStats
+      tags: [posts]
+      summary: Stats for one of my posts (author only)
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PostStats" }
+
+  /me/analytics:
+    get:
+      operationId: getMyAnalytics
+      tags: [posts]
+      summary: Creator analytics for the current user
+      parameters:
+        - { name: days, in: query, required: false, schema: { type: integer, enum: [30, 90, 365], default: 30 } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MyAnalytics" }
+
+  /rooms/{tag}/analytics:
+    get:
+      operationId: getRoomAnalytics
+      tags: [hashtags]
+      summary: Analytics for a hashtag room (owner / moderator only)
+      parameters:
+        - { name: tag, in: path, required: true, schema: { type: string } }
+        - { name: days, in: query, required: false, schema: { type: integer, enum: [30, 90, 365], default: 30 } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RoomAnalytics" }
+        "403": { description: Forbidden }
+
   /me/feed/posts:
     get:
       operationId: getMyFeedPosts
@@ -4037,6 +4096,105 @@ components:
           type: array
           items: { type: string }
       required: [users, hashtags]
+
+    RecordPostImpressionBody:
+      type: object
+      properties:
+        kind:
+          type: string
+          enum: [view, profile_click, link_click]
+          default: view
+
+    PostStats:
+      type: object
+      properties:
+        postId: { type: integer }
+        impressions: { type: integer }
+        uniqueViewers: { type: integer }
+        likes: { type: integer }
+        replies: { type: integer }
+        reposts: { type: integer }
+        profileClicks: { type: integer }
+        linkClicks: { type: integer }
+        timeline:
+          type: array
+          items: { $ref: "#/components/schemas/PostStatsDay" }
+      required: [postId, impressions, uniqueViewers, likes, replies, reposts, profileClicks, linkClicks, timeline]
+
+    PostStatsDay:
+      type: object
+      properties:
+        day: { type: string }
+        impressions: { type: integer }
+        uniqueViewers: { type: integer }
+        likes: { type: integer }
+        profileClicks: { type: integer }
+        linkClicks: { type: integer }
+      required: [day, impressions, uniqueViewers, likes, profileClicks, linkClicks]
+
+    MyAnalyticsTimelinePoint:
+      type: object
+      properties:
+        day: { type: string }
+        followers: { type: integer }
+        newFollowers: { type: integer }
+        posts: { type: integer }
+        impressions: { type: integer }
+      required: [day, followers, newFollowers, posts, impressions]
+
+    TopPost:
+      type: object
+      properties:
+        post: { $ref: "#/components/schemas/Post" }
+        impressions: { type: integer }
+        uniqueViewers: { type: integer }
+        likes: { type: integer }
+      required: [post, impressions, uniqueViewers, likes]
+
+    MyAnalytics:
+      type: object
+      properties:
+        days: { type: integer }
+        totalFollowers: { type: integer }
+        followerDelta: { type: integer }
+        totalPosts: { type: integer }
+        totalImpressions: { type: integer }
+        totalLikes: { type: integer }
+        timeline:
+          type: array
+          items: { $ref: "#/components/schemas/MyAnalyticsTimelinePoint" }
+        topPosts:
+          type: array
+          items: { $ref: "#/components/schemas/TopPost" }
+      required: [days, totalFollowers, followerDelta, totalPosts, totalImpressions, totalLikes, timeline, topPosts]
+
+    RoomAnalyticsTimelinePoint:
+      type: object
+      properties:
+        day: { type: string }
+        messages: { type: integer }
+        posts: { type: integer }
+        newMembers: { type: integer }
+        impressions: { type: integer }
+      required: [day, messages, posts, newMembers, impressions]
+
+    RoomAnalytics:
+      type: object
+      properties:
+        tag: { type: string }
+        days: { type: integer }
+        memberCount: { type: integer }
+        followerCount: { type: integer }
+        messageCount: { type: integer }
+        postCount: { type: integer }
+        totalImpressions: { type: integer }
+        timeline:
+          type: array
+          items: { $ref: "#/components/schemas/RoomAnalyticsTimelinePoint" }
+        topPosts:
+          type: array
+          items: { $ref: "#/components/schemas/TopPost" }
+      required: [tag, days, memberCount, followerCount, messageCount, postCount, totalImpressions, timeline, topPosts]
 
     TypingUser:
       type: object

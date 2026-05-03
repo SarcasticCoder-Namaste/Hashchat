@@ -1504,6 +1504,86 @@ export interface NotificationMutes {
   hashtags: string[];
 }
 
+export type RecordPostImpressionBodyKind =
+  (typeof RecordPostImpressionBodyKind)[keyof typeof RecordPostImpressionBodyKind];
+
+export const RecordPostImpressionBodyKind = {
+  view: "view",
+  profile_click: "profile_click",
+  link_click: "link_click",
+} as const;
+
+export interface RecordPostImpressionBody {
+  kind?: RecordPostImpressionBodyKind;
+}
+
+export interface PostStatsDay {
+  day: string;
+  impressions: number;
+  uniqueViewers: number;
+  likes: number;
+  profileClicks: number;
+  linkClicks: number;
+}
+
+export interface PostStats {
+  postId: number;
+  impressions: number;
+  uniqueViewers: number;
+  likes: number;
+  replies: number;
+  reposts: number;
+  profileClicks: number;
+  linkClicks: number;
+  timeline: PostStatsDay[];
+}
+
+export interface MyAnalyticsTimelinePoint {
+  day: string;
+  followers: number;
+  newFollowers: number;
+  posts: number;
+  impressions: number;
+}
+
+export interface TopPost {
+  post: Post;
+  impressions: number;
+  uniqueViewers: number;
+  likes: number;
+}
+
+export interface MyAnalytics {
+  days: number;
+  totalFollowers: number;
+  followerDelta: number;
+  totalPosts: number;
+  totalImpressions: number;
+  totalLikes: number;
+  timeline: MyAnalyticsTimelinePoint[];
+  topPosts: TopPost[];
+}
+
+export interface RoomAnalyticsTimelinePoint {
+  day: string;
+  messages: number;
+  posts: number;
+  newMembers: number;
+  impressions: number;
+}
+
+export interface RoomAnalytics {
+  tag: string;
+  days: number;
+  memberCount: number;
+  followerCount: number;
+  messageCount: number;
+  postCount: number;
+  totalImpressions: number;
+  timeline: RoomAnalyticsTimelinePoint[];
+  topPosts: TopPost[];
+}
+
 export interface TypingUser {
   id: string;
   displayName: string;
@@ -1591,6 +1671,32 @@ export type GetFollowSuggestionsParams = {
    */
   username?: string;
 };
+
+export type GetMyAnalyticsParams = {
+  days?: GetMyAnalyticsDays;
+};
+
+export type GetMyAnalyticsDays =
+  (typeof GetMyAnalyticsDays)[keyof typeof GetMyAnalyticsDays];
+
+export const GetMyAnalyticsDays = {
+  NUMBER_30: 30,
+  NUMBER_90: 90,
+  NUMBER_365: 365,
+} as const;
+
+export type GetRoomAnalyticsParams = {
+  days?: GetRoomAnalyticsDays;
+};
+
+export type GetRoomAnalyticsDays =
+  (typeof GetRoomAnalyticsDays)[keyof typeof GetRoomAnalyticsDays];
+
+export const GetRoomAnalyticsDays = {
+  NUMBER_30: 30,
+  NUMBER_90: 90,
+  NUMBER_365: 365,
+} as const;
 
 export type GetMyFeedPostsParams = {
   before?: string;

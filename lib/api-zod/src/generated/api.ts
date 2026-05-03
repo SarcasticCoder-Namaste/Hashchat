@@ -3818,6 +3818,252 @@ export const GetMyScheduledPostsResponse = zod.array(
 );
 
 /**
+ * @summary Record an impression / click event for a post (deduped per hour)
+ */
+export const RecordPostImpressionParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const recordPostImpressionBodyKindDefault = `view`;
+
+export const RecordPostImpressionBody = zod.object({
+  kind: zod
+    .enum(["view", "profile_click", "link_click"])
+    .default(recordPostImpressionBodyKindDefault),
+});
+
+/**
+ * @summary Stats for one of my posts (author only)
+ */
+export const GetPostStatsParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const GetPostStatsResponse = zod.object({
+  postId: zod.number(),
+  impressions: zod.number(),
+  uniqueViewers: zod.number(),
+  likes: zod.number(),
+  replies: zod.number(),
+  reposts: zod.number(),
+  profileClicks: zod.number(),
+  linkClicks: zod.number(),
+  timeline: zod.array(
+    zod.object({
+      day: zod.string(),
+      impressions: zod.number(),
+      uniqueViewers: zod.number(),
+      likes: zod.number(),
+      profileClicks: zod.number(),
+      linkClicks: zod.number(),
+    }),
+  ),
+});
+
+/**
+ * @summary Creator analytics for the current user
+ */
+export const getMyAnalyticsQueryDaysDefault = 30;
+
+export const GetMyAnalyticsQueryParams = zod.object({
+  days: zod
+    .union([zod.literal(30), zod.literal(90), zod.literal(365)])
+    .default(getMyAnalyticsQueryDaysDefault),
+});
+
+export const GetMyAnalyticsResponse = zod.object({
+  days: zod.number(),
+  totalFollowers: zod.number(),
+  followerDelta: zod.number(),
+  totalPosts: zod.number(),
+  totalImpressions: zod.number(),
+  totalLikes: zod.number(),
+  timeline: zod.array(
+    zod.object({
+      day: zod.string(),
+      followers: zod.number(),
+      newFollowers: zod.number(),
+      posts: zod.number(),
+      impressions: zod.number(),
+    }),
+  ),
+  topPosts: zod.array(
+    zod.object({
+      post: zod.object({
+        id: zod.number(),
+        author: zod.object({
+          id: zod.string(),
+          username: zod.string(),
+          displayName: zod.string(),
+          avatarUrl: zod.string().nullish(),
+          animatedAvatarUrl: zod.string().nullish(),
+          discriminator: zod.string().nullish(),
+          role: zod.string(),
+          mvpPlan: zod.boolean(),
+          verified: zod.boolean(),
+          tier: zod.enum(["free", "premium", "pro"]).optional(),
+        }),
+        content: zod.string(),
+        hashtags: zod.array(zod.string()),
+        imageUrls: zod.array(zod.string()),
+        reactions: zod.array(
+          zod.object({
+            emoji: zod.string(),
+            count: zod.number(),
+            reactedByMe: zod.boolean(),
+          }),
+        ),
+        mentions: zod.array(
+          zod.object({
+            id: zod.string(),
+            username: zod.string(),
+            displayName: zod.string(),
+          }),
+        ),
+        status: zod.enum(["scheduled", "published"]),
+        scheduledFor: zod.coerce.date().nullish(),
+        editedAt: zod.coerce.date().nullish(),
+        editableUntil: zod.coerce.date().nullish(),
+        quotedPost: zod
+          .union([
+            zod.object({
+              id: zod.number(),
+              author: zod
+                .object({
+                  id: zod.string(),
+                  username: zod.string(),
+                  displayName: zod.string(),
+                  avatarUrl: zod.string().nullish(),
+                  animatedAvatarUrl: zod.string().nullish(),
+                  discriminator: zod.string().nullish(),
+                  role: zod.string(),
+                  mvpPlan: zod.boolean(),
+                  verified: zod.boolean(),
+                  tier: zod.enum(["free", "premium", "pro"]).optional(),
+                })
+                .optional(),
+              content: zod.string(),
+              imageUrls: zod.array(zod.string()),
+              createdAt: zod.coerce.date(),
+              unavailable: zod.boolean(),
+            }),
+            zod.null(),
+          ])
+          .optional(),
+        createdAt: zod.coerce.date(),
+      }),
+      impressions: zod.number(),
+      uniqueViewers: zod.number(),
+      likes: zod.number(),
+    }),
+  ),
+});
+
+/**
+ * @summary Analytics for a hashtag room (owner / moderator only)
+ */
+export const GetRoomAnalyticsParams = zod.object({
+  tag: zod.coerce.string(),
+});
+
+export const getRoomAnalyticsQueryDaysDefault = 30;
+
+export const GetRoomAnalyticsQueryParams = zod.object({
+  days: zod
+    .union([zod.literal(30), zod.literal(90), zod.literal(365)])
+    .default(getRoomAnalyticsQueryDaysDefault),
+});
+
+export const GetRoomAnalyticsResponse = zod.object({
+  tag: zod.string(),
+  days: zod.number(),
+  memberCount: zod.number(),
+  followerCount: zod.number(),
+  messageCount: zod.number(),
+  postCount: zod.number(),
+  totalImpressions: zod.number(),
+  timeline: zod.array(
+    zod.object({
+      day: zod.string(),
+      messages: zod.number(),
+      posts: zod.number(),
+      newMembers: zod.number(),
+      impressions: zod.number(),
+    }),
+  ),
+  topPosts: zod.array(
+    zod.object({
+      post: zod.object({
+        id: zod.number(),
+        author: zod.object({
+          id: zod.string(),
+          username: zod.string(),
+          displayName: zod.string(),
+          avatarUrl: zod.string().nullish(),
+          animatedAvatarUrl: zod.string().nullish(),
+          discriminator: zod.string().nullish(),
+          role: zod.string(),
+          mvpPlan: zod.boolean(),
+          verified: zod.boolean(),
+          tier: zod.enum(["free", "premium", "pro"]).optional(),
+        }),
+        content: zod.string(),
+        hashtags: zod.array(zod.string()),
+        imageUrls: zod.array(zod.string()),
+        reactions: zod.array(
+          zod.object({
+            emoji: zod.string(),
+            count: zod.number(),
+            reactedByMe: zod.boolean(),
+          }),
+        ),
+        mentions: zod.array(
+          zod.object({
+            id: zod.string(),
+            username: zod.string(),
+            displayName: zod.string(),
+          }),
+        ),
+        status: zod.enum(["scheduled", "published"]),
+        scheduledFor: zod.coerce.date().nullish(),
+        editedAt: zod.coerce.date().nullish(),
+        editableUntil: zod.coerce.date().nullish(),
+        quotedPost: zod
+          .union([
+            zod.object({
+              id: zod.number(),
+              author: zod
+                .object({
+                  id: zod.string(),
+                  username: zod.string(),
+                  displayName: zod.string(),
+                  avatarUrl: zod.string().nullish(),
+                  animatedAvatarUrl: zod.string().nullish(),
+                  discriminator: zod.string().nullish(),
+                  role: zod.string(),
+                  mvpPlan: zod.boolean(),
+                  verified: zod.boolean(),
+                  tier: zod.enum(["free", "premium", "pro"]).optional(),
+                })
+                .optional(),
+              content: zod.string(),
+              imageUrls: zod.array(zod.string()),
+              createdAt: zod.coerce.date(),
+              unavailable: zod.boolean(),
+            }),
+            zod.null(),
+          ])
+          .optional(),
+        createdAt: zod.coerce.date(),
+      }),
+      impressions: zod.number(),
+      uniqueViewers: zod.number(),
+      likes: zod.number(),
+    }),
+  ),
+});
+
+/**
  * @summary List recent posts from hashtags I follow (most recent first)
  */
 export const getMyFeedPostsQueryLimitDefault = 30;
