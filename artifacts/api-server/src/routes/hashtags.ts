@@ -258,17 +258,62 @@ router.get(
       const last = timeline[timeline.length - 1];
       if (last.day === todayKey) {
         const todaySince = new Date(`${todayKey}T00:00:00Z`);
-        const [todayMsgs] = await db
-          .select({ count: sql<number>`count(*)::int` })
-          .from(messagesTable)
-          .where(
-            and(
-              eq(messagesTable.roomTag, tag),
-              sql`${messagesTable.createdAt} >= ${todaySince}`,
-              sql`${messagesTable.deletedAt} IS NULL`,
-            ),
-          );
-        last.messages = Math.max(last.messages, todayMsgs?.count ?? 0);
+        const [todayMsgs, todayPosts, todayMembers, todayFollowers] =
+          await Promise.all([
+            db
+              .select({ count: sql<number>`count(*)::int` })
+              .from(messagesTable)
+              .where(
+                and(
+                  eq(messagesTable.roomTag, tag),
+                  sql`${messagesTable.createdAt} >= ${todaySince}`,
+                  sql`${messagesTable.deletedAt} IS NULL`,
+                ),
+              ),
+            db
+              .select({ count: sql<number>`count(*)::int` })
+              .from(postsTable)
+              .innerJoin(
+                postHashtagsTable,
+                eq(postHashtagsTable.postId, postsTable.id),
+              )
+              .where(
+                and(
+                  eq(postHashtagsTable.tag, tag),
+                  sql`${postsTable.createdAt} >= ${todaySince}`,
+                  sql`${postsTable.deletedAt} IS NULL`,
+                ),
+              ),
+            db
+              .select({ count: sql<number>`count(*)::int` })
+              .from(userHashtagsTable)
+              .where(
+                and(
+                  eq(userHashtagsTable.tag, tag),
+                  sql`${userHashtagsTable.createdAt} >= ${todaySince}`,
+                ),
+              ),
+            db
+              .select({ count: sql<number>`count(*)::int` })
+              .from(userFollowedHashtagsTable)
+              .where(
+                and(
+                  eq(userFollowedHashtagsTable.tag, tag),
+                  sql`${userFollowedHashtagsTable.createdAt} >= ${todaySince}`,
+                ),
+              ),
+          ]);
+        const liveMsgs = todayMsgs[0]?.count ?? 0;
+        const livePosts = todayPosts[0]?.count ?? 0;
+        const liveMembers = todayMembers[0]?.count ?? 0;
+        const liveFollowers = todayFollowers[0]?.count ?? 0;
+
+        last.messages = Math.max(last.messages, liveMsgs);
+        last.posts = Math.max(last.posts, livePosts);
+        const followerDelta = Math.max(0, liveFollowers - last.newFollowers);
+        last.newMembers = Math.max(last.newMembers, liveMembers);
+        last.newFollowers = Math.max(last.newFollowers, liveFollowers);
+        last.cumulativeFollowers += followerDelta;
       }
     }
 
