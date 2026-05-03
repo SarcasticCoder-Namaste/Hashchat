@@ -5,6 +5,7 @@ import {
   useRsvpEvent,
   useCancelRsvpEvent,
   useCancelEvent,
+  useUpdateEvent,
   getGetRoomEventsQueryKey,
   getGetUpcomingEventsQueryKey,
   type Event as RoomEvent,
@@ -28,6 +29,7 @@ import {
   Plus,
   Bell,
   BellOff,
+  Pencil,
   Trash2,
   Radio,
   Loader2,
@@ -39,6 +41,14 @@ function localInputToIso(value: string) {
   const d = new Date(value);
   if (Number.isNaN(d.getTime())) return null;
   return d.toISOString();
+}
+
+function isoToLocalInput(iso: string | null | undefined) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
 function fmtDate(iso: string) {
@@ -93,6 +103,22 @@ export function EventsPanel({ tag }: { tag: string }) {
       onSuccess: () => {
         toast({ title: "Event canceled" });
         invalidate();
+      },
+    },
+  });
+  const update = useUpdateEvent({
+    mutation: {
+      onSuccess: () => {
+        toast({ title: "Event updated" });
+        invalidate();
+      },
+      onError: (err: unknown) => {
+        const e = err as { response?: { data?: { error?: string } } };
+        toast({
+          title: "Could not update",
+          description: e.response?.data?.error ?? "Try again in a moment.",
+          variant: "destructive",
+        });
       },
     },
   });
@@ -256,6 +282,8 @@ export function EventsPanel({ tag }: { tag: string }) {
                 onRsvp={() => rsvp.mutate({ id: e.id })}
                 onUnRsvp={() => unRsvp.mutate({ id: e.id })}
                 onCancel={() => cancel.mutate({ id: e.id })}
+                onUpdate={(data) => update.mutate({ id: e.id, data })}
+                updatePending={update.isPending}
                 pending={rsvp.isPending || unRsvp.isPending || cancel.isPending}
               />
             ))}
@@ -272,6 +300,8 @@ export function EventsPanel({ tag }: { tag: string }) {
                       onRsvp={() => rsvp.mutate({ id: e.id })}
                       onUnRsvp={() => unRsvp.mutate({ id: e.id })}
                       onCancel={() => cancel.mutate({ id: e.id })}
+                      onUpdate={(data) => update.mutate({ id: e.id, data })}
+                      updatePending={update.isPending}
                       pending={false}
                     />
                   ))}
@@ -290,14 +320,52 @@ function EventRow({
   onRsvp,
   onUnRsvp,
   onCancel,
+  onUpdate,
+  updatePending,
   pending,
 }: {
   event: RoomEvent;
   onRsvp: () => void;
   onUnRsvp: () => void;
   onCancel: () => void;
+  onUpdate: (data: {
+    title: string;
+    description: string | null;
+    startsAt: string;
+    endsAt: string | null;
+  }) => void;
+  updatePending: boolean;
   pending: boolean;
 }) {
+  const [editOpen, setEditOpen] = useState(false);
+  const [eTitle, setETitle] = useState(event.title);
+  const [eDescription, setEDescription] = useState(event.description ?? "");
+  const [eStartsAt, setEStartsAt] = useState(isoToLocalInput(event.startsAt));
+  const [eEndsAt, setEEndsAt] = useState(isoToLocalInput(event.endsAt));
+
+  useEffect(() => {
+    if (editOpen) {
+      setETitle(event.title);
+      setEDescription(event.description ?? "");
+      setEStartsAt(isoToLocalInput(event.startsAt));
+      setEEndsAt(isoToLocalInput(event.endsAt));
+    }
+  }, [editOpen, event.title, event.description, event.startsAt, event.endsAt]);
+
+  function submitEdit(ev: React.FormEvent) {
+    ev.preventDefault();
+    const startsIso = localInputToIso(eStartsAt);
+    const endsIso = eEndsAt ? localInputToIso(eEndsAt) : null;
+    if (!eTitle.trim() || !startsIso) return;
+    onUpdate({
+      title: eTitle.trim(),
+      description: eDescription.trim() || null,
+      startsAt: startsIso,
+      endsAt: endsIso,
+    });
+    setEditOpen(false);
+  }
+
   return (
     <div
       className="rounded-xl border border-border bg-card p-3"
@@ -362,17 +430,105 @@ function EventRow({
               </Button>
             ))}
           {event.canModerate && !event.isPast && (
-            <Button
-              size="icon"
-              variant="ghost"
-              onClick={onCancel}
-              disabled={pending}
-              aria-label="Cancel event"
-              data-testid={`event-row-cancel-${event.id}`}
-              className="h-7 w-7 text-muted-foreground hover:text-destructive"
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-            </Button>
+            <div className="flex items-center gap-1">
+              <Dialog open={editOpen} onOpenChange={setEditOpen}>
+                <DialogTrigger asChild>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    disabled={pending || updatePending}
+                    aria-label="Edit event"
+                    data-testid={`event-row-edit-${event.id}`}
+                    className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Edit event</DialogTitle>
+                    <DialogDescription>
+                      Update the title, description, or schedule. RSVPs are kept.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <form onSubmit={submitEdit} className="space-y-3">
+                    <div>
+                      <label className="text-sm font-medium text-foreground">
+                        Title
+                      </label>
+                      <Input
+                        value={eTitle}
+                        onChange={(e) => setETitle(e.target.value)}
+                        maxLength={120}
+                        data-testid={`input-edit-event-title-${event.id}`}
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-foreground">
+                        Description (optional)
+                      </label>
+                      <Textarea
+                        value={eDescription}
+                        onChange={(e) => setEDescription(e.target.value)}
+                        rows={3}
+                        data-testid={`input-edit-event-description-${event.id}`}
+                      />
+                    </div>
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                      <div>
+                        <label className="text-sm font-medium text-foreground">
+                          Starts at
+                        </label>
+                        <Input
+                          type="datetime-local"
+                          value={eStartsAt}
+                          onChange={(e) => setEStartsAt(e.target.value)}
+                          data-testid={`input-edit-event-starts-${event.id}`}
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-foreground">
+                          Ends at (optional)
+                        </label>
+                        <Input
+                          type="datetime-local"
+                          value={eEndsAt}
+                          onChange={(e) => setEEndsAt(e.target.value)}
+                          data-testid={`input-edit-event-ends-${event.id}`}
+                        />
+                      </div>
+                    </div>
+                    <DialogFooter>
+                      <Button
+                        type="submit"
+                        disabled={
+                          updatePending || !eTitle.trim() || !eStartsAt
+                        }
+                        data-testid={`button-submit-edit-event-${event.id}`}
+                      >
+                        {updatePending && (
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        )}
+                        Save changes
+                      </Button>
+                    </DialogFooter>
+                  </form>
+                </DialogContent>
+              </Dialog>
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={onCancel}
+                disabled={pending}
+                aria-label="Cancel event"
+                data-testid={`event-row-cancel-${event.id}`}
+                className="h-7 w-7 text-muted-foreground hover:text-destructive"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </Button>
+            </div>
           )}
         </div>
       </div>

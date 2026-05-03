@@ -935,6 +935,19 @@ export interface CreateEventBody {
   endsAt?: string | null;
 }
 
+export interface UpdateRoomEventBody {
+  /**
+   * @minLength 1
+   * @maxLength 120
+   */
+  title?: string;
+  /** @nullable */
+  description?: string | null;
+  startsAt?: string;
+  /** @nullable */
+  endsAt?: string | null;
+}
+
 export interface HashtagAnalyticsPoint {
   day: string;
   posts: number;

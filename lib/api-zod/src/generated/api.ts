@@ -666,6 +666,41 @@ export const CancelRsvpEventResponse = zod.object({
 });
 
 /**
+ * @summary Update an event's title, description, or schedule (creator or room moderator)
+ */
+export const UpdateEventParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const updateEventBodyTitleMax = 120;
+
+export const UpdateEventBody = zod.object({
+  title: zod.string().min(1).max(updateEventBodyTitleMax).optional(),
+  description: zod.string().nullish(),
+  startsAt: zod.coerce.date().optional(),
+  endsAt: zod.coerce.date().nullish(),
+});
+
+export const UpdateEventResponse = zod.object({
+  id: zod.number(),
+  roomTag: zod.string(),
+  creatorId: zod.string(),
+  creatorName: zod.string(),
+  creatorAvatarUrl: zod.string().nullish(),
+  title: zod.string(),
+  description: zod.string().nullish(),
+  startsAt: zod.coerce.date(),
+  endsAt: zod.coerce.date().nullish(),
+  canceledAt: zod.coerce.date().nullish(),
+  rsvpCount: zod.number(),
+  rsvpedByMe: zod.boolean(),
+  isLive: zod.boolean(),
+  isPast: zod.boolean(),
+  canModerate: zod.boolean(),
+  createdAt: zod.coerce.date(),
+});
+
+/**
  * @summary Cancel an event (creator or room moderator)
  */
 export const CancelEventParams = zod.object({

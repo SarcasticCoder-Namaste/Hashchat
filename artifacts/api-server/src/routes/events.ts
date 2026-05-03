@@ -10,7 +10,7 @@ import {
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { requireAuth, getUserId } from "../middlewares/requireAuth";
 import { normalizeTag } from "../lib/hashtags";
-import { CreateRoomEventBody } from "@workspace/api-zod";
+import { CreateRoomEventBody, UpdateEventBody } from "@workspace/api-zod";
 
 const router: IRouter = Router();
 
@@ -310,6 +310,103 @@ router.delete(
     res.json(built);
   },
 );
+
+router.patch("/events/:id", requireAuth, async (req, res): Promise<void> => {
+  const id = parseInt(
+    String(Array.isArray(req.params.id) ? req.params.id[0] : req.params.id),
+    10,
+  );
+  if (Number.isNaN(id)) {
+    res.status(400).json({ error: "Invalid id" });
+    return;
+  }
+  const parsed = UpdateEventBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+  const me = getUserId(req);
+  const [evt] = await db
+    .select()
+    .from(eventsTable)
+    .where(eq(eventsTable.id, id))
+    .limit(1);
+  if (!evt || evt.canceledAt) {
+    res.status(404).json({ error: "Not found" });
+    return;
+  }
+  const allowed =
+    evt.creatorId === me || (await canModerateRoom(me, evt.roomTag));
+  if (!allowed) {
+    res.status(403).json({ error: "Not allowed" });
+    return;
+  }
+
+  const updates: Partial<typeof eventsTable.$inferInsert> = {};
+  if (parsed.data.title !== undefined) {
+    const title = parsed.data.title.trim();
+    if (!title) {
+      res.status(400).json({ error: "Title is required" });
+      return;
+    }
+    updates.title = title;
+  }
+  if (parsed.data.description !== undefined) {
+    updates.description = parsed.data.description ?? null;
+  }
+
+  let nextStartsAt = evt.startsAt;
+  if (parsed.data.startsAt !== undefined) {
+    const startsAt =
+      parsed.data.startsAt instanceof Date
+        ? parsed.data.startsAt
+        : new Date(parsed.data.startsAt);
+    if (Number.isNaN(startsAt.getTime())) {
+      res.status(400).json({ error: "Invalid startsAt" });
+      return;
+    }
+    updates.startsAt = startsAt;
+    nextStartsAt = startsAt;
+  }
+
+  if (parsed.data.endsAt !== undefined) {
+    const endsAtRaw = parsed.data.endsAt;
+    if (endsAtRaw === null) {
+      updates.endsAt = null;
+    } else {
+      const endsAt =
+        endsAtRaw instanceof Date ? endsAtRaw : new Date(endsAtRaw);
+      if (Number.isNaN(endsAt.getTime())) {
+        res.status(400).json({ error: "Invalid endsAt" });
+        return;
+      }
+      if (endsAt.getTime() <= nextStartsAt.getTime()) {
+        res.status(400).json({ error: "endsAt must be after startsAt" });
+        return;
+      }
+      updates.endsAt = endsAt;
+    }
+  } else if (parsed.data.startsAt !== undefined && evt.endsAt) {
+    if (evt.endsAt.getTime() <= nextStartsAt.getTime()) {
+      res.status(400).json({ error: "endsAt must be after startsAt" });
+      return;
+    }
+  }
+
+  if (Object.keys(updates).length === 0) {
+    const [built] = await buildEvents([evt], me);
+    res.json(built);
+    return;
+  }
+
+  const [updated] = await db
+    .update(eventsTable)
+    .set(updates)
+    .where(eq(eventsTable.id, id))
+    .returning();
+  const [built] = await buildEvents([updated], me);
+  res.json(built);
+});
 
 router.delete("/events/:id", requireAuth, async (req, res): Promise<void> => {
   const id = parseInt(

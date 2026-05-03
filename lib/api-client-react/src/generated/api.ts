@@ -118,6 +118,7 @@ import type {
   UnreadCountResponse,
   UpdateBookmarkBody,
   UpdatePreferencesBody,
+  UpdateRoomEventBody,
   UpdateUserBody,
   UploadUrlRequest,
   UploadUrlResponse,
@@ -1940,6 +1941,93 @@ export const useCancelRsvpEvent = <
   TContext
 > => {
   return useMutation(getCancelRsvpEventMutationOptions(options));
+};
+
+/**
+ * @summary Update an event's title, description, or schedule (creator or room moderator)
+ */
+export const getUpdateEventUrl = (id: number) => {
+  return `/api/events/${id}`;
+};
+
+export const updateEvent = async (
+  id: number,
+  updateRoomEventBody: UpdateRoomEventBody,
+  options?: RequestInit,
+): Promise<Event> => {
+  return customFetch<Event>(getUpdateEventUrl(id), {
+    ...options,
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(updateRoomEventBody),
+  });
+};
+
+export const getUpdateEventMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateEvent>>,
+    TError,
+    { id: number; data: BodyType<UpdateRoomEventBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateEvent>>,
+  TError,
+  { id: number; data: BodyType<UpdateRoomEventBody> },
+  TContext
+> => {
+  const mutationKey = ["updateEvent"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateEvent>>,
+    { id: number; data: BodyType<UpdateRoomEventBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return updateEvent(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateEventMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateEvent>>
+>;
+export type UpdateEventMutationBody = BodyType<UpdateRoomEventBody>;
+export type UpdateEventMutationError = ErrorType<void>;
+
+/**
+ * @summary Update an event's title, description, or schedule (creator or room moderator)
+ */
+export const useUpdateEvent = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateEvent>>,
+    TError,
+    { id: number; data: BodyType<UpdateRoomEventBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateEvent>>,
+  TError,
+  { id: number; data: BodyType<UpdateRoomEventBody> },
+  TContext
+> => {
+  return useMutation(getUpdateEventMutationOptions(options));
 };
 
 /**
