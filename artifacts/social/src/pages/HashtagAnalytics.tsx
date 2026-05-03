@@ -34,6 +34,7 @@ import {
   FileText,
   Sparkles,
   Loader2,
+  Radio,
 } from "lucide-react";
 
 function shortDay(day: string) {
@@ -364,7 +365,9 @@ export default function HashtagAnalytics({ tag }: { tag: string }) {
                 <PresenceAvatar
                   displayName={c.user.displayName}
                   avatarUrl={c.user.avatarUrl ?? null}
+                  animatedAvatarUrl={c.user.animatedAvatarUrl}
                   lastSeenAt={c.user.lastSeenAt}
+                  presenceState={c.user.presenceState}
                   size="md"
                 />
                 <div className="min-w-0 flex-1">
@@ -374,6 +377,12 @@ export default function HashtagAnalytics({ tag }: { tag: string }) {
                   <p className="truncate text-xs text-muted-foreground">
                     @{c.user.username}
                   </p>
+                  {c.user.currentRoomTag && (
+                    <p className="truncate text-[11px] font-medium text-primary">
+                      <Radio className="mr-1 inline h-3 w-3" />
+                      Active in #{c.user.currentRoomTag}
+                    </p>
+                  )}
                 </div>
                 <div className="text-right text-xs">
                   <p className="font-semibold text-foreground">

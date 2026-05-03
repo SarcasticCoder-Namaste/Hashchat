@@ -31,6 +31,7 @@ import {
   Loader2,
   X,
   Camera,
+  Radio,
 } from "lucide-react";
 
 type LookupState =
@@ -190,17 +191,26 @@ export function FriendCodeSearch({
             <PresenceAvatar
               displayName={u.displayName}
               avatarUrl={u.avatarUrl}
+              animatedAvatarUrl={u.animatedAvatarUrl}
               lastSeenAt={u.lastSeenAt}
+              presenceState={u.presenceState}
             />
-            <UserNameLine
-              displayName={u.displayName}
-              username={u.username}
-              discriminator={u.discriminator}
-              role={u.role}
-              mvpPlan={u.mvpPlan}
-              verified={u.verified}
-              className="flex-1"
-            />
+            <div className="min-w-0 flex-1">
+              <UserNameLine
+                displayName={u.displayName}
+                username={u.username}
+                discriminator={u.discriminator}
+                role={u.role}
+                mvpPlan={u.mvpPlan}
+                verified={u.verified}
+              />
+              {u.currentRoomTag && (
+                <p className="truncate text-[11px] font-medium text-primary">
+                  <Radio className="mr-1 inline h-3 w-3" />
+                  Active in #{u.currentRoomTag}
+                </p>
+              )}
+            </div>
           </div>
           {u.bio && (
             <p className="mt-2 line-clamp-2 text-xs text-muted-foreground">

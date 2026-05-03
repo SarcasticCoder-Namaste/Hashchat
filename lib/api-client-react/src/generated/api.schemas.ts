@@ -206,6 +206,18 @@ export interface FriendCodeResponse {
   friendCode: string | null;
 }
 
+/**
+ * Derived presence state — 'online' if active in the last 60s, 'away' within 10 min, otherwise 'offline'. Always 'offline' for users who hide their presence.
+ */
+export type PublicProfilePresenceState =
+  (typeof PublicProfilePresenceState)[keyof typeof PublicProfilePresenceState];
+
+export const PublicProfilePresenceState = {
+  online: "online",
+  away: "away",
+  offline: "offline",
+} as const;
+
 export interface PublicProfile {
   id: string;
   username: string;
@@ -239,6 +251,13 @@ export interface PublicProfile {
   mvpPlan: boolean;
   verified: boolean;
   lastSeenAt: string;
+  /** Derived presence state — 'online' if active in the last 60s, 'away' within 10 min, otherwise 'offline'. Always 'offline' for users who hide their presence. */
+  presenceState?: PublicProfilePresenceState;
+  /**
+   * Hashtag of the room the user is currently active in, if any. Null when hidden or not in a room.
+   * @nullable
+   */
+  currentRoomTag?: string | null;
   createdAt: string;
   hashtags: string[];
   mutualHashtags: string[];
@@ -589,6 +608,18 @@ export interface OverviewStats {
   roomCount: number;
 }
 
+/**
+ * Derived presence state — 'online' if active in the last 60s, 'away' within 10 min, otherwise 'offline'. Always 'offline' for users who hide their presence.
+ */
+export type AdminUserPresenceState =
+  (typeof AdminUserPresenceState)[keyof typeof AdminUserPresenceState];
+
+export const AdminUserPresenceState = {
+  online: "online",
+  away: "away",
+  offline: "offline",
+} as const;
+
 export interface AdminUser {
   id: string;
   username: string;
@@ -606,6 +637,13 @@ export interface AdminUser {
   mvpPlan: boolean;
   verified: boolean;
   lastSeenAt: string;
+  /** Derived presence state — 'online' if active in the last 60s, 'away' within 10 min, otherwise 'offline'. Always 'offline' for users who hide their presence. */
+  presenceState?: AdminUserPresenceState;
+  /**
+   * Hashtag of the room the user is currently active in, if any. Null when hidden or not in a room.
+   * @nullable
+   */
+  currentRoomTag?: string | null;
   /** @nullable */
   bannedAt?: string | null;
   createdAt: string;

@@ -981,7 +981,9 @@ function MatchCard({ m }: { m: MatchUser }) {
           <PresenceAvatar
             displayName={m.displayName}
             avatarUrl={m.avatarUrl}
+            animatedAvatarUrl={m.animatedAvatarUrl}
             lastSeenAt={m.lastSeenAt}
+            presenceState={m.presenceState}
             size="lg"
           />
         </Link>
@@ -1022,6 +1024,15 @@ function MatchCard({ m }: { m: MatchUser }) {
               </span>
             )}
           </p>
+          {m.currentRoomTag && (
+            <Link
+              href={`/app/rooms/${encodeURIComponent(m.currentRoomTag)}`}
+              className="mt-0.5 inline-flex items-center gap-1 text-[11px] font-medium text-primary hover:underline"
+              data-testid={`match-active-${m.username}`}
+            >
+              <Radio className="h-3 w-3" /> Active in #{m.currentRoomTag}
+            </Link>
+          )}
         </div>
         <span
           className="rounded-full bg-gradient-to-r from-violet-500/20 to-pink-500/20 px-2 py-0.5 text-xs font-semibold text-foreground"

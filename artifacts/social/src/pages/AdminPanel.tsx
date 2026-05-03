@@ -35,6 +35,7 @@ import {
   Users,
   KeyRound,
   BarChart3,
+  Radio,
 } from "lucide-react";
 
 export default function AdminPanel() {
@@ -150,16 +151,24 @@ function UsersTab({ isAdmin }: { isAdmin: boolean }) {
                 displayName={u.displayName}
                 avatarUrl={u.avatarUrl}
                 lastSeenAt={u.lastSeenAt}
+                presenceState={u.presenceState}
               />
-              <UserNameLine
-                displayName={u.displayName}
-                username={u.username}
-                discriminator={u.discriminator}
-                role={u.role}
-                mvpPlan={u.mvpPlan}
-                verified={u.verified}
-                className="flex-1"
-              />
+              <div className="min-w-0 flex-1">
+                <UserNameLine
+                  displayName={u.displayName}
+                  username={u.username}
+                  discriminator={u.discriminator}
+                  role={u.role}
+                  mvpPlan={u.mvpPlan}
+                  verified={u.verified}
+                />
+                {u.currentRoomTag && (
+                  <p className="truncate text-[11px] font-medium text-primary">
+                    <Radio className="mr-1 inline h-3 w-3" />
+                    Active in #{u.currentRoomTag}
+                  </p>
+                )}
+              </div>
               {u.bannedAt && (
                 <span className="rounded-full bg-destructive/15 px-2 py-0.5 text-[10px] font-semibold text-destructive">
                   Banned

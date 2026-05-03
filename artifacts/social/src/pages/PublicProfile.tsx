@@ -63,6 +63,7 @@ import {
   Check,
   Users,
   Loader2,
+  Radio,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -172,6 +173,7 @@ export default function PublicProfile({ username }: { username: string }) {
               avatarUrl={user.avatarUrl}
               animatedAvatarUrl={user.animatedAvatarUrl}
               lastSeenAt={user.lastSeenAt}
+              presenceState={user.presenceState}
               size="lg"
             />
           </div>
@@ -224,6 +226,15 @@ export default function PublicProfile({ username }: { username: string }) {
                 </span>
               )}
             </div>
+            {user.currentRoomTag && (
+              <Link
+                href={`/app/rooms/${encodeURIComponent(user.currentRoomTag)}`}
+                className="mt-2 inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
+                data-testid="profile-active-room"
+              >
+                <Radio className="h-3.5 w-3.5" /> Active in #{user.currentRoomTag}
+              </Link>
+            )}
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
@@ -547,6 +558,7 @@ function SimilarPersonRow({
           avatarUrl={m.avatarUrl}
           animatedAvatarUrl={m.animatedAvatarUrl}
           lastSeenAt={m.lastSeenAt}
+          presenceState={m.presenceState}
           size="md"
         />
       </Link>
@@ -569,6 +581,12 @@ function SimilarPersonRow({
             </>
           )}
         </p>
+        {m.currentRoomTag && (
+          <p className="truncate text-[11px] font-medium text-primary">
+            <Radio className="mr-1 inline h-3 w-3" />
+            Active in #{m.currentRoomTag}
+          </p>
+        )}
       </div>
       {m.isFollowing ? (
         <Button

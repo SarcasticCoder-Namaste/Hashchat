@@ -799,7 +799,9 @@ async function loadPeopleToFollowForExplore(
       role: u.role,
       mvpPlan: u.mvpPlan,
       verified: u.verified,
-      lastSeenAt: u.lastSeenAt.toISOString(),
+      lastSeenAt: publicLastSeenAt(u.lastSeenAt, u.hidePresence),
+      presenceState: presenceStateFor(u.lastSeenAt, u.hidePresence),
+      currentRoomTag: publicCurrentRoom(u.currentRoomTag, u.lastSeenAt, u.hidePresence),
       hashtags: tags,
       sharedHashtags: shared,
       matchScore:

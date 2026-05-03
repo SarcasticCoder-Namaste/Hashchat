@@ -2721,6 +2721,13 @@ components:
         mvpPlan: { type: boolean }
         verified: { type: boolean }
         lastSeenAt: { type: string, format: date-time }
+        presenceState:
+          type: string
+          enum: [online, away, offline]
+          description: "Derived presence state — 'online' if active in the last 60s, 'away' within 10 min, otherwise 'offline'. Always 'offline' for users who hide their presence."
+        currentRoomTag:
+          type: ["string", "null"]
+          description: "Hashtag of the room the user is currently active in, if any. Null when hidden or not in a room."
         createdAt: { type: string, format: date-time }
         hashtags:
           type: array
@@ -3086,6 +3093,13 @@ components:
         mvpPlan: { type: boolean }
         verified: { type: boolean }
         lastSeenAt: { type: string, format: date-time }
+        presenceState:
+          type: string
+          enum: [online, away, offline]
+          description: "Derived presence state — 'online' if active in the last 60s, 'away' within 10 min, otherwise 'offline'. Always 'offline' for users who hide their presence."
+        currentRoomTag:
+          type: ["string", "null"]
+          description: "Hashtag of the room the user is currently active in, if any. Null when hidden or not in a room."
         bannedAt:
           type: ["string", "null"]
           format: date-time

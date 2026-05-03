@@ -9,7 +9,7 @@ import {
   getGetMyFollowedHashtagsQueryKey,
   getGetRoomsQueryKey,
 } from "@workspace/api-client-react";
-import { ArrowLeft, Users, Hash, MessageCircle, Loader2, LogOut, UserPlus } from "lucide-react";
+import { ArrowLeft, Users, Hash, MessageCircle, Loader2, LogOut, UserPlus, Radio } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PresenceAvatar, UserNameLine } from "@/components/UserBadge";
 import { useToast } from "@/hooks/use-toast";
@@ -190,17 +190,26 @@ export default function CommunityDetail({ slug }: { slug: string }) {
                 <PresenceAvatar
                   displayName={m.displayName}
                   avatarUrl={m.avatarUrl}
+                  animatedAvatarUrl={m.animatedAvatarUrl}
                   lastSeenAt={m.lastSeenAt}
+                  presenceState={m.presenceState}
                 />
-                <UserNameLine
-                  displayName={m.displayName}
-                  username={m.username}
-                  discriminator={m.discriminator}
-                  role={m.role}
-                  mvpPlan={m.mvpPlan}
-                  verified={m.verified}
-                  className="flex-1"
-                />
+                <div className="min-w-0 flex-1">
+                  <UserNameLine
+                    displayName={m.displayName}
+                    username={m.username}
+                    discriminator={m.discriminator}
+                    role={m.role}
+                    mvpPlan={m.mvpPlan}
+                    verified={m.verified}
+                  />
+                  {m.currentRoomTag && (
+                    <p className="truncate text-[11px] font-medium text-primary">
+                      <Radio className="mr-1 inline h-3 w-3" />
+                      Active in #{m.currentRoomTag}
+                    </p>
+                  )}
+                </div>
               </Link>
             ))}
           </div>

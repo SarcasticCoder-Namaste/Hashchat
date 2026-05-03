@@ -3326,6 +3326,18 @@ export const GetUserByUsernameResponse = zod.object({
   mvpPlan: zod.boolean(),
   verified: zod.boolean(),
   lastSeenAt: zod.coerce.date(),
+  presenceState: zod
+    .enum(["online", "away", "offline"])
+    .optional()
+    .describe(
+      "Derived presence state — 'online' if active in the last 60s, 'away' within 10 min, otherwise 'offline'. Always 'offline' for users who hide their presence.",
+    ),
+  currentRoomTag: zod
+    .string()
+    .nullish()
+    .describe(
+      "Hashtag of the room the user is currently active in, if any. Null when hidden or not in a room.",
+    ),
   createdAt: zod.coerce.date(),
   hashtags: zod.array(zod.string()),
   mutualHashtags: zod.array(zod.string()),
@@ -3580,6 +3592,18 @@ export const AdminListUsersResponseItem = zod.object({
   mvpPlan: zod.boolean(),
   verified: zod.boolean(),
   lastSeenAt: zod.coerce.date(),
+  presenceState: zod
+    .enum(["online", "away", "offline"])
+    .optional()
+    .describe(
+      "Derived presence state — 'online' if active in the last 60s, 'away' within 10 min, otherwise 'offline'. Always 'offline' for users who hide their presence.",
+    ),
+  currentRoomTag: zod
+    .string()
+    .nullish()
+    .describe(
+      "Hashtag of the room the user is currently active in, if any. Null when hidden or not in a room.",
+    ),
   bannedAt: zod.coerce.date().nullish(),
   createdAt: zod.coerce.date(),
 });

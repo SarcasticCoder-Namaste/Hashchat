@@ -8,6 +8,7 @@ import {
 import { eq, desc, sql, isNull, and } from "drizzle-orm";
 import { requireAuth, requireAdmin, requireModerator, getUserId } from "../middlewares/requireAuth";
 import { publicUser } from "../lib/serializeUser";
+import { presenceStateFor, publicCurrentRoom } from "../lib/presence";
 
 const router: IRouter = Router();
 
@@ -16,6 +17,8 @@ router.get("/admin/users", requireAuth, requireModerator, async (_req, res): Pro
   res.json(
     users.map((u) => ({
       ...publicUser(u),
+      presenceState: presenceStateFor(u.lastSeenAt, u.hidePresence),
+      currentRoomTag: publicCurrentRoom(u.currentRoomTag, u.lastSeenAt, u.hidePresence),
       bannedAt: u.bannedAt ? u.bannedAt.toISOString() : null,
       createdAt: u.createdAt.toISOString(),
     })),
