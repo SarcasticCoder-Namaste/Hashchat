@@ -2360,6 +2360,27 @@ paths:
         "204": { description: No content }
         "404": { description: Not found }
 
+  /me/scheduled-messages/{id}/reschedule:
+    post:
+      operationId: rescheduleScheduledMessage
+      tags: [messages]
+      summary: Reschedule a failed scheduled DM I own
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/RescheduleScheduledMessageBody" }
+      responses:
+        "200":
+          description: Rescheduled
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ScheduledMessage" }
+        "400": { description: "Invalid input, scheduled limit reached, or sender no longer a member of the conversation" }
+        "404": { description: "Not found or not in failed state" }
+
   /conversations/{id}/scheduled-messages:
     post:
       operationId: scheduleConversationMessage
@@ -5088,6 +5109,12 @@ components:
         scheduledFor: { type: string, format: date-time }
         createdAt: { type: string, format: date-time }
       required: [id, senderId, conversationId, content, status, scheduledFor, createdAt]
+
+    RescheduleScheduledMessageBody:
+      type: object
+      properties:
+        scheduledFor: { type: string, format: date-time }
+      required: [scheduledFor]
 
     CreateScheduledMessageBody:
       type: object

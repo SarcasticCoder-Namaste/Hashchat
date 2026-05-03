@@ -1344,6 +1344,10 @@ export interface ScheduledMessage {
   createdAt: string;
 }
 
+export interface RescheduleScheduledMessageBody {
+  scheduledFor: string;
+}
+
 export interface CreateScheduledMessageBody {
   /**
    * @minLength 1

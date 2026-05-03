@@ -148,6 +148,7 @@ import type {
   RemovePostReactionParams,
   RenameConversationBody,
   Report,
+  RescheduleScheduledMessageBody,
   ResolveReportBody,
   Room,
   RoomAnalytics,
@@ -13844,6 +13845,94 @@ export const useCancelScheduledMessage = <
   TContext
 > => {
   return useMutation(getCancelScheduledMessageMutationOptions(options));
+};
+
+/**
+ * @summary Reschedule a failed scheduled DM I own
+ */
+export const getRescheduleScheduledMessageUrl = (id: number) => {
+  return `/api/me/scheduled-messages/${id}/reschedule`;
+};
+
+export const rescheduleScheduledMessage = async (
+  id: number,
+  rescheduleScheduledMessageBody: RescheduleScheduledMessageBody,
+  options?: RequestInit,
+): Promise<ScheduledMessage> => {
+  return customFetch<ScheduledMessage>(getRescheduleScheduledMessageUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(rescheduleScheduledMessageBody),
+  });
+};
+
+export const getRescheduleScheduledMessageMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof rescheduleScheduledMessage>>,
+    TError,
+    { id: number; data: BodyType<RescheduleScheduledMessageBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof rescheduleScheduledMessage>>,
+  TError,
+  { id: number; data: BodyType<RescheduleScheduledMessageBody> },
+  TContext
+> => {
+  const mutationKey = ["rescheduleScheduledMessage"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof rescheduleScheduledMessage>>,
+    { id: number; data: BodyType<RescheduleScheduledMessageBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return rescheduleScheduledMessage(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RescheduleScheduledMessageMutationResult = NonNullable<
+  Awaited<ReturnType<typeof rescheduleScheduledMessage>>
+>;
+export type RescheduleScheduledMessageMutationBody =
+  BodyType<RescheduleScheduledMessageBody>;
+export type RescheduleScheduledMessageMutationError = ErrorType<void>;
+
+/**
+ * @summary Reschedule a failed scheduled DM I own
+ */
+export const useRescheduleScheduledMessage = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof rescheduleScheduledMessage>>,
+    TError,
+    { id: number; data: BodyType<RescheduleScheduledMessageBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof rescheduleScheduledMessage>>,
+  TError,
+  { id: number; data: BodyType<RescheduleScheduledMessageBody> },
+  TContext
+> => {
+  return useMutation(getRescheduleScheduledMessageMutationOptions(options));
 };
 
 /**

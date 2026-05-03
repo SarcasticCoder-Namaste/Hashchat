@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   useScheduleConversationMessage,
+  useRescheduleScheduledMessage,
   getGetMyScheduledMessagesQueryKey,
 } from "@workspace/api-client-react";
 import {
@@ -24,6 +25,7 @@ interface Props {
   content: string;
   replyToId: number | null;
   onScheduled: () => void;
+  rescheduleId?: number | null;
 }
 
 function pad(n: number): string {
@@ -45,6 +47,7 @@ export function ScheduleDmDialog({
   content,
   replyToId,
   onScheduled,
+  rescheduleId,
 }: Props) {
   const qc = useQueryClient();
   const initial = useMemo(defaultLocalDateTime, []);
@@ -61,25 +64,31 @@ export function ScheduleDmDialog({
     }
   }, [open]);
 
+  const onMutationSuccess = () => {
+    qc.invalidateQueries({ queryKey: getGetMyScheduledMessagesQueryKey() });
+    onScheduled();
+    onOpenChange(false);
+  };
+  const onMutationError = (err: unknown) => {
+    const msg = err instanceof Error ? err.message : "Failed to schedule";
+    setError(msg);
+  };
+
   const schedule = useScheduleConversationMessage({
-    mutation: {
-      onSuccess: () => {
-        qc.invalidateQueries({ queryKey: getGetMyScheduledMessagesQueryKey() });
-        onScheduled();
-        onOpenChange(false);
-      },
-      onError: (err) => {
-        const msg = err instanceof Error ? err.message : "Failed to schedule";
-        setError(msg);
-      },
-    },
+    mutation: { onSuccess: onMutationSuccess, onError: onMutationError },
+  });
+  const reschedule = useRescheduleScheduledMessage({
+    mutation: { onSuccess: onMutationSuccess, onError: onMutationError },
   });
 
+  const isReschedule = typeof rescheduleId === "number";
   const trimmed = content.trim();
   const minLocal = useMemo(() => {
     const d = new Date(Date.now() + 60 * 1000);
     return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
   }, []);
+
+  const isPending = schedule.isPending || reschedule.isPending;
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -101,6 +110,13 @@ export function ScheduleDmDialog({
       setError("Pick a time at least a minute in the future.");
       return;
     }
+    if (isReschedule && rescheduleId != null) {
+      reschedule.mutate({
+        id: rescheduleId,
+        data: { scheduledFor: local.toISOString() },
+      });
+      return;
+    }
     schedule.mutate({
       id: conversationId,
       data: {
@@ -115,9 +131,13 @@ export function ScheduleDmDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-sm">
         <DialogHeader>
-          <DialogTitle>Schedule message</DialogTitle>
+          <DialogTitle>
+            {isReschedule ? "Reschedule message" : "Schedule message"}
+          </DialogTitle>
           <DialogDescription>
-            We'll send this DM at the time you choose, even if you're offline.
+            {isReschedule
+              ? "Pick a new time to try delivering this DM again."
+              : "We'll send this DM at the time you choose, even if you're offline."}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={submit} className="flex flex-col gap-3">
@@ -172,13 +192,13 @@ export function ScheduleDmDialog({
             </Button>
             <Button
               type="submit"
-              disabled={schedule.isPending || !trimmed}
+              disabled={isPending || !trimmed}
               data-testid="button-confirm-schedule"
             >
-              {schedule.isPending ? (
+              {isPending ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               ) : null}
-              Schedule
+              {isReschedule ? "Reschedule" : "Schedule"}
             </Button>
           </DialogFooter>
         </form>

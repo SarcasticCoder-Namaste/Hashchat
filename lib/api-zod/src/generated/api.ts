@@ -6770,6 +6770,30 @@ export const CancelScheduledMessageParams = zod.object({
 });
 
 /**
+ * @summary Reschedule a failed scheduled DM I own
+ */
+export const RescheduleScheduledMessageParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const RescheduleScheduledMessageBody = zod.object({
+  scheduledFor: zod.coerce.date(),
+});
+
+export const RescheduleScheduledMessageResponse = zod.object({
+  id: zod.number(),
+  senderId: zod.string(),
+  conversationId: zod.number(),
+  content: zod.string(),
+  replyToId: zod.number().nullish(),
+  imageUrl: zod.string().nullish(),
+  imageAlt: zod.string().nullish(),
+  status: zod.enum(["scheduled", "sent", "cancelled", "failed"]),
+  scheduledFor: zod.coerce.date(),
+  createdAt: zod.coerce.date(),
+});
+
+/**
  * @summary Schedule a DM to be sent later
  */
 export const ScheduleConversationMessageParams = zod.object({

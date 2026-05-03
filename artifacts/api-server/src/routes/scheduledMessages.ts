@@ -5,9 +5,12 @@ import {
   conversationMembersTable,
   messagesTable,
 } from "@workspace/db";
-import { and, asc, eq, lt, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, lt, sql } from "drizzle-orm";
 import { requireAuth, getUserId } from "../middlewares/requireAuth";
-import { ScheduleConversationMessageBody } from "@workspace/api-zod";
+import {
+  ScheduleConversationMessageBody,
+  RescheduleScheduledMessageBody,
+} from "@workspace/api-zod";
 import { logger } from "../lib/logger";
 import { createNotification } from "../lib/notifications";
 
@@ -43,7 +46,7 @@ router.get(
       .where(
         and(
           eq(scheduledMessagesTable.senderId, me),
-          eq(scheduledMessagesTable.status, "scheduled"),
+          inArray(scheduledMessagesTable.status, ["scheduled", "failed"]),
         ),
       )
       .orderBy(asc(scheduledMessagesTable.scheduledFor))
@@ -69,7 +72,7 @@ router.delete(
         and(
           eq(scheduledMessagesTable.id, id),
           eq(scheduledMessagesTable.senderId, me),
-          eq(scheduledMessagesTable.status, "scheduled"),
+          inArray(scheduledMessagesTable.status, ["scheduled", "failed"]),
         ),
       )
       .returning({ id: scheduledMessagesTable.id });
@@ -78,6 +81,95 @@ router.delete(
       return;
     }
     res.status(204).end();
+  },
+);
+
+router.post(
+  "/me/scheduled-messages/:id/reschedule",
+  requireAuth,
+  async (req, res): Promise<void> => {
+    const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    const id = parseInt(raw, 10);
+    if (Number.isNaN(id)) {
+      res.status(400).json({ error: "Invalid id" });
+      return;
+    }
+    const parsed = RescheduleScheduledMessageBody.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: parsed.error.message });
+      return;
+    }
+    const me = getUserId(req);
+
+    const [existing] = await db
+      .select()
+      .from(scheduledMessagesTable)
+      .where(
+        and(
+          eq(scheduledMessagesTable.id, id),
+          eq(scheduledMessagesTable.senderId, me),
+          eq(scheduledMessagesTable.status, "failed"),
+        ),
+      )
+      .limit(1);
+    if (!existing) {
+      res.status(404).json({ error: "Not found" });
+      return;
+    }
+
+    const [member] = await db
+      .select()
+      .from(conversationMembersTable)
+      .where(
+        and(
+          eq(conversationMembersTable.conversationId, existing.conversationId),
+          eq(conversationMembersTable.userId, me),
+        ),
+      )
+      .limit(1);
+    if (!member) {
+      res
+        .status(400)
+        .json({ error: "You are no longer a member of this conversation" });
+      return;
+    }
+
+    const when = new Date(parsed.data.scheduledFor);
+    if (Number.isNaN(when.getTime())) {
+      res.status(400).json({ error: "Invalid scheduledFor" });
+      return;
+    }
+    if (when.getTime() <= Date.now() + 5_000) {
+      res.status(400).json({ error: "scheduledFor must be in the future" });
+      return;
+    }
+    if (when.getTime() > Date.now() + 365 * 24 * 60 * 60 * 1000) {
+      res.status(400).json({ error: "scheduledFor too far in the future" });
+      return;
+    }
+
+    const countRows = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(scheduledMessagesTable)
+      .where(
+        and(
+          eq(scheduledMessagesTable.senderId, me),
+          eq(scheduledMessagesTable.status, "scheduled"),
+        ),
+      );
+    if ((countRows[0]?.count ?? 0) >= MAX_PER_USER) {
+      res
+        .status(400)
+        .json({ error: `Limit of ${MAX_PER_USER} scheduled DMs reached` });
+      return;
+    }
+
+    const [updated] = await db
+      .update(scheduledMessagesTable)
+      .set({ status: "scheduled", scheduledFor: when })
+      .where(eq(scheduledMessagesTable.id, id))
+      .returning();
+    res.json(serialize(updated));
   },
 );
 
