@@ -93,6 +93,14 @@ function RootLayoutNav() {
         name="room/[tag]"
         options={{ headerShown: true, title: "" }}
       />
+      <Stack.Screen
+        name="compose"
+        options={{
+          headerShown: false,
+          presentation: "modal",
+          animation: "slide_from_bottom",
+        }}
+      />
     </Stack>
   );
 }

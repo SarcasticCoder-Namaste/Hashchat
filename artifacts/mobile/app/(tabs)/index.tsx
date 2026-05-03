@@ -73,6 +73,21 @@ export default function HomeScreen() {
           )}
         />
       )}
+      <Pressable
+        onPress={() => router.push("/compose")}
+        style={({ pressed }) => [
+          styles.fab,
+          {
+            backgroundColor: colors.primary,
+            bottom: insets.bottom + 84,
+            opacity: pressed ? 0.85 : 1,
+          },
+        ]}
+        accessibilityLabel="New post"
+        accessibilityRole="button"
+      >
+        <Feather name="edit-2" size={22} color={colors.primaryForeground} />
+      </Pressable>
     </View>
   );
 }
@@ -228,4 +243,18 @@ const styles = StyleSheet.create({
   tagRow: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
   tag: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999 },
   tagText: { fontSize: 12, fontFamily: "Inter_600SemiBold" },
+  fab: {
+    position: "absolute",
+    right: 20,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000",
+    shadowOpacity: 0.2,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 6,
+  },
 });
