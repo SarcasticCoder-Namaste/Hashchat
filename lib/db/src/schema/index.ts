@@ -434,6 +434,9 @@ export const postsTable = pgTable(
     scheduledFor: timestamp("scheduled_for", { withTimezone: true }),
     editedAt: timestamp("edited_at", { withTimezone: true }),
     quotedPostId: integer("quoted_post_id"),
+    replyToId: integer("reply_to_id"),
+    isPinned: boolean("is_pinned").notNull().default(false),
+    pinnedAt: timestamp("pinned_at", { withTimezone: true }),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
@@ -442,6 +445,8 @@ export const postsTable = pgTable(
   (t) => [
     index("posts_author_idx").on(t.authorId, t.createdAt),
     index("posts_scheduled_idx").on(t.status, t.scheduledFor),
+    index("posts_reply_to_idx").on(t.replyToId),
+    index("posts_author_pinned_idx").on(t.authorId, t.isPinned, t.pinnedAt),
   ],
 );
 
@@ -1040,6 +1045,7 @@ export const userPreferencesTable = pgTable("user_preferences", {
   pushDms: boolean("push_dms").notNull().default(true),
   pushFollows: boolean("push_follows").notNull().default(true),
   pushReactions: boolean("push_reactions").notNull().default(false),
+  likesPublic: boolean("likes_public").notNull().default(false),
   emailAddress: text("email_address"),
   updatedAt: timestamp("updated_at", { withTimezone: true })
     .notNull()

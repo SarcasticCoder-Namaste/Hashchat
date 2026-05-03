@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "wouter";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   useDeletePost,
   useAddPostReaction,
@@ -9,6 +10,10 @@ import {
   getGetPostEditsQueryKey,
   useGetPostQuotes,
   getGetPostQuotesQueryKey,
+  usePinMyPost,
+  useUnpinMyPost,
+  getGetUserPinnedPostsQueryKey,
+  getGetUserPostsQueryKey,
   type Post,
   type QuotedPost,
 } from "@workspace/api-client-react";
@@ -42,6 +47,9 @@ import {
   Pencil,
   Quote,
   Loader2,
+  Pin,
+  PinOff,
+  CornerUpLeft,
 } from "lucide-react";
 import { BookmarkButton } from "./BookmarkButton";
 import { GifMedia, isGifUrl } from "./GifMedia";
@@ -50,6 +58,7 @@ import { renderRichContent } from "@/lib/mentions";
 import { QuotedPostPreview } from "./QuotedPostPreview";
 import { PostComposer } from "./PostComposer";
 import { usePostImpression, recordPostClick } from "@/hooks/usePostImpression";
+import { useToast } from "@/hooks/use-toast";
 
 const QUICK_REACTIONS = ["👍", "❤️", "😂", "😮", "😢", "🔥", "🎉", "🙌"];
 
@@ -74,6 +83,8 @@ function timeAgo(iso: string): string {
 
 export function PostCard({ post, meId, onDeleted, onChanged }: PostCardProps) {
   const isMine = meId === post.author.id;
+  const qc = useQueryClient();
+  const { toast } = useToast();
   const [pickerOpen, setPickerOpen] = useState(false);
   const [editing, setEditing] = useState(false);
   const [editText, setEditText] = useState(post.content);
@@ -88,8 +99,22 @@ export function PostCard({ post, meId, onDeleted, onChanged }: PostCardProps) {
     setEditText(post.content);
   }, [post.content]);
 
+  function invalidatePinQueries() {
+    qc.invalidateQueries({
+      queryKey: getGetUserPinnedPostsQueryKey(post.author.id),
+    });
+    qc.invalidateQueries({
+      queryKey: getGetUserPostsQueryKey(post.author.id),
+    });
+  }
+
   const del = useDeletePost({
-    mutation: { onSuccess: () => onDeleted?.() },
+    mutation: {
+      onSuccess: () => {
+        invalidatePinQueries();
+        onDeleted?.();
+      },
+    },
   });
   const update = useUpdatePost({
     mutation: {
@@ -104,6 +129,35 @@ export function PostCard({ post, meId, onDeleted, onChanged }: PostCardProps) {
   });
   const removeReaction = useRemovePostReaction({
     mutation: { onSuccess: () => onChanged?.() },
+  });
+  const pin = usePinMyPost({
+    mutation: {
+      onSuccess: () => {
+        invalidatePinQueries();
+        onChanged?.();
+        toast({ title: "Pinned to your profile" });
+      },
+      onError: (e: unknown) => {
+        const status = (e as { status?: number } | null)?.status;
+        toast({
+          title: "Couldn't pin",
+          description:
+            status === 400
+              ? "You can pin up to 3 posts. Unpin one first."
+              : "Please try again.",
+          variant: "destructive",
+        });
+      },
+    },
+  });
+  const unpin = useUnpinMyPost({
+    mutation: {
+      onSuccess: () => {
+        invalidatePinQueries();
+        onChanged?.();
+        toast({ title: "Unpinned" });
+      },
+    },
   });
 
   function toggleEmoji(emoji: string, mine: boolean) {
@@ -153,6 +207,14 @@ export function PostCard({ post, meId, onDeleted, onChanged }: PostCardProps) {
         </AvatarFallback>
       </Avatar>
       <div className="min-w-0 flex-1">
+        {post.isPinned && (
+          <div
+            className="mb-1 inline-flex items-center gap-1 text-[11px] font-medium text-muted-foreground"
+            data-testid={`post-pinned-badge-${post.id}`}
+          >
+            <Pin className="h-3 w-3" /> Pinned
+          </div>
+        )}
         <div className="flex items-baseline gap-2">
           <Link
             href={`/app/u/${post.author.username}`}
@@ -244,6 +306,23 @@ export function PostCard({ post, meId, onDeleted, onChanged }: PostCardProps) {
                 )}
                 {isMine && (
                   <>
+                    {post.isPinned ? (
+                      <DropdownMenuItem
+                        onSelect={() => unpin.mutate({ id: post.id })}
+                        disabled={unpin.isPending}
+                        data-testid={`menu-unpin-post-${post.id}`}
+                      >
+                        <PinOff className="mr-2 h-4 w-4" /> Unpin from profile
+                      </DropdownMenuItem>
+                    ) : (
+                      <DropdownMenuItem
+                        onSelect={() => pin.mutate({ id: post.id })}
+                        disabled={pin.isPending}
+                        data-testid={`menu-pin-post-${post.id}`}
+                      >
+                        <Pin className="mr-2 h-4 w-4" /> Pin to profile
+                      </DropdownMenuItem>
+                    )}
                     <DropdownMenuSeparator />
                     <DropdownMenuItem
                       className="text-destructive focus:text-destructive"
@@ -251,6 +330,7 @@ export function PostCard({ post, meId, onDeleted, onChanged }: PostCardProps) {
                         if (confirm("Delete this post?"))
                           del.mutate({ id: post.id });
                       }}
+                      disabled={del.isPending}
                       data-testid={`button-delete-post-${post.id}`}
                     >
                       <Trash2 className="mr-2 h-4 w-4" />
@@ -262,6 +342,21 @@ export function PostCard({ post, meId, onDeleted, onChanged }: PostCardProps) {
             </DropdownMenu>
           </div>
         </div>
+        {post.replyToId != null && post.replyToAuthorUsername && (
+          <div
+            className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground"
+            data-testid={`post-reply-line-${post.id}`}
+          >
+            <CornerUpLeft className="h-3 w-3" />
+            <span>Replying to</span>
+            <Link
+              href={`/app/u/${post.replyToAuthorUsername}`}
+              className="font-medium hover:underline"
+            >
+              @{post.replyToAuthorUsername}
+            </Link>
+          </div>
+        )}
         {editing ? (
           <div className="mt-2 flex flex-col gap-2">
             <textarea

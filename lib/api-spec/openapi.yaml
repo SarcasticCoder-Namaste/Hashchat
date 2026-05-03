@@ -1720,6 +1720,13 @@ paths:
         - { name: id, in: path, required: true, schema: { type: string } }
         - { name: before, in: query, required: false, schema: { type: string, format: date-time } }
         - { name: limit, in: query, required: false, schema: { type: integer, minimum: 1, maximum: 100, default: 30 } }
+        - name: tab
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [posts, replies, media, likes]
+            default: posts
       responses:
         "200":
           description: OK
@@ -1728,6 +1735,43 @@ paths:
               schema:
                 type: array
                 items: { $ref: "#/components/schemas/Post" }
+        "403": { description: Forbidden (likes are private) }
+
+  /users/{id}/pinned-posts:
+    get:
+      operationId: getUserPinnedPosts
+      tags: [posts]
+      summary: List a user's pinned posts (most recently pinned first, max 3)
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Post" }
+
+  /posts/{id}/pin:
+    post:
+      operationId: pinMyPost
+      tags: [posts]
+      summary: Pin one of my posts to my profile (max 3)
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      responses:
+        "204": { description: No content }
+        "400": { description: Pin limit reached }
+        "403": { description: Not your post }
+    delete:
+      operationId: unpinMyPost
+      tags: [posts]
+      summary: Unpin one of my pinned posts
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      responses:
+        "204": { description: No content }
 
   /rooms/{tag}/polls:
     get:
@@ -3231,6 +3275,7 @@ components:
         pushDms: { type: boolean }
         pushFollows: { type: boolean }
         pushReactions: { type: boolean }
+        likesPublic: { type: boolean }
         emailAddress:
           type: ["string", "null"]
         emailEnabled: { type: boolean }
@@ -3239,7 +3284,7 @@ components:
       required:
         [theme, accent, emailMentions, emailReplies, emailDms, emailFollows,
          emailReactions, pushMentions, pushReplies, pushDms, pushFollows,
-         pushReactions, emailEnabled, pushEnabled, pushSubscriptionCount]
+         pushReactions, likesPublic, emailEnabled, pushEnabled, pushSubscriptionCount]
 
     PresencePingBody:
       type: object
@@ -3272,6 +3317,7 @@ components:
         pushDms: { type: boolean }
         pushFollows: { type: boolean }
         pushReactions: { type: boolean }
+        likesPublic: { type: boolean }
         emailAddress:
           type: ["string", "null"]
 
@@ -3523,8 +3569,20 @@ components:
             - { $ref: "#/components/schemas/QuotedPost" }
             - type: "null"
         quoteCount: { type: integer }
+        isPinned: { type: boolean }
+        pinnedAt:
+          type: ["string", "null"]
+          format: date-time
+        replyToId:
+          type: ["integer", "null"]
+        replyToAuthorUsername:
+          type: ["string", "null"]
+        replyToAuthorDisplayName:
+          type: ["string", "null"]
+        replyToContent:
+          type: ["string", "null"]
         createdAt: { type: string, format: date-time }
-      required: [id, author, content, hashtags, imageUrls, reactions, mentions, status, quoteCount, createdAt]
+      required: [id, author, content, hashtags, imageUrls, reactions, mentions, status, quoteCount, isPinned, createdAt]
 
     QuotedPost:
       type: object
@@ -3561,6 +3619,8 @@ components:
         quotedPostId:
           type: ["integer", "null"]
         fromDraftId:
+          type: ["integer", "null"]
+        replyToId:
           type: ["integer", "null"]
       required: [content]
 

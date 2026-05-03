@@ -805,6 +805,7 @@ export interface UserPreferences {
   pushDms: boolean;
   pushFollows: boolean;
   pushReactions: boolean;
+  likesPublic: boolean;
   /** @nullable */
   emailAddress?: string | null;
   emailEnabled: boolean;
@@ -840,6 +841,7 @@ export interface UpdatePreferencesBody {
   pushDms?: boolean;
   pushFollows?: boolean;
   pushReactions?: boolean;
+  likesPublic?: boolean;
   /** @nullable */
   emailAddress?: string | null;
 }
@@ -1022,6 +1024,17 @@ export interface Post {
   editableUntil?: string | null;
   quotedPost?: QuotedPost | null;
   quoteCount: number;
+  isPinned: boolean;
+  /** @nullable */
+  pinnedAt?: string | null;
+  /** @nullable */
+  replyToId?: number | null;
+  /** @nullable */
+  replyToAuthorUsername?: string | null;
+  /** @nullable */
+  replyToAuthorDisplayName?: string | null;
+  /** @nullable */
+  replyToContent?: string | null;
   createdAt: string;
 }
 
@@ -1037,6 +1050,8 @@ export interface CreatePostBody {
   quotedPostId?: number | null;
   /** @nullable */
   fromDraftId?: number | null;
+  /** @nullable */
+  replyToId?: number | null;
 }
 
 export interface UpdatePostBody {
@@ -1744,7 +1759,18 @@ export type GetUserPostsParams = {
    * @maximum 100
    */
   limit?: number;
+  tab?: GetUserPostsTab;
 };
+
+export type GetUserPostsTab =
+  (typeof GetUserPostsTab)[keyof typeof GetUserPostsTab];
+
+export const GetUserPostsTab = {
+  posts: "posts",
+  replies: "replies",
+  media: "media",
+  likes: "likes",
+} as const;
 
 export type GetLinkPreviewParams = {
   url: string;

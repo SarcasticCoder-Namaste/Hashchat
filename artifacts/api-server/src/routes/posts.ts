@@ -26,10 +26,12 @@ import {
 import { resolveMentions, recordMentions } from "../lib/mentions";
 import { createNotification } from "../lib/notifications";
 import { isBlockedEitherWay } from "../lib/relationships";
+import { fetchPrefs } from "./preferences";
 
 const router: IRouter = Router();
 
 const EDIT_WINDOW_MS = 30 * 60 * 1000;
+const PIN_LIMIT = 3;
 
 type PostRow = typeof postsTable.$inferSelect;
 
@@ -307,9 +309,42 @@ async function buildPosts(rows: PostRow[], myUserId: string) {
     if (r.quotedPostId != null) quoteCountByPost.set(r.quotedPostId, r.count);
   }
 
+  const replyToIds = Array.from(
+    new Set(rows.map((r) => r.replyToId).filter((x): x is number => x != null)),
+  );
+  const replyMap = new Map<
+    number,
+    {
+      authorUsername: string;
+      authorDisplayName: string;
+      content: string;
+    }
+  >();
+  if (replyToIds.length > 0) {
+    const parents = await db
+      .select({
+        id: postsTable.id,
+        content: postsTable.content,
+        deletedAt: postsTable.deletedAt,
+        authorUsername: usersTable.username,
+        authorDisplayName: usersTable.displayName,
+      })
+      .from(postsTable)
+      .innerJoin(usersTable, eq(usersTable.id, postsTable.authorId))
+      .where(inArray(postsTable.id, replyToIds));
+    for (const p of parents) {
+      replyMap.set(p.id, {
+        authorUsername: p.authorUsername,
+        authorDisplayName: p.authorDisplayName,
+        content: p.deletedAt ? "" : p.content.slice(0, 200),
+      });
+    }
+  }
+
   return rows.map((r) => {
     const a = authorMap.get(r.authorId);
     const eu = editableUntil(r);
+    const reply = r.replyToId != null ? replyMap.get(r.replyToId) : undefined;
     return {
       id: r.id,
       author: serializeAuthor(a, r.authorId),
@@ -326,6 +361,12 @@ async function buildPosts(rows: PostRow[], myUserId: string) {
       quotedPost:
         r.quotedPostId != null ? quotedMap.get(r.quotedPostId) ?? null : null,
       quoteCount: quoteCountByPost.get(r.id) ?? 0,
+      isPinned: r.isPinned,
+      pinnedAt: r.pinnedAt ? r.pinnedAt.toISOString() : null,
+      replyToId: r.replyToId,
+      replyToAuthorUsername: reply?.authorUsername ?? null,
+      replyToAuthorDisplayName: reply?.authorDisplayName ?? null,
+      replyToContent: reply?.content ?? null,
       createdAt: r.createdAt.toISOString(),
     };
   });
@@ -408,9 +449,23 @@ router.post("/posts", requireAuth, async (req, res): Promise<void> => {
     quotedPostId = qid;
   }
 
+  let replyToId: number | null = null;
+  if (parsed.data.replyToId != null) {
+    const [parent] = await db
+      .select({ id: postsTable.id, deletedAt: postsTable.deletedAt })
+      .from(postsTable)
+      .where(eq(postsTable.id, parsed.data.replyToId))
+      .limit(1);
+    if (!parent || parent.deletedAt) {
+      res.status(400).json({ error: "Invalid replyToId" });
+      return;
+    }
+    replyToId = parent.id;
+  }
+
   const [created] = await db
     .insert(postsTable)
-    .values({ authorId: me, content, status, scheduledFor, quotedPostId })
+    .values({ authorId: me, content, status, scheduledFor, quotedPostId, replyToId })
     .returning();
 
   if (tags.length > 0) {
@@ -630,6 +685,9 @@ router.get("/me/feed/posts", requireAuth, async (req, res): Promise<void> => {
       scheduledFor: postsTable.scheduledFor,
       editedAt: postsTable.editedAt,
       quotedPostId: postsTable.quotedPostId,
+      replyToId: postsTable.replyToId,
+      isPinned: postsTable.isPinned,
+      pinnedAt: postsTable.pinnedAt,
       deletedAt: postsTable.deletedAt,
       createdAt: postsTable.createdAt,
     })
@@ -708,6 +766,9 @@ router.get(
         scheduledFor: postsTable.scheduledFor,
         editedAt: postsTable.editedAt,
         quotedPostId: postsTable.quotedPostId,
+        replyToId: postsTable.replyToId,
+        isPinned: postsTable.isPinned,
+        pinnedAt: postsTable.pinnedAt,
         deletedAt: postsTable.deletedAt,
         createdAt: postsTable.createdAt,
       })
@@ -762,14 +823,94 @@ router.get("/users/:id/posts", requireAuth, async (req, res): Promise<void> => {
     res.status(400).json({ error: pag.error });
     return;
   }
+  const rawTab = Array.isArray(req.query.tab) ? req.query.tab[0] : req.query.tab;
+  const tab =
+    typeof rawTab === "string" &&
+    ["posts", "replies", "media", "likes"].includes(rawTab)
+      ? (rawTab as "posts" | "replies" | "media" | "likes")
+      : "posts";
+
+  if (tab === "likes") {
+    if (raw !== me) {
+      const prefs = await fetchPrefs(raw);
+      if (!prefs.likesPublic) {
+        res.status(403).json({ error: "Likes are private" });
+        return;
+      }
+    }
+    const conditions = [
+      eq(postReactionsTable.userId, raw),
+      sql`${postsTable.deletedAt} IS NULL`,
+    ];
+    if (pag.before) {
+      conditions.push(lt(postsTable.createdAt, pag.before));
+    }
+    const rows = await db
+      .selectDistinct({
+        id: postsTable.id,
+        authorId: postsTable.authorId,
+        content: postsTable.content,
+        status: postsTable.status,
+        scheduledFor: postsTable.scheduledFor,
+        editedAt: postsTable.editedAt,
+        quotedPostId: postsTable.quotedPostId,
+        replyToId: postsTable.replyToId,
+        isPinned: postsTable.isPinned,
+        pinnedAt: postsTable.pinnedAt,
+        deletedAt: postsTable.deletedAt,
+        createdAt: postsTable.createdAt,
+      })
+      .from(postsTable)
+      .innerJoin(
+        postReactionsTable,
+        eq(postReactionsTable.postId, postsTable.id),
+      )
+      .where(and(...conditions))
+      .orderBy(desc(postsTable.createdAt))
+      .limit(pag.limit);
+    res.json(await buildPosts(rows, me));
+    return;
+  }
+
   const conditions = [
     eq(postsTable.authorId, raw),
     sql`${postsTable.deletedAt} IS NULL`,
     eq(postsTable.status, "published"),
   ];
+  if (tab === "posts") {
+    conditions.push(sql`${postsTable.replyToId} IS NULL`);
+  } else if (tab === "replies") {
+    conditions.push(sql`${postsTable.replyToId} IS NOT NULL`);
+  }
   if (pag.before) {
     conditions.push(lt(postsTable.createdAt, pag.before));
   }
+
+  if (tab === "media") {
+    const rows = await db
+      .selectDistinct({
+        id: postsTable.id,
+        authorId: postsTable.authorId,
+        content: postsTable.content,
+        status: postsTable.status,
+        scheduledFor: postsTable.scheduledFor,
+        editedAt: postsTable.editedAt,
+        quotedPostId: postsTable.quotedPostId,
+        replyToId: postsTable.replyToId,
+        isPinned: postsTable.isPinned,
+        pinnedAt: postsTable.pinnedAt,
+        deletedAt: postsTable.deletedAt,
+        createdAt: postsTable.createdAt,
+      })
+      .from(postsTable)
+      .innerJoin(postMediaTable, eq(postMediaTable.postId, postsTable.id))
+      .where(and(...conditions))
+      .orderBy(desc(postsTable.createdAt))
+      .limit(pag.limit);
+    res.json(await buildPosts(rows, me));
+    return;
+  }
+
   const rows = await db
     .select()
     .from(postsTable)
@@ -778,6 +919,106 @@ router.get("/users/:id/posts", requireAuth, async (req, res): Promise<void> => {
     .limit(pag.limit);
   res.json(await buildPosts(rows, me));
 });
+
+router.get(
+  "/users/:id/pinned-posts",
+  requireAuth,
+  async (req, res): Promise<void> => {
+    const me = getUserId(req);
+    const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    const rows = await db
+      .select()
+      .from(postsTable)
+      .where(
+        and(
+          eq(postsTable.authorId, raw),
+          eq(postsTable.isPinned, true),
+          sql`${postsTable.deletedAt} IS NULL`,
+        ),
+      )
+      .orderBy(desc(postsTable.pinnedAt))
+      .limit(PIN_LIMIT);
+    res.json(await buildPosts(rows, me));
+  },
+);
+
+router.post("/posts/:id/pin", requireAuth, async (req, res): Promise<void> => {
+  const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const id = parseInt(raw, 10);
+  if (Number.isNaN(id)) {
+    res.status(400).json({ error: "Invalid id" });
+    return;
+  }
+  const me = getUserId(req);
+  const [post] = await db
+    .select()
+    .from(postsTable)
+    .where(eq(postsTable.id, id))
+    .limit(1);
+  if (!post || post.deletedAt) {
+    res.status(404).json({ error: "Not found" });
+    return;
+  }
+  if (post.authorId !== me) {
+    res.status(403).json({ error: "Not your post" });
+    return;
+  }
+  if (post.isPinned) {
+    res.status(204).end();
+    return;
+  }
+  const [{ count }] = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(postsTable)
+    .where(
+      and(
+        eq(postsTable.authorId, me),
+        eq(postsTable.isPinned, true),
+        sql`${postsTable.deletedAt} IS NULL`,
+      ),
+    );
+  if ((count ?? 0) >= PIN_LIMIT) {
+    res.status(400).json({ error: `Pin limit of ${PIN_LIMIT} reached` });
+    return;
+  }
+  await db
+    .update(postsTable)
+    .set({ isPinned: true, pinnedAt: new Date() })
+    .where(eq(postsTable.id, id));
+  res.status(204).end();
+});
+
+router.delete(
+  "/posts/:id/pin",
+  requireAuth,
+  async (req, res): Promise<void> => {
+    const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    const id = parseInt(raw, 10);
+    if (Number.isNaN(id)) {
+      res.status(400).json({ error: "Invalid id" });
+      return;
+    }
+    const me = getUserId(req);
+    const [post] = await db
+      .select()
+      .from(postsTable)
+      .where(eq(postsTable.id, id))
+      .limit(1);
+    if (!post) {
+      res.status(404).json({ error: "Not found" });
+      return;
+    }
+    if (post.authorId !== me) {
+      res.status(403).json({ error: "Not your post" });
+      return;
+    }
+    await db
+      .update(postsTable)
+      .set({ isPinned: false, pinnedAt: null })
+      .where(eq(postsTable.id, id));
+    res.status(204).end();
+  },
+);
 
 router.post(
   "/posts/:id/reactions",

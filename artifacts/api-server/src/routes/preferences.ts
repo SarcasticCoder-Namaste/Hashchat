@@ -22,6 +22,7 @@ const DEFAULTS = {
   pushDms: true,
   pushFollows: true,
   pushReactions: false,
+  likesPublic: false,
   emailAddress: null as string | null,
 };
 
@@ -67,6 +68,7 @@ function shape(row: any, count: number) {
     pushDms: row.pushDms,
     pushFollows: row.pushFollows,
     pushReactions: row.pushReactions,
+    likesPublic: row.likesPublic,
     emailAddress: row.emailAddress,
     emailEnabled,
     pushEnabled,
@@ -100,6 +102,7 @@ router.put("/me/preferences", requireAuth, async (req, res): Promise<void> => {
     "pushDms",
     "pushFollows",
     "pushReactions",
+    "likesPublic",
   ] as const) {
     if (typeof b[k] === "boolean") update[k] = b[k];
   }

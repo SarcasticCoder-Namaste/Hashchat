@@ -1686,6 +1686,13 @@ function PrivacyTab() {
     PREF_KEYS.privProfileSearchable,
     true,
   );
+  const { data: prefs } = useGetMyPreferences();
+  const updatePrefs = useUpdateMyPreferences({
+    mutation: {
+      onSuccess: () =>
+        qc.invalidateQueries({ queryKey: ["/api/me/preferences"] }),
+    },
+  });
   return (
     <div className="space-y-4 rounded-xl border border-border bg-card p-5 shadow-sm">
       <div>
@@ -1722,6 +1729,15 @@ function PrivacyTab() {
           checked={searchable}
           onCheckedChange={setSearchable}
           testId="switch-priv-search"
+        />
+        <PrefRow
+          title="Public likes"
+          description="Let other people see the Likes tab on your profile. When off, only you can see it."
+          checked={prefs?.likesPublic ?? false}
+          onCheckedChange={(v) =>
+            updatePrefs.mutate({ data: { likesPublic: v } })
+          }
+          testId="switch-priv-likes-public"
         />
       </div>
     </div>

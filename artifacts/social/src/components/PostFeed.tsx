@@ -8,6 +8,7 @@ import {
   getGetUserPostsQueryKey,
   getGetMyFeedPostsQueryKey,
   type Post,
+  type GetUserPostsTab,
 } from "@workspace/api-client-react";
 import { PostCard } from "./PostCard";
 import { Button } from "./ui/button";
@@ -19,7 +20,7 @@ const PAGE_SIZE = 30;
 interface PostFeedProps {
   scope:
     | { kind: "hashtag"; tag: string }
-    | { kind: "user"; userId: string }
+    | { kind: "user"; userId: string; tab?: GetUserPostsTab }
     | { kind: "home" };
   meId: string | null;
   emptyMessage?: string;
@@ -28,13 +29,18 @@ interface PostFeedProps {
 export function PostFeed({ scope, meId, emptyMessage }: PostFeedProps) {
   const qc = useQueryClient();
   const { isPremium } = useTier();
+  const userTab: GetUserPostsTab | undefined =
+    scope.kind === "user" ? scope.tab : undefined;
 
   const queryKey =
     scope.kind === "home"
       ? getGetMyFeedPostsQueryKey({ limit: PAGE_SIZE })
       : scope.kind === "hashtag"
         ? getGetHashtagPostsQueryKey(scope.tag, { limit: PAGE_SIZE })
-        : getGetUserPostsQueryKey(scope.userId, { limit: PAGE_SIZE });
+        : getGetUserPostsQueryKey(scope.userId, {
+            limit: PAGE_SIZE,
+            ...(userTab ? { tab: userTab } : {}),
+          });
 
   const refetchInterval =
     scope.kind === "home" ? 15000 : scope.kind === "hashtag" ? 8000 : false;
@@ -53,13 +59,22 @@ export function PostFeed({ scope, meId, emptyMessage }: PostFeedProps) {
       if (scope.kind === "hashtag") {
         return getHashtagPosts(scope.tag, params, { signal });
       }
-      return getUserPosts(scope.userId, params, { signal });
+      return getUserPosts(
+        scope.userId,
+        { ...params, ...(userTab ? { tab: userTab } : {}) },
+        { signal },
+      );
     },
     getNextPageParam: (lastPage: Post[]) => {
       if (!lastPage || lastPage.length < PAGE_SIZE) return undefined;
       return lastPage[lastPage.length - 1].createdAt;
     },
     refetchInterval,
+    retry: (failureCount, err) => {
+      const status = (err as { status?: number } | null)?.status;
+      if (status === 403) return false;
+      return failureCount < 3;
+    },
   });
 
   function invalidate() {
@@ -97,6 +112,21 @@ export function PostFeed({ scope, meId, emptyMessage }: PostFeedProps) {
     return (
       <div className="flex justify-center py-8">
         <Loader2 className="h-5 w-5 animate-spin text-muted-foreground/70" />
+      </div>
+    );
+  }
+  if (q.isError) {
+    const status = (q.error as { status?: number } | null)?.status;
+    if (status === 403) {
+      return (
+        <div className="flex justify-center py-8 text-sm text-muted-foreground">
+          This user keeps their likes private.
+        </div>
+      );
+    }
+    return (
+      <div className="flex justify-center py-8 text-sm text-muted-foreground">
+        Couldn't load posts.
       </div>
     );
   }

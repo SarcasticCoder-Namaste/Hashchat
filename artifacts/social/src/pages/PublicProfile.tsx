@@ -1,7 +1,10 @@
+import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   useGetUserByUsername,
+  useGetUserPinnedPosts,
+  useGetMe,
   useGetFollowSuggestions,
   useFollowUser,
   useUnfollowUser,
@@ -20,8 +23,18 @@ import {
   getGetFriendRequestsQueryKey,
   getGetFollowSuggestionsQueryKey,
   getGetFollowingFeedQueryKey,
+  GetUserPostsTab,
   type MatchUser,
 } from "@workspace/api-client-react";
+import { PostFeed } from "@/components/PostFeed";
+import { PostCard } from "@/components/PostCard";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
+import { Pin, MessageSquare, Image as ImageIcon, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -58,6 +71,13 @@ export default function PublicProfile({ username }: { username: string }) {
   const qc = useQueryClient();
   const { toast } = useToast();
   const { data: user, isLoading, error } = useGetUserByUsername(username);
+  const { data: me } = useGetMe();
+  const meId = me?.id ?? null;
+  const [tab, setTab] = useState<GetUserPostsTab>(GetUserPostsTab.posts);
+  const isOwnProfile = !!meId && !!user && meId === user.id;
+  const pinnedQ = useGetUserPinnedPosts(user?.id ?? "", {
+    query: { enabled: !!user, queryKey: ["pinned-posts", user?.id] },
+  });
 
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: getGetUserByUsernameQueryKey(username) });
@@ -352,6 +372,99 @@ export default function PublicProfile({ username }: { username: string }) {
             })}
           </div>
         )}
+      </section>
+
+      {pinnedQ.data && pinnedQ.data.length > 0 && (
+        <section
+          className="mt-6 rounded-2xl border border-border bg-card p-5"
+          data-testid="pinned-posts-section"
+        >
+          <h2 className="mb-3 inline-flex items-center gap-1.5 text-sm font-semibold text-foreground">
+            <Pin className="h-3.5 w-3.5" /> Pinned
+          </h2>
+          <div className="flex flex-col gap-3">
+            {pinnedQ.data.map((p) => (
+              <PostCard key={p.id} post={p} meId={meId} />
+            ))}
+          </div>
+        </section>
+      )}
+
+      <section
+        className="mt-6 rounded-2xl border border-border bg-card p-5"
+        data-testid="profile-posts-section"
+      >
+        <Tabs value={tab} onValueChange={(v) => setTab(v as GetUserPostsTab)}>
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value={GetUserPostsTab.posts} data-testid="tab-posts">
+              <MessageSquare className="mr-1.5 h-3.5 w-3.5" /> Posts
+            </TabsTrigger>
+            <TabsTrigger
+              value={GetUserPostsTab.replies}
+              data-testid="tab-replies"
+            >
+              Replies
+            </TabsTrigger>
+            <TabsTrigger value={GetUserPostsTab.media} data-testid="tab-media">
+              <ImageIcon className="mr-1.5 h-3.5 w-3.5" /> Media
+            </TabsTrigger>
+            <TabsTrigger value={GetUserPostsTab.likes} data-testid="tab-likes">
+              <Heart className="mr-1.5 h-3.5 w-3.5" /> Likes
+            </TabsTrigger>
+          </TabsList>
+          <TabsContent value={GetUserPostsTab.posts} className="mt-4">
+            <PostFeed
+              scope={{ kind: "user", userId: user.id, tab: GetUserPostsTab.posts }}
+              meId={meId}
+              emptyMessage={
+                isOwnProfile ? "You haven't posted yet." : "No posts yet."
+              }
+            />
+          </TabsContent>
+          <TabsContent value={GetUserPostsTab.replies} className="mt-4">
+            <PostFeed
+              scope={{
+                kind: "user",
+                userId: user.id,
+                tab: GetUserPostsTab.replies,
+              }}
+              meId={meId}
+              emptyMessage={
+                isOwnProfile ? "You haven't replied yet." : "No replies yet."
+              }
+            />
+          </TabsContent>
+          <TabsContent value={GetUserPostsTab.media} className="mt-4">
+            <PostFeed
+              scope={{
+                kind: "user",
+                userId: user.id,
+                tab: GetUserPostsTab.media,
+              }}
+              meId={meId}
+              emptyMessage={
+                isOwnProfile
+                  ? "You haven't shared any media yet."
+                  : "No media posts yet."
+              }
+            />
+          </TabsContent>
+          <TabsContent value={GetUserPostsTab.likes} className="mt-4">
+            <PostFeed
+              scope={{
+                kind: "user",
+                userId: user.id,
+                tab: GetUserPostsTab.likes,
+              }}
+              meId={meId}
+              emptyMessage={
+                isOwnProfile
+                  ? "Posts you react to will show up here."
+                  : "No likes to show."
+              }
+            />
+          </TabsContent>
+        </Tabs>
       </section>
 
       <SimilarPeople username={user.username} onChanged={invalidate} />

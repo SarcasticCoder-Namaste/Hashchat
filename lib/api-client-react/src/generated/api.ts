@@ -10289,7 +10289,7 @@ export const getGetUserPostsQueryKey = (
 
 export const getGetUserPostsQueryOptions = <
   TData = Awaited<ReturnType<typeof getUserPosts>>,
-  TError = ErrorType<unknown>,
+  TError = ErrorType<void>,
 >(
   id: string,
   params?: GetUserPostsParams,
@@ -10326,7 +10326,7 @@ export const getGetUserPostsQueryOptions = <
 export type GetUserPostsQueryResult = NonNullable<
   Awaited<ReturnType<typeof getUserPosts>>
 >;
-export type GetUserPostsQueryError = ErrorType<unknown>;
+export type GetUserPostsQueryError = ErrorType<void>;
 
 /**
  * @summary List posts by a user
@@ -10334,7 +10334,7 @@ export type GetUserPostsQueryError = ErrorType<unknown>;
 
 export function useGetUserPosts<
   TData = Awaited<ReturnType<typeof getUserPosts>>,
-  TError = ErrorType<unknown>,
+  TError = ErrorType<void>,
 >(
   id: string,
   params?: GetUserPostsParams,
@@ -10355,6 +10355,261 @@ export function useGetUserPosts<
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+/**
+ * @summary List a user's pinned posts (most recently pinned first, max 3)
+ */
+export const getGetUserPinnedPostsUrl = (id: string) => {
+  return `/api/users/${id}/pinned-posts`;
+};
+
+export const getUserPinnedPosts = async (
+  id: string,
+  options?: RequestInit,
+): Promise<Post[]> => {
+  return customFetch<Post[]>(getGetUserPinnedPostsUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetUserPinnedPostsQueryKey = (id: string) => {
+  return [`/api/users/${id}/pinned-posts`] as const;
+};
+
+export const getGetUserPinnedPostsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getUserPinnedPosts>>,
+  TError = ErrorType<unknown>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getUserPinnedPosts>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetUserPinnedPostsQueryKey(id);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getUserPinnedPosts>>
+  > = ({ signal }) => getUserPinnedPosts(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getUserPinnedPosts>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetUserPinnedPostsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getUserPinnedPosts>>
+>;
+export type GetUserPinnedPostsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List a user's pinned posts (most recently pinned first, max 3)
+ */
+
+export function useGetUserPinnedPosts<
+  TData = Awaited<ReturnType<typeof getUserPinnedPosts>>,
+  TError = ErrorType<unknown>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getUserPinnedPosts>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetUserPinnedPostsQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Pin one of my posts to my profile (max 3)
+ */
+export const getPinMyPostUrl = (id: number) => {
+  return `/api/posts/${id}/pin`;
+};
+
+export const pinMyPost = async (
+  id: number,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getPinMyPostUrl(id), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getPinMyPostMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof pinMyPost>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof pinMyPost>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["pinMyPost"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof pinMyPost>>,
+    { id: number }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return pinMyPost(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type PinMyPostMutationResult = NonNullable<
+  Awaited<ReturnType<typeof pinMyPost>>
+>;
+
+export type PinMyPostMutationError = ErrorType<void>;
+
+/**
+ * @summary Pin one of my posts to my profile (max 3)
+ */
+export const usePinMyPost = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof pinMyPost>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof pinMyPost>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  return useMutation(getPinMyPostMutationOptions(options));
+};
+
+/**
+ * @summary Unpin one of my pinned posts
+ */
+export const getUnpinMyPostUrl = (id: number) => {
+  return `/api/posts/${id}/pin`;
+};
+
+export const unpinMyPost = async (
+  id: number,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getUnpinMyPostUrl(id), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getUnpinMyPostMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof unpinMyPost>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof unpinMyPost>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["unpinMyPost"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof unpinMyPost>>,
+    { id: number }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return unpinMyPost(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UnpinMyPostMutationResult = NonNullable<
+  Awaited<ReturnType<typeof unpinMyPost>>
+>;
+
+export type UnpinMyPostMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Unpin one of my pinned posts
+ */
+export const useUnpinMyPost = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof unpinMyPost>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof unpinMyPost>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  return useMutation(getUnpinMyPostMutationOptions(options));
+};
 
 /**
  * @summary List active polls in a hashtag room (recent first)

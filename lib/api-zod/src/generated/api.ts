@@ -441,6 +441,12 @@ export const GetForYouFeedResponseItem = zod.object({
           ])
           .optional(),
         quoteCount: zod.number(),
+        isPinned: zod.boolean(),
+        pinnedAt: zod.coerce.date().nullish(),
+        replyToId: zod.number().nullish(),
+        replyToAuthorUsername: zod.string().nullish(),
+        replyToAuthorDisplayName: zod.string().nullish(),
+        replyToContent: zod.string().nullish(),
         createdAt: zod.coerce.date(),
       }),
       zod.null(),
@@ -879,6 +885,12 @@ export const GetExploreResponse = zod.object({
           ])
           .optional(),
         quoteCount: zod.number(),
+        isPinned: zod.boolean(),
+        pinnedAt: zod.coerce.date().nullish(),
+        replyToId: zod.number().nullish(),
+        replyToAuthorUsername: zod.string().nullish(),
+        replyToAuthorDisplayName: zod.string().nullish(),
+        replyToContent: zod.string().nullish(),
         createdAt: zod.coerce.date(),
       }),
       engagement: zod.number(),
@@ -957,6 +969,12 @@ export const GetExploreResponse = zod.object({
               ])
               .optional(),
             quoteCount: zod.number(),
+            isPinned: zod.boolean(),
+            pinnedAt: zod.coerce.date().nullish(),
+            replyToId: zod.number().nullish(),
+            replyToAuthorUsername: zod.string().nullish(),
+            replyToAuthorDisplayName: zod.string().nullish(),
+            replyToContent: zod.string().nullish(),
             createdAt: zod.coerce.date(),
           }),
           zod.null(),
@@ -1208,6 +1226,12 @@ export const GetHotInYourHashtagsResponseItem = zod.object({
       ])
       .optional(),
     quoteCount: zod.number(),
+    isPinned: zod.boolean(),
+    pinnedAt: zod.coerce.date().nullish(),
+    replyToId: zod.number().nullish(),
+    replyToAuthorUsername: zod.string().nullish(),
+    replyToAuthorDisplayName: zod.string().nullish(),
+    replyToContent: zod.string().nullish(),
     createdAt: zod.coerce.date(),
   }),
   engagement: zod.number(),
@@ -3616,6 +3640,7 @@ export const CreatePostBody = zod.object({
   scheduledFor: zod.coerce.date().nullish(),
   quotedPostId: zod.number().nullish(),
   fromDraftId: zod.number().nullish(),
+  replyToId: zod.number().nullish(),
 });
 
 /**
@@ -3702,6 +3727,12 @@ export const UpdatePostResponse = zod.object({
     ])
     .optional(),
   quoteCount: zod.number(),
+  isPinned: zod.boolean(),
+  pinnedAt: zod.coerce.date().nullish(),
+  replyToId: zod.number().nullish(),
+  replyToAuthorUsername: zod.string().nullish(),
+  replyToAuthorDisplayName: zod.string().nullish(),
+  replyToContent: zod.string().nullish(),
   createdAt: zod.coerce.date(),
 });
 
@@ -3783,6 +3814,12 @@ export const GetPostQuotesResponseItem = zod.object({
     ])
     .optional(),
   quoteCount: zod.number(),
+  isPinned: zod.boolean(),
+  pinnedAt: zod.coerce.date().nullish(),
+  replyToId: zod.number().nullish(),
+  replyToAuthorUsername: zod.string().nullish(),
+  replyToAuthorDisplayName: zod.string().nullish(),
+  replyToContent: zod.string().nullish(),
   createdAt: zod.coerce.date(),
 });
 export const GetPostQuotesResponse = zod.array(GetPostQuotesResponseItem);
@@ -3982,6 +4019,12 @@ export const GetMyScheduledPostsResponseItem = zod.object({
     ])
     .optional(),
   quoteCount: zod.number(),
+  isPinned: zod.boolean(),
+  pinnedAt: zod.coerce.date().nullish(),
+  replyToId: zod.number().nullish(),
+  replyToAuthorUsername: zod.string().nullish(),
+  replyToAuthorDisplayName: zod.string().nullish(),
+  replyToContent: zod.string().nullish(),
   createdAt: zod.coerce.date(),
 });
 export const GetMyScheduledPostsResponse = zod.array(
@@ -4124,6 +4167,12 @@ export const GetMyAnalyticsResponse = zod.object({
           ])
           .optional(),
         quoteCount: zod.number(),
+        isPinned: zod.boolean(),
+        pinnedAt: zod.coerce.date().nullish(),
+        replyToId: zod.number().nullish(),
+        replyToAuthorUsername: zod.string().nullish(),
+        replyToAuthorDisplayName: zod.string().nullish(),
+        replyToContent: zod.string().nullish(),
         createdAt: zod.coerce.date(),
       }),
       impressions: zod.number(),
@@ -4231,6 +4280,12 @@ export const GetRoomAnalyticsResponse = zod.object({
           ])
           .optional(),
         quoteCount: zod.number(),
+        isPinned: zod.boolean(),
+        pinnedAt: zod.coerce.date().nullish(),
+        replyToId: zod.number().nullish(),
+        replyToAuthorUsername: zod.string().nullish(),
+        replyToAuthorDisplayName: zod.string().nullish(),
+        replyToContent: zod.string().nullish(),
         createdAt: zod.coerce.date(),
       }),
       impressions: zod.number(),
@@ -4319,6 +4374,12 @@ export const GetMyFeedPostsResponseItem = zod.object({
     ])
     .optional(),
   quoteCount: zod.number(),
+  isPinned: zod.boolean(),
+  pinnedAt: zod.coerce.date().nullish(),
+  replyToId: zod.number().nullish(),
+  replyToAuthorUsername: zod.string().nullish(),
+  replyToAuthorDisplayName: zod.string().nullish(),
+  replyToContent: zod.string().nullish(),
   createdAt: zod.coerce.date(),
 });
 export const GetMyFeedPostsResponse = zod.array(GetMyFeedPostsResponseItem);
@@ -4406,6 +4467,12 @@ export const GetHashtagPostsResponseItem = zod.object({
     ])
     .optional(),
   quoteCount: zod.number(),
+  isPinned: zod.boolean(),
+  pinnedAt: zod.coerce.date().nullish(),
+  replyToId: zod.number().nullish(),
+  replyToAuthorUsername: zod.string().nullish(),
+  replyToAuthorDisplayName: zod.string().nullish(),
+  replyToContent: zod.string().nullish(),
   createdAt: zod.coerce.date(),
 });
 export const GetHashtagPostsResponse = zod.array(GetHashtagPostsResponseItem);
@@ -4420,6 +4487,8 @@ export const GetUserPostsParams = zod.object({
 export const getUserPostsQueryLimitDefault = 30;
 export const getUserPostsQueryLimitMax = 100;
 
+export const getUserPostsQueryTabDefault = `posts`;
+
 export const GetUserPostsQueryParams = zod.object({
   before: zod.date().optional(),
   limit: zod.coerce
@@ -4427,6 +4496,9 @@ export const GetUserPostsQueryParams = zod.object({
     .min(1)
     .max(getUserPostsQueryLimitMax)
     .default(getUserPostsQueryLimitDefault),
+  tab: zod
+    .enum(["posts", "replies", "media", "likes"])
+    .default(getUserPostsQueryTabDefault),
 });
 
 export const GetUserPostsResponseItem = zod.object({
@@ -4493,9 +4565,112 @@ export const GetUserPostsResponseItem = zod.object({
     ])
     .optional(),
   quoteCount: zod.number(),
+  isPinned: zod.boolean(),
+  pinnedAt: zod.coerce.date().nullish(),
+  replyToId: zod.number().nullish(),
+  replyToAuthorUsername: zod.string().nullish(),
+  replyToAuthorDisplayName: zod.string().nullish(),
+  replyToContent: zod.string().nullish(),
   createdAt: zod.coerce.date(),
 });
 export const GetUserPostsResponse = zod.array(GetUserPostsResponseItem);
+
+/**
+ * @summary List a user's pinned posts (most recently pinned first, max 3)
+ */
+export const GetUserPinnedPostsParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const GetUserPinnedPostsResponseItem = zod.object({
+  id: zod.number(),
+  author: zod.object({
+    id: zod.string(),
+    username: zod.string(),
+    displayName: zod.string(),
+    avatarUrl: zod.string().nullish(),
+    animatedAvatarUrl: zod.string().nullish(),
+    discriminator: zod.string().nullish(),
+    role: zod.string(),
+    mvpPlan: zod.boolean(),
+    verified: zod.boolean(),
+    tier: zod.enum(["free", "premium", "pro"]).optional(),
+  }),
+  content: zod.string(),
+  hashtags: zod.array(zod.string()),
+  imageUrls: zod.array(zod.string()),
+  imageAlts: zod.array(zod.string()).optional(),
+  reactions: zod.array(
+    zod.object({
+      emoji: zod.string(),
+      count: zod.number(),
+      reactedByMe: zod.boolean(),
+    }),
+  ),
+  mentions: zod.array(
+    zod.object({
+      id: zod.string(),
+      username: zod.string(),
+      displayName: zod.string(),
+    }),
+  ),
+  status: zod.enum(["scheduled", "published"]),
+  scheduledFor: zod.coerce.date().nullish(),
+  editedAt: zod.coerce.date().nullish(),
+  editableUntil: zod.coerce.date().nullish(),
+  quotedPost: zod
+    .union([
+      zod.object({
+        id: zod.number(),
+        author: zod
+          .object({
+            id: zod.string(),
+            username: zod.string(),
+            displayName: zod.string(),
+            avatarUrl: zod.string().nullish(),
+            animatedAvatarUrl: zod.string().nullish(),
+            discriminator: zod.string().nullish(),
+            role: zod.string(),
+            mvpPlan: zod.boolean(),
+            verified: zod.boolean(),
+            tier: zod.enum(["free", "premium", "pro"]).optional(),
+          })
+          .optional(),
+        content: zod.string(),
+        imageUrls: zod.array(zod.string()),
+        imageAlts: zod.array(zod.string()).optional(),
+        createdAt: zod.coerce.date(),
+        unavailable: zod.boolean(),
+      }),
+      zod.null(),
+    ])
+    .optional(),
+  quoteCount: zod.number(),
+  isPinned: zod.boolean(),
+  pinnedAt: zod.coerce.date().nullish(),
+  replyToId: zod.number().nullish(),
+  replyToAuthorUsername: zod.string().nullish(),
+  replyToAuthorDisplayName: zod.string().nullish(),
+  replyToContent: zod.string().nullish(),
+  createdAt: zod.coerce.date(),
+});
+export const GetUserPinnedPostsResponse = zod.array(
+  GetUserPinnedPostsResponseItem,
+);
+
+/**
+ * @summary Pin one of my posts to my profile (max 3)
+ */
+export const PinMyPostParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+/**
+ * @summary Unpin one of my pinned posts
+ */
+export const UnpinMyPostParams = zod.object({
+  id: zod.coerce.number(),
+});
 
 /**
  * @summary List active polls in a hashtag room (recent first)
@@ -5961,6 +6136,7 @@ export const GetMyPreferencesResponse = zod.object({
   pushDms: zod.boolean(),
   pushFollows: zod.boolean(),
   pushReactions: zod.boolean(),
+  likesPublic: zod.boolean(),
   emailAddress: zod.string().nullish(),
   emailEnabled: zod.boolean(),
   pushEnabled: zod.boolean(),
@@ -5983,6 +6159,7 @@ export const UpdateMyPreferencesBody = zod.object({
   pushDms: zod.boolean().optional(),
   pushFollows: zod.boolean().optional(),
   pushReactions: zod.boolean().optional(),
+  likesPublic: zod.boolean().optional(),
   emailAddress: zod.string().nullish(),
 });
 
@@ -5999,6 +6176,7 @@ export const UpdateMyPreferencesResponse = zod.object({
   pushDms: zod.boolean(),
   pushFollows: zod.boolean(),
   pushReactions: zod.boolean(),
+  likesPublic: zod.boolean(),
   emailAddress: zod.string().nullish(),
   emailEnabled: zod.boolean(),
   pushEnabled: zod.boolean(),
