@@ -450,7 +450,10 @@ export interface PollRound {
 
 export interface Poll {
   id: number;
-  roomTag: string;
+  /** @nullable */
+  roomTag?: string | null;
+  /** @nullable */
+  conversationId?: number | null;
   creatorId: string;
   creatorName: string;
   question: string;
@@ -605,6 +608,15 @@ export interface InitiateCallBody {
   roomTag?: string | null;
 }
 
+export type CallParticipantRole =
+  (typeof CallParticipantRole)[keyof typeof CallParticipantRole];
+
+export const CallParticipantRole = {
+  host: "host",
+  speaker: "speaker",
+  listener: "listener",
+} as const;
+
 export interface CallParticipant {
   userId: string;
   username: string;
@@ -612,6 +624,9 @@ export interface CallParticipant {
   /** @nullable */
   avatarUrl?: string | null;
   state: string;
+  role: CallParticipantRole;
+  /** @nullable */
+  handRaisedAt?: string | null;
   /** @nullable */
   joinedAt?: string | null;
 }
@@ -1280,6 +1295,63 @@ export interface CreatePollBody {
   maxSelections?: number;
   /** @nullable */
   expiresAt?: string | null;
+}
+
+export interface TranslateMessageBody {
+  /**
+   * BCP-47 language code or English name (e.g. 'es', 'fr', 'Japanese')
+   * @minLength 2
+   * @maxLength 16
+   */
+  language: string;
+}
+
+export interface MessageTranslation {
+  messageId: number;
+  language: string;
+  text: string;
+  cached: boolean;
+}
+
+export type ScheduledMessageStatus =
+  (typeof ScheduledMessageStatus)[keyof typeof ScheduledMessageStatus];
+
+export const ScheduledMessageStatus = {
+  scheduled: "scheduled",
+  sent: "sent",
+  cancelled: "cancelled",
+  failed: "failed",
+} as const;
+
+export interface ScheduledMessage {
+  id: number;
+  senderId: string;
+  conversationId: number;
+  content: string;
+  /** @nullable */
+  replyToId?: number | null;
+  /** @nullable */
+  imageUrl?: string | null;
+  /** @nullable */
+  imageAlt?: string | null;
+  status: ScheduledMessageStatus;
+  scheduledFor: string;
+  createdAt: string;
+}
+
+export interface CreateScheduledMessageBody {
+  /**
+   * @minLength 1
+   * @maxLength 4000
+   */
+  content: string;
+  scheduledFor: string;
+  /** @nullable */
+  replyToId?: number | null;
+  /** @nullable */
+  imageUrl?: string | null;
+  /** @nullable */
+  imageAlt?: string | null;
 }
 
 export interface VotePollBody {

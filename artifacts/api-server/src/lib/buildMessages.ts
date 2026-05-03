@@ -261,6 +261,7 @@ export async function buildMessages(rows: RawMessage[], myUserId: string) {
       pollMap.set(p.id, {
         id: p.id,
         roomTag: p.roomTag,
+        conversationId: p.conversationId,
         creatorId: p.creatorId,
         creatorName: c?.displayName ?? c?.username ?? "Unknown",
         question: p.question,
@@ -427,7 +428,8 @@ function parseWaveform(raw: string | null): number[] | null {
 function emptyPollShape() {
   return {
     id: 0,
-    roomTag: "",
+    roomTag: null as string | null,
+    conversationId: null as number | null,
     creatorId: "",
     creatorName: "",
     question: "",

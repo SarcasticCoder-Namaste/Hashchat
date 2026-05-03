@@ -431,6 +431,8 @@ export const callParticipantsTable = pgTable(
       .notNull()
       .references(() => usersTable.id, { onDelete: "cascade" }),
     state: text("state").notNull().default("invited"),
+    role: text("role").notNull().default("listener"),
+    handRaisedAt: timestamp("hand_raised_at", { withTimezone: true }),
     joinedAt: timestamp("joined_at", { withTimezone: true }),
     leftAt: timestamp("left_at", { withTimezone: true }),
   },
@@ -563,9 +565,13 @@ export const pollsTable = pgTable(
   "polls",
   {
     id: serial("id").primaryKey(),
-    roomTag: text("room_tag")
-      .notNull()
-      .references(() => hashtagsTable.tag, { onDelete: "cascade" }),
+    roomTag: text("room_tag").references(() => hashtagsTable.tag, {
+      onDelete: "cascade",
+    }),
+    conversationId: integer("conversation_id").references(
+      () => conversationsTable.id,
+      { onDelete: "cascade" },
+    ),
     creatorId: text("creator_id")
       .notNull()
       .references(() => usersTable.id, { onDelete: "cascade" }),
@@ -580,8 +586,51 @@ export const pollsTable = pgTable(
   },
   (t) => [
     index("polls_room_idx").on(t.roomTag, t.createdAt),
+    index("polls_conv_idx").on(t.conversationId, t.createdAt),
     index("polls_reminder_idx").on(t.expiresAt, t.reminderSentAt),
   ],
+);
+
+export const scheduledMessagesTable = pgTable(
+  "scheduled_messages",
+  {
+    id: serial("id").primaryKey(),
+    senderId: text("sender_id")
+      .notNull()
+      .references(() => usersTable.id, { onDelete: "cascade" }),
+    conversationId: integer("conversation_id")
+      .notNull()
+      .references(() => conversationsTable.id, { onDelete: "cascade" }),
+    content: text("content").notNull(),
+    replyToId: integer("reply_to_id"),
+    imageUrl: text("image_url"),
+    imageAlt: text("image_alt"),
+    status: text("status").notNull().default("scheduled"),
+    scheduledFor: timestamp("scheduled_for", { withTimezone: true }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    index("scheduled_messages_due_idx").on(t.status, t.scheduledFor),
+    index("scheduled_messages_owner_idx").on(t.senderId, t.scheduledFor),
+  ],
+);
+
+export const messageTranslationsTable = pgTable(
+  "message_translations",
+  {
+    messageId: integer("message_id")
+      .notNull()
+      .references(() => messagesTable.id, { onDelete: "cascade" }),
+    language: text("language").notNull(),
+    translatedText: text("translated_text").notNull(),
+    model: text("model"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.messageId, t.language] })],
 );
 
 export const pollOptionsTable = pgTable(
@@ -1553,3 +1602,5 @@ export type QuestProgress = typeof questProgressTable.$inferSelect;
 export type Spark = typeof sparksTable.$inferSelect;
 export type InviteToken = typeof inviteTokensTable.$inferSelect;
 export type InviteRedemption = typeof inviteRedemptionsTable.$inferSelect;
+export type ScheduledMessage = typeof scheduledMessagesTable.$inferSelect;
+export type MessageTranslation = typeof messageTranslationsTable.$inferSelect;

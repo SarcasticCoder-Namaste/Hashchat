@@ -45,6 +45,7 @@ import type {
   CreatePostBody,
   CreateReportBody,
   CreateRoomInviteBody,
+  CreateScheduledMessageBody,
   CreateSparkBody,
   CreatedCode,
   CreatorBalance,
@@ -106,6 +107,7 @@ import type {
   MentionSuggestion,
   Message,
   MessageThread,
+  MessageTranslation,
   ModerationCheckBody,
   ModerationCheckResult,
   ModerationScopeBody,
@@ -154,6 +156,7 @@ import type {
   RoomJoinRequest,
   RoomSummary,
   RoomVisibility,
+  ScheduledMessage,
   SearchGifsParams,
   SearchHashtagsParams,
   SearchResults,
@@ -172,6 +175,7 @@ import type {
   TipCheckoutBody,
   TipCheckoutResponse,
   TipTarget,
+  TranslateMessageBody,
   TrendingHashtag,
   TwoFactorEnableResult,
   TwoFactorSetup,
@@ -6776,6 +6780,344 @@ export function useGetCallSignals<
 }
 
 /**
+ * @summary Raise my hand to be promoted to speaker (voice rooms)
+ */
+export const getRaiseHandUrl = (id: number) => {
+  return `/api/calls/${id}/raise-hand`;
+};
+
+export const raiseHand = async (
+  id: number,
+  options?: RequestInit,
+): Promise<Call> => {
+  return customFetch<Call>(getRaiseHandUrl(id), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getRaiseHandMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof raiseHand>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof raiseHand>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["raiseHand"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof raiseHand>>,
+    { id: number }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return raiseHand(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RaiseHandMutationResult = NonNullable<
+  Awaited<ReturnType<typeof raiseHand>>
+>;
+
+export type RaiseHandMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Raise my hand to be promoted to speaker (voice rooms)
+ */
+export const useRaiseHand = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof raiseHand>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof raiseHand>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  return useMutation(getRaiseHandMutationOptions(options));
+};
+
+/**
+ * @summary Lower my raised hand
+ */
+export const getLowerHandUrl = (id: number) => {
+  return `/api/calls/${id}/lower-hand`;
+};
+
+export const lowerHand = async (
+  id: number,
+  options?: RequestInit,
+): Promise<Call> => {
+  return customFetch<Call>(getLowerHandUrl(id), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getLowerHandMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof lowerHand>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof lowerHand>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["lowerHand"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof lowerHand>>,
+    { id: number }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return lowerHand(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type LowerHandMutationResult = NonNullable<
+  Awaited<ReturnType<typeof lowerHand>>
+>;
+
+export type LowerHandMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Lower my raised hand
+ */
+export const useLowerHand = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof lowerHand>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof lowerHand>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  return useMutation(getLowerHandMutationOptions(options));
+};
+
+/**
+ * @summary Promote a participant to speaker (host only)
+ */
+export const getPromoteToSpeakerUrl = (id: number, userId: string) => {
+  return `/api/calls/${id}/promote/${userId}`;
+};
+
+export const promoteToSpeaker = async (
+  id: number,
+  userId: string,
+  options?: RequestInit,
+): Promise<Call> => {
+  return customFetch<Call>(getPromoteToSpeakerUrl(id, userId), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getPromoteToSpeakerMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof promoteToSpeaker>>,
+    TError,
+    { id: number; userId: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof promoteToSpeaker>>,
+  TError,
+  { id: number; userId: string },
+  TContext
+> => {
+  const mutationKey = ["promoteToSpeaker"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof promoteToSpeaker>>,
+    { id: number; userId: string }
+  > = (props) => {
+    const { id, userId } = props ?? {};
+
+    return promoteToSpeaker(id, userId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type PromoteToSpeakerMutationResult = NonNullable<
+  Awaited<ReturnType<typeof promoteToSpeaker>>
+>;
+
+export type PromoteToSpeakerMutationError = ErrorType<void>;
+
+/**
+ * @summary Promote a participant to speaker (host only)
+ */
+export const usePromoteToSpeaker = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof promoteToSpeaker>>,
+    TError,
+    { id: number; userId: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof promoteToSpeaker>>,
+  TError,
+  { id: number; userId: string },
+  TContext
+> => {
+  return useMutation(getPromoteToSpeakerMutationOptions(options));
+};
+
+/**
+ * @summary Demote a speaker back to listener (host only)
+ */
+export const getDemoteToListenerUrl = (id: number, userId: string) => {
+  return `/api/calls/${id}/demote/${userId}`;
+};
+
+export const demoteToListener = async (
+  id: number,
+  userId: string,
+  options?: RequestInit,
+): Promise<Call> => {
+  return customFetch<Call>(getDemoteToListenerUrl(id, userId), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getDemoteToListenerMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof demoteToListener>>,
+    TError,
+    { id: number; userId: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof demoteToListener>>,
+  TError,
+  { id: number; userId: string },
+  TContext
+> => {
+  const mutationKey = ["demoteToListener"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof demoteToListener>>,
+    { id: number; userId: string }
+  > = (props) => {
+    const { id, userId } = props ?? {};
+
+    return demoteToListener(id, userId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DemoteToListenerMutationResult = NonNullable<
+  Awaited<ReturnType<typeof demoteToListener>>
+>;
+
+export type DemoteToListenerMutationError = ErrorType<void>;
+
+/**
+ * @summary Demote a speaker back to listener (host only)
+ */
+export const useDemoteToListener = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof demoteToListener>>,
+    TError,
+    { id: number; userId: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof demoteToListener>>,
+  TError,
+  { id: number; userId: string },
+  TContext
+> => {
+  return useMutation(getDemoteToListenerMutationOptions(options));
+};
+
+/**
  * @summary Get my friend code
  */
 export const getGetMyFriendCodeUrl = () => {
@@ -13080,6 +13422,516 @@ export const useVotePoll = <
   TContext
 > => {
   return useMutation(getVotePollMutationOptions(options));
+};
+
+/**
+ * @summary List active polls in a direct or group conversation
+ */
+export const getGetConversationPollsUrl = (id: number) => {
+  return `/api/conversations/${id}/polls`;
+};
+
+export const getConversationPolls = async (
+  id: number,
+  options?: RequestInit,
+): Promise<Poll[]> => {
+  return customFetch<Poll[]>(getGetConversationPollsUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetConversationPollsQueryKey = (id: number) => {
+  return [`/api/conversations/${id}/polls`] as const;
+};
+
+export const getGetConversationPollsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getConversationPolls>>,
+  TError = ErrorType<unknown>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getConversationPolls>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetConversationPollsQueryKey(id);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getConversationPolls>>
+  > = ({ signal }) => getConversationPolls(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getConversationPolls>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetConversationPollsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getConversationPolls>>
+>;
+export type GetConversationPollsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List active polls in a direct or group conversation
+ */
+
+export function useGetConversationPolls<
+  TData = Awaited<ReturnType<typeof getConversationPolls>>,
+  TError = ErrorType<unknown>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getConversationPolls>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetConversationPollsQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Create a new poll inside a direct or group conversation
+ */
+export const getCreateConversationPollUrl = (id: number) => {
+  return `/api/conversations/${id}/polls`;
+};
+
+export const createConversationPoll = async (
+  id: number,
+  createPollBody: CreatePollBody,
+  options?: RequestInit,
+): Promise<Poll> => {
+  return customFetch<Poll>(getCreateConversationPollUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createPollBody),
+  });
+};
+
+export const getCreateConversationPollMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createConversationPoll>>,
+    TError,
+    { id: number; data: BodyType<CreatePollBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createConversationPoll>>,
+  TError,
+  { id: number; data: BodyType<CreatePollBody> },
+  TContext
+> => {
+  const mutationKey = ["createConversationPoll"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createConversationPoll>>,
+    { id: number; data: BodyType<CreatePollBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return createConversationPoll(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateConversationPollMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createConversationPoll>>
+>;
+export type CreateConversationPollMutationBody = BodyType<CreatePollBody>;
+export type CreateConversationPollMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Create a new poll inside a direct or group conversation
+ */
+export const useCreateConversationPoll = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createConversationPoll>>,
+    TError,
+    { id: number; data: BodyType<CreatePollBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createConversationPoll>>,
+  TError,
+  { id: number; data: BodyType<CreatePollBody> },
+  TContext
+> => {
+  return useMutation(getCreateConversationPollMutationOptions(options));
+};
+
+/**
+ * @summary Translate a message to a target language (cached)
+ */
+export const getTranslateMessageUrl = (id: number) => {
+  return `/api/messages/${id}/translate`;
+};
+
+export const translateMessage = async (
+  id: number,
+  translateMessageBody: TranslateMessageBody,
+  options?: RequestInit,
+): Promise<MessageTranslation> => {
+  return customFetch<MessageTranslation>(getTranslateMessageUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(translateMessageBody),
+  });
+};
+
+export const getTranslateMessageMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof translateMessage>>,
+    TError,
+    { id: number; data: BodyType<TranslateMessageBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof translateMessage>>,
+  TError,
+  { id: number; data: BodyType<TranslateMessageBody> },
+  TContext
+> => {
+  const mutationKey = ["translateMessage"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof translateMessage>>,
+    { id: number; data: BodyType<TranslateMessageBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return translateMessage(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type TranslateMessageMutationResult = NonNullable<
+  Awaited<ReturnType<typeof translateMessage>>
+>;
+export type TranslateMessageMutationBody = BodyType<TranslateMessageBody>;
+export type TranslateMessageMutationError = ErrorType<void>;
+
+/**
+ * @summary Translate a message to a target language (cached)
+ */
+export const useTranslateMessage = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof translateMessage>>,
+    TError,
+    { id: number; data: BodyType<TranslateMessageBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof translateMessage>>,
+  TError,
+  { id: number; data: BodyType<TranslateMessageBody> },
+  TContext
+> => {
+  return useMutation(getTranslateMessageMutationOptions(options));
+};
+
+/**
+ * @summary List my scheduled (unsent) direct messages
+ */
+export const getGetMyScheduledMessagesUrl = () => {
+  return `/api/me/scheduled-messages`;
+};
+
+export const getMyScheduledMessages = async (
+  options?: RequestInit,
+): Promise<ScheduledMessage[]> => {
+  return customFetch<ScheduledMessage[]>(getGetMyScheduledMessagesUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetMyScheduledMessagesQueryKey = () => {
+  return [`/api/me/scheduled-messages`] as const;
+};
+
+export const getGetMyScheduledMessagesQueryOptions = <
+  TData = Awaited<ReturnType<typeof getMyScheduledMessages>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getMyScheduledMessages>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetMyScheduledMessagesQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getMyScheduledMessages>>
+  > = ({ signal }) => getMyScheduledMessages({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getMyScheduledMessages>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetMyScheduledMessagesQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getMyScheduledMessages>>
+>;
+export type GetMyScheduledMessagesQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List my scheduled (unsent) direct messages
+ */
+
+export function useGetMyScheduledMessages<
+  TData = Awaited<ReturnType<typeof getMyScheduledMessages>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getMyScheduledMessages>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetMyScheduledMessagesQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Cancel a scheduled DM I own
+ */
+export const getCancelScheduledMessageUrl = (id: number) => {
+  return `/api/me/scheduled-messages/${id}`;
+};
+
+export const cancelScheduledMessage = async (
+  id: number,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getCancelScheduledMessageUrl(id), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getCancelScheduledMessageMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof cancelScheduledMessage>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof cancelScheduledMessage>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["cancelScheduledMessage"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof cancelScheduledMessage>>,
+    { id: number }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return cancelScheduledMessage(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CancelScheduledMessageMutationResult = NonNullable<
+  Awaited<ReturnType<typeof cancelScheduledMessage>>
+>;
+
+export type CancelScheduledMessageMutationError = ErrorType<void>;
+
+/**
+ * @summary Cancel a scheduled DM I own
+ */
+export const useCancelScheduledMessage = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof cancelScheduledMessage>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof cancelScheduledMessage>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  return useMutation(getCancelScheduledMessageMutationOptions(options));
+};
+
+/**
+ * @summary Schedule a DM to be sent later
+ */
+export const getScheduleConversationMessageUrl = (id: number) => {
+  return `/api/conversations/${id}/scheduled-messages`;
+};
+
+export const scheduleConversationMessage = async (
+  id: number,
+  createScheduledMessageBody: CreateScheduledMessageBody,
+  options?: RequestInit,
+): Promise<ScheduledMessage> => {
+  return customFetch<ScheduledMessage>(getScheduleConversationMessageUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createScheduledMessageBody),
+  });
+};
+
+export const getScheduleConversationMessageMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof scheduleConversationMessage>>,
+    TError,
+    { id: number; data: BodyType<CreateScheduledMessageBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof scheduleConversationMessage>>,
+  TError,
+  { id: number; data: BodyType<CreateScheduledMessageBody> },
+  TContext
+> => {
+  const mutationKey = ["scheduleConversationMessage"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof scheduleConversationMessage>>,
+    { id: number; data: BodyType<CreateScheduledMessageBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return scheduleConversationMessage(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ScheduleConversationMessageMutationResult = NonNullable<
+  Awaited<ReturnType<typeof scheduleConversationMessage>>
+>;
+export type ScheduleConversationMessageMutationBody =
+  BodyType<CreateScheduledMessageBody>;
+export type ScheduleConversationMessageMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Schedule a DM to be sent later
+ */
+export const useScheduleConversationMessage = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof scheduleConversationMessage>>,
+    TError,
+    { id: number; data: BodyType<CreateScheduledMessageBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof scheduleConversationMessage>>,
+  TError,
+  { id: number; data: BodyType<CreateScheduledMessageBody> },
+  TContext
+> => {
+  return useMutation(getScheduleConversationMessageMutationOptions(options));
 };
 
 /**

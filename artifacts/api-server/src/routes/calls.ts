@@ -49,10 +49,24 @@ async function buildCall(callId: number) {
         displayName: u?.displayName ?? u?.username ?? "Unknown",
         avatarUrl: u?.avatarUrl ?? null,
         state: p.state,
+        role: (p.role ?? "listener") as "host" | "speaker" | "listener",
+        handRaisedAt: p.handRaisedAt ? p.handRaisedAt.toISOString() : null,
         joinedAt: p.joinedAt ? p.joinedAt.toISOString() : null,
       };
     }),
   };
+}
+
+function defaultRole(args: {
+  isInitiator: boolean;
+  kind: string;
+  isVoiceRoom: boolean;
+}): "host" | "speaker" | "listener" {
+  if (args.isInitiator) return "host";
+  // Voice rooms (voice calls anchored to a hashtag room) start everyone as
+  // listeners; the host promotes raised hands. All other call shapes
+  // (1:1 voice, 1:1/group video, room video) keep everyone as a speaker.
+  return args.isVoiceRoom ? "listener" : "speaker";
 }
 
 async function authorizedFor(callId: number, userId: string): Promise<boolean> {
@@ -86,7 +100,7 @@ async function authorizedFor(callId: number, userId: string): Promise<boolean> {
     }
     await db
       .insert(callParticipantsTable)
-      .values({ callId, userId, state: "invited" })
+      .values({ callId, userId, state: "invited", role: call.kind === "voice" ? "listener" : "speaker" })
       .onConflictDoNothing();
     return true;
   }
@@ -175,11 +189,13 @@ router.post("/calls", requireAuth, async (req, res): Promise<void> => {
     })
     .returning();
 
+  const isVoiceRoom = kind === "voice" && !!tag;
   await db.insert(callParticipantsTable).values(
     Array.from(invitees).map((uid) => ({
       callId: call.id,
       userId: uid,
       state: uid === me ? "joined" : "invited",
+      role: defaultRole({ isInitiator: uid === me, kind, isVoiceRoom }),
       joinedAt: uid === me ? new Date() : null,
     })),
   );
@@ -249,9 +265,18 @@ router.post("/calls/:id/join", requireAuth, async (req, res): Promise<void> => {
     res.status(404).json({ error: "Not found" });
     return;
   }
+  const [callRow] = await db.select().from(callsTable).where(eq(callsTable.id, id)).limit(1);
+  const defaultRoleForJoiner =
+    callRow?.kind === "voice" && callRow?.roomTag ? "listener" : "speaker";
   await db
     .insert(callParticipantsTable)
-    .values({ callId: id, userId: me, state: "joined", joinedAt: new Date() })
+    .values({
+      callId: id,
+      userId: me,
+      state: "joined",
+      role: defaultRoleForJoiner,
+      joinedAt: new Date(),
+    })
     .onConflictDoUpdate({
       target: [callParticipantsTable.callId, callParticipantsTable.userId],
       set: { state: "joined", joinedAt: new Date(), leftAt: null },
@@ -263,6 +288,145 @@ router.post("/calls/:id/join", requireAuth, async (req, res): Promise<void> => {
   const built = await buildCall(id);
   res.json(built);
 });
+
+async function getParticipant(callId: number, userId: string) {
+  const [p] = await db
+    .select()
+    .from(callParticipantsTable)
+    .where(
+      and(
+        eq(callParticipantsTable.callId, callId),
+        eq(callParticipantsTable.userId, userId),
+      ),
+    )
+    .limit(1);
+  return p;
+}
+
+async function isHost(callId: number, userId: string): Promise<boolean> {
+  const p = await getParticipant(callId, userId);
+  if (p?.role === "host") return true;
+  // Fallback: the call initiator is always considered host even if a row hasn't
+  // been backfilled.
+  const [c] = await db.select().from(callsTable).where(eq(callsTable.id, callId)).limit(1);
+  return c?.initiatorId === userId;
+}
+
+router.post("/calls/:id/raise-hand", requireAuth, async (req, res): Promise<void> => {
+  const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const id = parseInt(raw, 10);
+  if (Number.isNaN(id)) {
+    res.status(400).json({ error: "Invalid id" });
+    return;
+  }
+  const me = getUserId(req);
+  if (!(await authorizedFor(id, me))) {
+    res.status(404).json({ error: "Not found" });
+    return;
+  }
+  await db
+    .update(callParticipantsTable)
+    .set({ handRaisedAt: new Date() })
+    .where(
+      and(
+        eq(callParticipantsTable.callId, id),
+        eq(callParticipantsTable.userId, me),
+      ),
+    );
+  res.json(await buildCall(id));
+});
+
+router.post("/calls/:id/lower-hand", requireAuth, async (req, res): Promise<void> => {
+  const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const id = parseInt(raw, 10);
+  if (Number.isNaN(id)) {
+    res.status(400).json({ error: "Invalid id" });
+    return;
+  }
+  const me = getUserId(req);
+  if (!(await authorizedFor(id, me))) {
+    res.status(404).json({ error: "Not found" });
+    return;
+  }
+  await db
+    .update(callParticipantsTable)
+    .set({ handRaisedAt: null })
+    .where(
+      and(
+        eq(callParticipantsTable.callId, id),
+        eq(callParticipantsTable.userId, me),
+      ),
+    );
+  res.json(await buildCall(id));
+});
+
+router.post(
+  "/calls/:id/promote/:userId",
+  requireAuth,
+  async (req, res): Promise<void> => {
+    const rawId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    const id = parseInt(rawId, 10);
+    if (Number.isNaN(id)) {
+      res.status(400).json({ error: "Invalid id" });
+      return;
+    }
+    const targetUser = Array.isArray(req.params.userId)
+      ? req.params.userId[0]
+      : req.params.userId;
+    const me = getUserId(req);
+    if (!(await isHost(id, me))) {
+      res.status(403).json({ error: "Only the host can promote" });
+      return;
+    }
+    await db
+      .update(callParticipantsTable)
+      .set({ role: "speaker", handRaisedAt: null })
+      .where(
+        and(
+          eq(callParticipantsTable.callId, id),
+          eq(callParticipantsTable.userId, targetUser),
+        ),
+      );
+    res.json(await buildCall(id));
+  },
+);
+
+router.post(
+  "/calls/:id/demote/:userId",
+  requireAuth,
+  async (req, res): Promise<void> => {
+    const rawId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    const id = parseInt(rawId, 10);
+    if (Number.isNaN(id)) {
+      res.status(400).json({ error: "Invalid id" });
+      return;
+    }
+    const targetUser = Array.isArray(req.params.userId)
+      ? req.params.userId[0]
+      : req.params.userId;
+    const me = getUserId(req);
+    if (!(await isHost(id, me))) {
+      res.status(403).json({ error: "Only the host can demote" });
+      return;
+    }
+    // Never demote the host themselves.
+    const target = await getParticipant(id, targetUser);
+    if (target?.role === "host") {
+      res.status(400).json({ error: "Cannot demote the host" });
+      return;
+    }
+    await db
+      .update(callParticipantsTable)
+      .set({ role: "listener", handRaisedAt: null })
+      .where(
+        and(
+          eq(callParticipantsTable.callId, id),
+          eq(callParticipantsTable.userId, targetUser),
+        ),
+      );
+    res.json(await buildCall(id));
+  },
+);
 
 router.post("/calls/:id/leave", requireAuth, async (req, res): Promise<void> => {
   const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;

@@ -712,7 +712,7 @@ export default function RoomChat({ tag }: { tag: string }) {
               Polls are private to members.
             </div>
           ) : (
-            <PollsPanel tag={cleanTag} />
+            <PollsPanel scope={{ kind: "room", tag: cleanTag }} />
           )}
         </TabsContent>
         <TabsContent

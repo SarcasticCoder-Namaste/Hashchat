@@ -41,6 +41,8 @@ import { ImageUploadButton } from "@/components/ImageUploadButton";
 import { GifPickerButton } from "@/components/GifPickerButton";
 import { VoiceMessageButton } from "@/components/VoiceMessageButton";
 import { CallButton } from "@/components/CallButton";
+import { ScheduleDmDialog } from "@/components/ScheduleDmDialog";
+import { ScheduledDmsSheet } from "@/components/ScheduledDmsSheet";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -67,6 +69,8 @@ import {
   ArrowLeft,
   Send,
   Loader2,
+  Clock,
+  CalendarClock,
   Hash,
   X,
   Reply,
@@ -501,6 +505,8 @@ export default function ConversationChat({ id }: { id: number }) {
   const { user: clerkUser } = useUser();
   const [draft, setDraft] = useState("");
   const [replyTo, setReplyTo] = useState<Message | null>(null);
+  const [scheduleOpen, setScheduleOpen] = useState(false);
+  const [scheduleDmsOpen, setScheduleDmsOpen] = useState(false);
   const [threadParent, setThreadParent] = useState<Message | null>(null);
   const [membersOpen, setMembersOpen] = useState(false);
   const scrollerRef = useRef<HTMLDivElement>(null);
@@ -1157,6 +1163,29 @@ export default function ConversationChat({ id }: { id: number }) {
             testId="input-dm-message"
           />
           <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            onClick={() => setScheduleDmsOpen(true)}
+            aria-label="View scheduled messages"
+            data-testid="button-open-scheduled-dms"
+            title="Scheduled messages"
+          >
+            <CalendarClock className="h-4 w-4" />
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            onClick={() => setScheduleOpen(true)}
+            disabled={!draft.trim()}
+            aria-label="Schedule message"
+            data-testid="button-schedule-dm"
+            title="Schedule for later"
+          >
+            <Clock className="h-4 w-4" />
+          </Button>
+          <Button
             type="submit"
             disabled={!draft.trim() || send.isPending}
             data-testid="button-send-dm"
@@ -1170,6 +1199,24 @@ export default function ConversationChat({ id }: { id: number }) {
           </Button>
         </div>
       </form>
+      <ScheduleDmDialog
+        open={scheduleOpen}
+        onOpenChange={setScheduleOpen}
+        conversationId={id}
+        content={draft}
+        replyToId={replyTo?.id ?? null}
+        onScheduled={() => {
+          setDraft("");
+          setReplyTo(null);
+          setScheduleDmsOpen(true);
+          toast({ title: "Message scheduled" });
+        }}
+      />
+      <ScheduledDmsSheet
+        open={scheduleDmsOpen}
+        onOpenChange={setScheduleDmsOpen}
+        conversationId={id}
+      />
       <ThreadDrawer
         open={threadParent !== null}
         onOpenChange={(o) => {

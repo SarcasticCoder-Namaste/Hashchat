@@ -1151,6 +1151,66 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/CallSignalList" }
 
+  /calls/{id}/raise-hand:
+    post:
+      operationId: raiseHand
+      tags: [calls]
+      summary: Raise my hand to be promoted to speaker (voice rooms)
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Call" }
+
+  /calls/{id}/lower-hand:
+    post:
+      operationId: lowerHand
+      tags: [calls]
+      summary: Lower my raised hand
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Call" }
+
+  /calls/{id}/promote/{userId}:
+    post:
+      operationId: promoteToSpeaker
+      tags: [calls]
+      summary: Promote a participant to speaker (host only)
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+        - { name: userId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Call" }
+        "403": { description: Not allowed }
+
+  /calls/{id}/demote/{userId}:
+    post:
+      operationId: demoteToListener
+      tags: [calls]
+      summary: Demote a speaker back to listener (host only)
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+        - { name: userId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Call" }
+        "403": { description: Not allowed }
+
   /me/friend-code:
     get:
       operationId: getMyFriendCode
@@ -2221,6 +2281,103 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/Poll" }
+
+  /conversations/{id}/polls:
+    get:
+      operationId: getConversationPolls
+      tags: [polls]
+      summary: List active polls in a direct or group conversation
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Poll" }
+    post:
+      operationId: createConversationPoll
+      tags: [polls]
+      summary: Create a new poll inside a direct or group conversation
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreatePollBody" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Poll" }
+
+  /messages/{id}/translate:
+    post:
+      operationId: translateMessage
+      tags: [messages]
+      summary: Translate a message to a target language (cached)
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/TranslateMessageBody" }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MessageTranslation" }
+        "503": { description: Translation unavailable }
+
+  /me/scheduled-messages:
+    get:
+      operationId: getMyScheduledMessages
+      tags: [messages]
+      summary: List my scheduled (unsent) direct messages
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/ScheduledMessage" }
+
+  /me/scheduled-messages/{id}:
+    delete:
+      operationId: cancelScheduledMessage
+      tags: [messages]
+      summary: Cancel a scheduled DM I own
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      responses:
+        "204": { description: No content }
+        "404": { description: Not found }
+
+  /conversations/{id}/scheduled-messages:
+    post:
+      operationId: scheduleConversationMessage
+      tags: [messages]
+      summary: Schedule a DM to be sent later
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateScheduledMessageBody" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ScheduledMessage" }
 
   /link-preview:
     get:
@@ -3993,10 +4150,14 @@ components:
         avatarUrl:
           type: ["string", "null"]
         state: { type: string }
+        role: { type: string, enum: [host, speaker, listener] }
+        handRaisedAt:
+          type: ["string", "null"]
+          format: date-time
         joinedAt:
           type: ["string", "null"]
           format: date-time
-      required: [userId, username, displayName, state]
+      required: [userId, username, displayName, state, role]
 
     CallSignalBody:
       type: object
@@ -4841,7 +5002,10 @@ components:
       type: object
       properties:
         id: { type: integer }
-        roomTag: { type: string }
+        roomTag:
+          type: ["string", "null"]
+        conversationId:
+          type: ["integer", "null"]
         creatorId: { type: string }
         creatorName: { type: string }
         question: { type: string }
@@ -4866,7 +5030,7 @@ components:
           format: date-time
         isExpired: { type: boolean }
         createdAt: { type: string, format: date-time }
-      required: [id, roomTag, creatorId, creatorName, question, mode, maxSelections, options, totalVotes, myVoteOptionIds, isExpired, createdAt]
+      required: [id, creatorId, creatorName, question, mode, maxSelections, options, totalVotes, myVoteOptionIds, isExpired, createdAt]
 
     CreatePollBody:
       type: object
@@ -4883,6 +5047,56 @@ components:
           type: ["string", "null"]
           format: date-time
       required: [question, options]
+
+    TranslateMessageBody:
+      type: object
+      properties:
+        language:
+          type: string
+          minLength: 2
+          maxLength: 16
+          description: "BCP-47 language code or English name (e.g. 'es', 'fr', 'Japanese')"
+      required: [language]
+
+    MessageTranslation:
+      type: object
+      properties:
+        messageId: { type: integer }
+        language: { type: string }
+        text: { type: string }
+        cached: { type: boolean }
+      required: [messageId, language, text, cached]
+
+    ScheduledMessage:
+      type: object
+      properties:
+        id: { type: integer }
+        senderId: { type: string }
+        conversationId: { type: integer }
+        content: { type: string }
+        replyToId:
+          type: ["integer", "null"]
+        imageUrl:
+          type: ["string", "null"]
+        imageAlt:
+          type: ["string", "null"]
+        status: { type: string, enum: [scheduled, sent, cancelled, failed] }
+        scheduledFor: { type: string, format: date-time }
+        createdAt: { type: string, format: date-time }
+      required: [id, senderId, conversationId, content, status, scheduledFor, createdAt]
+
+    CreateScheduledMessageBody:
+      type: object
+      properties:
+        content: { type: string, minLength: 1, maxLength: 4000 }
+        scheduledFor: { type: string, format: date-time }
+        replyToId:
+          type: ["integer", "null"]
+        imageUrl:
+          type: ["string", "null"]
+        imageAlt:
+          type: ["string", "null"]
+      required: [content, scheduledFor]
 
     VotePollBody:
       type: object

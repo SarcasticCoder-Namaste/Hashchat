@@ -36,6 +36,8 @@ import boostsRouter from "./boosts";
 import reactionsPremiumRouter from "./reactionsPremium";
 import safetyRouter from "./safety";
 import engagementRouter from "./engagement";
+import translateRouter from "./translate";
+import scheduledMessagesRouter from "./scheduledMessages";
 
 const router: IRouter = Router();
 
@@ -82,5 +84,7 @@ router.use(boostsRouter);
 router.use(reactionsPremiumRouter);
 router.use(safetyRouter);
 router.use(engagementRouter);
+router.use(translateRouter);
+router.use(scheduledMessagesRouter);
 
 export default router;

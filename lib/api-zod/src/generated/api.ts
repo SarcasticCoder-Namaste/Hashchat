@@ -536,7 +536,8 @@ export const GetForYouFeedResponse = zod.object({
                     .union([
                       zod.object({
                         id: zod.number(),
-                        roomTag: zod.string(),
+                        roomTag: zod.string().nullish(),
+                        conversationId: zod.number().nullish(),
                         creatorId: zod.string(),
                         creatorName: zod.string(),
                         question: zod.string(),
@@ -760,7 +761,8 @@ export const GetExploreResponse = zod.object({
               .union([
                 zod.object({
                   id: zod.number(),
-                  roomTag: zod.string(),
+                  roomTag: zod.string().nullish(),
+                  conversationId: zod.number().nullish(),
                   creatorId: zod.string(),
                   creatorName: zod.string(),
                   question: zod.string(),
@@ -1109,7 +1111,8 @@ export const GetExploreResponse = zod.object({
                     .union([
                       zod.object({
                         id: zod.number(),
-                        roomTag: zod.string(),
+                        roomTag: zod.string().nullish(),
+                        conversationId: zod.number().nullish(),
                         creatorId: zod.string(),
                         creatorName: zod.string(),
                         question: zod.string(),
@@ -1722,7 +1725,8 @@ export const GetConversationsResponseItem = zod.object({
           .union([
             zod.object({
               id: zod.number(),
-              roomTag: zod.string(),
+              roomTag: zod.string().nullish(),
+              conversationId: zod.number().nullish(),
               creatorId: zod.string(),
               creatorName: zod.string(),
               question: zod.string(),
@@ -1906,7 +1910,8 @@ export const OpenConversationResponse = zod.object({
           .union([
             zod.object({
               id: zod.number(),
-              roomTag: zod.string(),
+              roomTag: zod.string().nullish(),
+              conversationId: zod.number().nullish(),
               creatorId: zod.string(),
               creatorName: zod.string(),
               question: zod.string(),
@@ -2109,7 +2114,8 @@ export const RenameConversationResponse = zod.object({
           .union([
             zod.object({
               id: zod.number(),
-              roomTag: zod.string(),
+              roomTag: zod.string().nullish(),
+              conversationId: zod.number().nullish(),
               creatorId: zod.string(),
               creatorName: zod.string(),
               question: zod.string(),
@@ -2300,7 +2306,8 @@ export const AddConversationMembersResponse = zod.object({
           .union([
             zod.object({
               id: zod.number(),
-              roomTag: zod.string(),
+              roomTag: zod.string().nullish(),
+              conversationId: zod.number().nullish(),
               creatorId: zod.string(),
               creatorName: zod.string(),
               question: zod.string(),
@@ -2498,7 +2505,8 @@ export const MuteConversationResponse = zod.object({
           .union([
             zod.object({
               id: zod.number(),
-              roomTag: zod.string(),
+              roomTag: zod.string().nullish(),
+              conversationId: zod.number().nullish(),
               creatorId: zod.string(),
               creatorName: zod.string(),
               question: zod.string(),
@@ -2683,7 +2691,8 @@ export const UnmuteConversationResponse = zod.object({
           .union([
             zod.object({
               id: zod.number(),
-              roomTag: zod.string(),
+              roomTag: zod.string().nullish(),
+              conversationId: zod.number().nullish(),
               creatorId: zod.string(),
               creatorName: zod.string(),
               question: zod.string(),
@@ -2802,7 +2811,8 @@ export const GetConversationMessagesResponseItem = zod.object({
     .union([
       zod.object({
         id: zod.number(),
-        roomTag: zod.string(),
+        roomTag: zod.string().nullish(),
+        conversationId: zod.number().nullish(),
         creatorId: zod.string(),
         creatorName: zod.string(),
         question: zod.string(),
@@ -2969,7 +2979,8 @@ export const GetMessageRepliesResponse = zod.object({
       .union([
         zod.object({
           id: zod.number(),
-          roomTag: zod.string(),
+          roomTag: zod.string().nullish(),
+          conversationId: zod.number().nullish(),
           creatorId: zod.string(),
           creatorName: zod.string(),
           question: zod.string(),
@@ -3070,7 +3081,8 @@ export const GetMessageRepliesResponse = zod.object({
         .union([
           zod.object({
             id: zod.number(),
-            roomTag: zod.string(),
+            roomTag: zod.string().nullish(),
+            conversationId: zod.number().nullish(),
             creatorId: zod.string(),
             creatorName: zod.string(),
             question: zod.string(),
@@ -3375,7 +3387,8 @@ export const GetRoomsResponseItem = zod.object({
           .union([
             zod.object({
               id: zod.number(),
-              roomTag: zod.string(),
+              roomTag: zod.string().nullish(),
+              conversationId: zod.number().nullish(),
               creatorId: zod.string(),
               creatorName: zod.string(),
               question: zod.string(),
@@ -3504,7 +3517,8 @@ export const GetTrendingRoomsResponseItem = zod.object({
           .union([
             zod.object({
               id: zod.number(),
-              roomTag: zod.string(),
+              roomTag: zod.string().nullish(),
+              conversationId: zod.number().nullish(),
               creatorId: zod.string(),
               creatorName: zod.string(),
               question: zod.string(),
@@ -3623,7 +3637,8 @@ export const GetRoomMessagesResponseItem = zod.object({
     .union([
       zod.object({
         id: zod.number(),
-        roomTag: zod.string(),
+        roomTag: zod.string().nullish(),
+        conversationId: zod.number().nullish(),
         creatorId: zod.string(),
         creatorName: zod.string(),
         question: zod.string(),
@@ -3863,6 +3878,8 @@ export const GetIncomingCallsResponseItem = zod.object({
       displayName: zod.string(),
       avatarUrl: zod.string().nullish(),
       state: zod.string(),
+      role: zod.enum(["host", "speaker", "listener"]),
+      handRaisedAt: zod.coerce.date().nullish(),
       joinedAt: zod.coerce.date().nullish(),
     }),
   ),
@@ -3892,6 +3909,8 @@ export const GetCallResponse = zod.object({
       displayName: zod.string(),
       avatarUrl: zod.string().nullish(),
       state: zod.string(),
+      role: zod.enum(["host", "speaker", "listener"]),
+      handRaisedAt: zod.coerce.date().nullish(),
       joinedAt: zod.coerce.date().nullish(),
     }),
   ),
@@ -3920,6 +3939,8 @@ export const JoinCallResponse = zod.object({
       displayName: zod.string(),
       avatarUrl: zod.string().nullish(),
       state: zod.string(),
+      role: zod.enum(["host", "speaker", "listener"]),
+      handRaisedAt: zod.coerce.date().nullish(),
       joinedAt: zod.coerce.date().nullish(),
     }),
   ),
@@ -3975,6 +3996,128 @@ export const GetCallSignalsResponse = zod.object({
     }),
   ),
   cursor: zod.number(),
+});
+
+/**
+ * @summary Raise my hand to be promoted to speaker (voice rooms)
+ */
+export const RaiseHandParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const RaiseHandResponse = zod.object({
+  id: zod.number(),
+  initiatorId: zod.string(),
+  kind: zod.string(),
+  status: zod.string(),
+  conversationId: zod.number().nullish(),
+  roomTag: zod.string().nullish(),
+  startedAt: zod.coerce.date(),
+  endedAt: zod.coerce.date().nullish(),
+  participants: zod.array(
+    zod.object({
+      userId: zod.string(),
+      username: zod.string(),
+      displayName: zod.string(),
+      avatarUrl: zod.string().nullish(),
+      state: zod.string(),
+      role: zod.enum(["host", "speaker", "listener"]),
+      handRaisedAt: zod.coerce.date().nullish(),
+      joinedAt: zod.coerce.date().nullish(),
+    }),
+  ),
+});
+
+/**
+ * @summary Lower my raised hand
+ */
+export const LowerHandParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const LowerHandResponse = zod.object({
+  id: zod.number(),
+  initiatorId: zod.string(),
+  kind: zod.string(),
+  status: zod.string(),
+  conversationId: zod.number().nullish(),
+  roomTag: zod.string().nullish(),
+  startedAt: zod.coerce.date(),
+  endedAt: zod.coerce.date().nullish(),
+  participants: zod.array(
+    zod.object({
+      userId: zod.string(),
+      username: zod.string(),
+      displayName: zod.string(),
+      avatarUrl: zod.string().nullish(),
+      state: zod.string(),
+      role: zod.enum(["host", "speaker", "listener"]),
+      handRaisedAt: zod.coerce.date().nullish(),
+      joinedAt: zod.coerce.date().nullish(),
+    }),
+  ),
+});
+
+/**
+ * @summary Promote a participant to speaker (host only)
+ */
+export const PromoteToSpeakerParams = zod.object({
+  id: zod.coerce.number(),
+  userId: zod.coerce.string(),
+});
+
+export const PromoteToSpeakerResponse = zod.object({
+  id: zod.number(),
+  initiatorId: zod.string(),
+  kind: zod.string(),
+  status: zod.string(),
+  conversationId: zod.number().nullish(),
+  roomTag: zod.string().nullish(),
+  startedAt: zod.coerce.date(),
+  endedAt: zod.coerce.date().nullish(),
+  participants: zod.array(
+    zod.object({
+      userId: zod.string(),
+      username: zod.string(),
+      displayName: zod.string(),
+      avatarUrl: zod.string().nullish(),
+      state: zod.string(),
+      role: zod.enum(["host", "speaker", "listener"]),
+      handRaisedAt: zod.coerce.date().nullish(),
+      joinedAt: zod.coerce.date().nullish(),
+    }),
+  ),
+});
+
+/**
+ * @summary Demote a speaker back to listener (host only)
+ */
+export const DemoteToListenerParams = zod.object({
+  id: zod.coerce.number(),
+  userId: zod.coerce.string(),
+});
+
+export const DemoteToListenerResponse = zod.object({
+  id: zod.number(),
+  initiatorId: zod.string(),
+  kind: zod.string(),
+  status: zod.string(),
+  conversationId: zod.number().nullish(),
+  roomTag: zod.string().nullish(),
+  startedAt: zod.coerce.date(),
+  endedAt: zod.coerce.date().nullish(),
+  participants: zod.array(
+    zod.object({
+      userId: zod.string(),
+      username: zod.string(),
+      displayName: zod.string(),
+      avatarUrl: zod.string().nullish(),
+      state: zod.string(),
+      role: zod.enum(["host", "speaker", "listener"]),
+      handRaisedAt: zod.coerce.date().nullish(),
+      joinedAt: zod.coerce.date().nullish(),
+    }),
+  ),
 });
 
 /**
@@ -6273,7 +6416,8 @@ export const GetRoomPollsParams = zod.object({
 
 export const GetRoomPollsResponseItem = zod.object({
   id: zod.number(),
-  roomTag: zod.string(),
+  roomTag: zod.string().nullish(),
+  conversationId: zod.number().nullish(),
   creatorId: zod.string(),
   creatorName: zod.string(),
   question: zod.string(),
@@ -6358,7 +6502,8 @@ export const VotePollBody = zod.object({
 
 export const VotePollResponse = zod.object({
   id: zod.number(),
-  roomTag: zod.string(),
+  roomTag: zod.string().nullish(),
+  conversationId: zod.number().nullish(),
   creatorId: zod.string(),
   creatorName: zod.string(),
   question: zod.string(),
@@ -6394,6 +6539,158 @@ export const VotePollResponse = zod.object({
   expiresAt: zod.coerce.date().nullish(),
   isExpired: zod.boolean(),
   createdAt: zod.coerce.date(),
+});
+
+/**
+ * @summary List active polls in a direct or group conversation
+ */
+export const GetConversationPollsParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const GetConversationPollsResponseItem = zod.object({
+  id: zod.number(),
+  roomTag: zod.string().nullish(),
+  conversationId: zod.number().nullish(),
+  creatorId: zod.string(),
+  creatorName: zod.string(),
+  question: zod.string(),
+  mode: zod.enum(["single", "multi", "ranked"]),
+  maxSelections: zod.number(),
+  options: zod.array(
+    zod.object({
+      id: zod.number(),
+      text: zod.string(),
+      votes: zod.number(),
+      votedByMe: zod.boolean(),
+      myRank: zod.number().nullish(),
+    }),
+  ),
+  totalVotes: zod.number(),
+  myVoteOptionId: zod.number().nullish(),
+  myVoteOptionIds: zod.array(zod.number()),
+  rounds: zod
+    .array(
+      zod.object({
+        round: zod.number(),
+        tallies: zod.array(
+          zod.object({
+            optionId: zod.number(),
+            votes: zod.number(),
+          }),
+        ),
+        eliminated: zod.array(zod.number()),
+      }),
+    )
+    .optional(),
+  winnerOptionId: zod.number().nullish(),
+  expiresAt: zod.coerce.date().nullish(),
+  isExpired: zod.boolean(),
+  createdAt: zod.coerce.date(),
+});
+export const GetConversationPollsResponse = zod.array(
+  GetConversationPollsResponseItem,
+);
+
+/**
+ * @summary Create a new poll inside a direct or group conversation
+ */
+export const CreateConversationPollParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const createConversationPollBodyQuestionMax = 200;
+
+export const createConversationPollBodyOptionsItemMax = 80;
+
+export const createConversationPollBodyOptionsMin = 2;
+export const createConversationPollBodyOptionsMax = 6;
+
+export const createConversationPollBodyMaxSelectionsMax = 6;
+
+export const CreateConversationPollBody = zod.object({
+  question: zod.string().min(1).max(createConversationPollBodyQuestionMax),
+  options: zod
+    .array(zod.string().min(1).max(createConversationPollBodyOptionsItemMax))
+    .min(createConversationPollBodyOptionsMin)
+    .max(createConversationPollBodyOptionsMax),
+  mode: zod.enum(["single", "multi", "ranked"]).optional(),
+  maxSelections: zod
+    .number()
+    .min(1)
+    .max(createConversationPollBodyMaxSelectionsMax)
+    .optional(),
+  expiresAt: zod.coerce.date().nullish(),
+});
+
+/**
+ * @summary Translate a message to a target language (cached)
+ */
+export const TranslateMessageParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const translateMessageBodyLanguageMin = 2;
+export const translateMessageBodyLanguageMax = 16;
+
+export const TranslateMessageBody = zod.object({
+  language: zod
+    .string()
+    .min(translateMessageBodyLanguageMin)
+    .max(translateMessageBodyLanguageMax)
+    .describe(
+      "BCP-47 language code or English name (e.g. 'es', 'fr', 'Japanese')",
+    ),
+});
+
+export const TranslateMessageResponse = zod.object({
+  messageId: zod.number(),
+  language: zod.string(),
+  text: zod.string(),
+  cached: zod.boolean(),
+});
+
+/**
+ * @summary List my scheduled (unsent) direct messages
+ */
+export const GetMyScheduledMessagesResponseItem = zod.object({
+  id: zod.number(),
+  senderId: zod.string(),
+  conversationId: zod.number(),
+  content: zod.string(),
+  replyToId: zod.number().nullish(),
+  imageUrl: zod.string().nullish(),
+  imageAlt: zod.string().nullish(),
+  status: zod.enum(["scheduled", "sent", "cancelled", "failed"]),
+  scheduledFor: zod.coerce.date(),
+  createdAt: zod.coerce.date(),
+});
+export const GetMyScheduledMessagesResponse = zod.array(
+  GetMyScheduledMessagesResponseItem,
+);
+
+/**
+ * @summary Cancel a scheduled DM I own
+ */
+export const CancelScheduledMessageParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+/**
+ * @summary Schedule a DM to be sent later
+ */
+export const ScheduleConversationMessageParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const scheduleConversationMessageBodyContentMax = 4000;
+
+export const ScheduleConversationMessageBody = zod.object({
+  content: zod.string().min(1).max(scheduleConversationMessageBodyContentMax),
+  scheduledFor: zod.coerce.date(),
+  replyToId: zod.number().nullish(),
+  imageUrl: zod.string().nullish(),
+  imageAlt: zod.string().nullish(),
 });
 
 /**
@@ -6725,7 +7022,8 @@ export const GetCommunityResponse = zod.object({
               .union([
                 zod.object({
                   id: zod.number(),
-                  roomTag: zod.string(),
+                  roomTag: zod.string().nullish(),
+                  conversationId: zod.number().nullish(),
                   creatorId: zod.string(),
                   creatorName: zod.string(),
                   question: zod.string(),
@@ -6999,7 +7297,8 @@ export const JoinCommunityResponse = zod.object({
               .union([
                 zod.object({
                   id: zod.number(),
-                  roomTag: zod.string(),
+                  roomTag: zod.string().nullish(),
+                  conversationId: zod.number().nullish(),
                   creatorId: zod.string(),
                   creatorName: zod.string(),
                   question: zod.string(),
@@ -7273,7 +7572,8 @@ export const LeaveCommunityResponse = zod.object({
               .union([
                 zod.object({
                   id: zod.number(),
-                  roomTag: zod.string(),
+                  roomTag: zod.string().nullish(),
+                  conversationId: zod.number().nullish(),
                   creatorId: zod.string(),
                   creatorName: zod.string(),
                   question: zod.string(),
@@ -7794,7 +8094,8 @@ export const SetCommunitySlowModeResponse = zod.object({
               .union([
                 zod.object({
                   id: zod.number(),
-                  roomTag: zod.string(),
+                  roomTag: zod.string().nullish(),
+                  conversationId: zod.number().nullish(),
                   creatorId: zod.string(),
                   creatorName: zod.string(),
                   question: zod.string(),

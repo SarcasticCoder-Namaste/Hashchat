@@ -41,6 +41,7 @@ export async function runPollReminderTick(now: Date = new Date()): Promise<void>
         .returning({ id: pollsTable.id });
       if (claimed.length === 0) continue;
 
+      if (!poll.roomTag) continue;
       const followers = await db
         .select({ userId: userFollowedHashtagsTable.userId })
         .from(userFollowedHashtagsTable)

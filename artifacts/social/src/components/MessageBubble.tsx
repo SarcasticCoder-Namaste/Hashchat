@@ -20,6 +20,7 @@ import { WaveformPlayer } from "./WaveformPlayer";
 import { BookmarkButton } from "./BookmarkButton";
 import { renderRichContent } from "@/lib/mentions";
 import { ModerationMenu, type ModerationScope } from "./ModerationMenu";
+import { MessageTranslatePopover } from "./MessageTranslatePopover";
 
 const QUICK_REACTIONS = ["👍", "❤️", "😂", "😮", "😢", "🔥", "🎉", "🙌"];
 
@@ -47,6 +48,10 @@ export function MessageBubble({
   canModerate,
 }: MessageBubbleProps) {
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [translation, setTranslation] = useState<{
+    text: string;
+    language: string;
+  } | null>(null);
   const add = useAddMessageReaction({
     mutation: { onSuccess: onInvalidate },
   });
@@ -239,6 +244,22 @@ export function MessageBubble({
                 {renderRichContent(message.content, message.mentions)}
               </p>
             )}
+            {translation && (
+              <div
+                className={[
+                  "mt-1 rounded-md px-2 py-1 text-xs",
+                  isMine
+                    ? "bg-primary-foreground/15 text-primary-foreground/90"
+                    : "bg-background/60 text-foreground/80",
+                ].join(" ")}
+                data-testid={`translation-${message.id}`}
+              >
+                <p className="mb-0.5 text-[10px] uppercase tracking-wide opacity-70">
+                  {translation.language}
+                </p>
+                <p className="whitespace-pre-wrap break-words">{translation.text}</p>
+              </div>
+            )}
             <p
               className={[
                 "mt-1 flex items-center gap-1 text-[10px]",
@@ -311,6 +332,10 @@ export function MessageBubble({
           isLocked={isLocked}
           isRemoved={isRemoved}
           onChanged={onInvalidate}
+          canTranslate={!!message.content?.trim()}
+          translation={translation}
+          onTranslated={(text, language) => setTranslation({ text, language })}
+          onClearTranslation={() => setTranslation(null)}
         />
       </motion.div>
     );
@@ -407,6 +432,17 @@ export function MessageBubble({
             {renderRichContent(message.content, message.mentions)}
           </p>
         )}
+        {translation && (
+          <div
+            className="mt-1 rounded-md bg-muted/60 px-2 py-1 text-xs text-foreground/80"
+            data-testid={`translation-${message.id}`}
+          >
+            <p className="mb-0.5 text-[10px] uppercase tracking-wide opacity-70">
+              {translation.language}
+            </p>
+            <p className="whitespace-pre-wrap break-words">{translation.text}</p>
+          </div>
+        )}
         {message.attachments?.map((a) =>
           a.kind === "link_preview" ? (
             <LinkPreviewCard
@@ -448,6 +484,10 @@ export function MessageBubble({
         isLocked={isLocked}
         isRemoved={isRemoved}
         onChanged={onInvalidate}
+        canTranslate={!!message.content?.trim()}
+        translation={translation}
+        onTranslated={(text, language) => setTranslation({ text, language })}
+        onClearTranslation={() => setTranslation(null)}
       />
     </motion.div>
   );
@@ -501,6 +541,10 @@ function MessageActions({
   isLocked,
   isRemoved,
   onChanged,
+  canTranslate,
+  translation,
+  onTranslated,
+  onClearTranslation,
 }: {
   messageId: number;
   pickerOpen: boolean;
@@ -512,6 +556,10 @@ function MessageActions({
   isLocked?: boolean;
   isRemoved?: boolean;
   onChanged?: () => void;
+  canTranslate?: boolean;
+  translation?: { text: string; language: string } | null;
+  onTranslated?: (text: string, language: string) => void;
+  onClearTranslation?: () => void;
 }) {
   return (
     <div className="flex items-start gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
@@ -565,6 +613,14 @@ function MessageActions({
         <Reply className="h-3.5 w-3.5" />
       </Button>
       <BookmarkButton kind="message" targetId={messageId} />
+      {canTranslate && onTranslated && onClearTranslation && (
+        <MessageTranslatePopover
+          messageId={messageId}
+          hasTranslation={!!translation}
+          onResult={onTranslated}
+          onClear={onClearTranslation}
+        />
+      )}
       <ModerationMenu
         kind="message"
         targetId={messageId}

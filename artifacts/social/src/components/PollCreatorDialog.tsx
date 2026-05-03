@@ -2,7 +2,9 @@ import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   useCreateRoomPoll,
+  useCreateConversationPoll,
   getGetRoomPollsQueryKey,
+  getGetConversationPollsQueryKey,
 } from "@workspace/api-client-react";
 import {
   Dialog,
@@ -39,12 +41,16 @@ const MODE_OPTIONS = [
   { value: "ranked", label: "Ranked choice" },
 ];
 
+export type PollScope =
+  | { kind: "room"; tag: string }
+  | { kind: "conversation"; conversationId: number };
+
 interface PollCreatorDialogProps {
-  tag: string;
+  scope: PollScope;
   trigger?: React.ReactNode;
 }
 
-export function PollCreatorDialog({ tag, trigger }: PollCreatorDialogProps) {
+export function PollCreatorDialog({ scope, trigger }: PollCreatorDialogProps) {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [question, setQuestion] = useState("");
@@ -53,19 +59,29 @@ export function PollCreatorDialog({ tag, trigger }: PollCreatorDialogProps) {
   const [mode, setMode] = useState<"single" | "multi" | "ranked">("single");
   const [maxSelections, setMaxSelections] = useState("2");
 
-  const create = useCreateRoomPoll({
-    mutation: {
-      onSuccess: () => {
-        qc.invalidateQueries({ queryKey: getGetRoomPollsQueryKey(tag) });
-        setOpen(false);
-        setQuestion("");
-        setOptions(["", ""]);
-        setExpiresHours("0");
-        setMode("single");
-        setMaxSelections("2");
-      },
-    },
-  });
+  const reset = () => {
+    setOpen(false);
+    setQuestion("");
+    setOptions(["", ""]);
+    setExpiresHours("0");
+    setMode("single");
+    setMaxSelections("2");
+  };
+
+  const onSuccess = () => {
+    if (scope.kind === "room") {
+      qc.invalidateQueries({ queryKey: getGetRoomPollsQueryKey(scope.tag) });
+    } else {
+      qc.invalidateQueries({
+        queryKey: getGetConversationPollsQueryKey(scope.conversationId),
+      });
+    }
+    reset();
+  };
+
+  const createRoom = useCreateRoomPoll({ mutation: { onSuccess } });
+  const createConv = useCreateConversationPoll({ mutation: { onSuccess } });
+  const isPending = createRoom.isPending || createConv.isPending;
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -77,18 +93,20 @@ export function PollCreatorDialog({ tag, trigger }: PollCreatorDialogProps) {
         ? new Date(Date.now() + hours * 3600 * 1000).toISOString()
         : undefined;
     const ms = parseInt(maxSelections, 10);
-    create.mutate({
-      tag,
-      data: {
-        question: question.trim(),
-        options: cleaned,
-        mode,
-        ...(mode === "multi"
-          ? { maxSelections: Math.min(ms, cleaned.length) }
-          : {}),
-        ...(expiresAt ? { expiresAt } : {}),
-      },
-    });
+    const data = {
+      question: question.trim(),
+      options: cleaned,
+      mode,
+      ...(mode === "multi"
+        ? { maxSelections: Math.min(ms, cleaned.length) }
+        : {}),
+      ...(expiresAt ? { expiresAt } : {}),
+    };
+    if (scope.kind === "room") {
+      createRoom.mutate({ tag: scope.tag, data });
+    } else {
+      createConv.mutate({ id: scope.conversationId, data });
+    }
   }
 
   const cleanedCount = options.filter((o) => o.trim()).length;
@@ -96,6 +114,11 @@ export function PollCreatorDialog({ tag, trigger }: PollCreatorDialogProps) {
     { length: Math.max(2, Math.min(6, cleanedCount || 2) - 1) },
     (_, i) => String(i + 2),
   );
+
+  const title =
+    scope.kind === "room"
+      ? `Create a poll for #${scope.tag}`
+      : "Create a poll for this chat";
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -108,7 +131,7 @@ export function PollCreatorDialog({ tag, trigger }: PollCreatorDialogProps) {
       </DialogTrigger>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Create a poll for #{tag}</DialogTitle>
+          <DialogTitle>{title}</DialogTitle>
         </DialogHeader>
         <form onSubmit={submit} className="flex flex-col gap-3">
           <div className="flex flex-col gap-1">
@@ -118,7 +141,9 @@ export function PollCreatorDialog({ tag, trigger }: PollCreatorDialogProps) {
               value={question}
               onChange={(e) => setQuestion(e.target.value)}
               maxLength={200}
-              placeholder="Ask the room…"
+              placeholder={
+                scope.kind === "room" ? "Ask the room…" : "Ask the chat…"
+              }
               data-testid="input-poll-question"
             />
           </div>
@@ -225,13 +250,13 @@ export function PollCreatorDialog({ tag, trigger }: PollCreatorDialogProps) {
             <Button
               type="submit"
               disabled={
-                create.isPending ||
+                isPending ||
                 !question.trim() ||
                 options.filter((o) => o.trim()).length < 2
               }
               data-testid="button-submit-poll"
             >
-              {create.isPending ? (
+              {isPending ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               ) : null}
               Create poll

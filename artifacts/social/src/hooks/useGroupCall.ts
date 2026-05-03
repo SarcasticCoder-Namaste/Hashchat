@@ -20,12 +20,16 @@ interface CallParticipant {
   userId: string;
   displayName: string;
   state: string;
+  role?: "host" | "speaker" | "listener";
+  handRaisedAt?: string | null;
 }
 
 interface CallState {
   id: number;
   kind: string;
   status: string;
+  initiatorId?: string;
+  roomTag?: string | null;
   participants: CallParticipant[];
 }
 
@@ -306,6 +310,51 @@ export function useGroupCall(opts: {
     setVideoOff(next);
   }, [videoOff]);
 
+  const refreshCall = useCallback(async () => {
+    if (callId == null) return;
+    try {
+      const res = await apiCall(`/calls/${callId}`);
+      if (!res.ok) return;
+      setCall((await res.json()) as CallState);
+    } catch {
+      /* ignore */
+    }
+  }, [apiCall, callId]);
+
+  const raiseHand = useCallback(async () => {
+    if (callId == null) return;
+    await apiCall(`/calls/${callId}/raise-hand`, { method: "POST" });
+    await refreshCall();
+  }, [apiCall, callId, refreshCall]);
+
+  const lowerHand = useCallback(async () => {
+    if (callId == null) return;
+    await apiCall(`/calls/${callId}/lower-hand`, { method: "POST" });
+    await refreshCall();
+  }, [apiCall, callId, refreshCall]);
+
+  const promote = useCallback(
+    async (userId: string) => {
+      if (callId == null) return;
+      await apiCall(`/calls/${callId}/promote/${encodeURIComponent(userId)}`, {
+        method: "POST",
+      });
+      await refreshCall();
+    },
+    [apiCall, callId, refreshCall],
+  );
+
+  const demote = useCallback(
+    async (userId: string) => {
+      if (callId == null) return;
+      await apiCall(`/calls/${callId}/demote/${encodeURIComponent(userId)}`, {
+        method: "POST",
+      });
+      await refreshCall();
+    },
+    [apiCall, callId, refreshCall],
+  );
+
   const hangup = useCallback(async () => {
     // Always tear down local state and notify the parent, even if the /leave
     // POST throws (network down, expired token, etc.). Otherwise a flaky
@@ -333,5 +382,9 @@ export function useGroupCall(opts: {
     toggleMute,
     toggleVideo,
     hangup,
+    raiseHand,
+    lowerHand,
+    promote,
+    demote,
   };
 }
