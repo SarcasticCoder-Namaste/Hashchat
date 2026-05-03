@@ -30,6 +30,17 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Kbd } from "@/components/ui/kbd";
 import { ProfileGallery } from "@/components/ProfileGallery";
 import { useToast } from "@/hooks/use-toast";
@@ -1672,6 +1683,12 @@ function BlocksMutesTab() {
                 testIdPrefix="block"
                 disabled={unblock.isPending}
                 onAction={() => unblock.mutate({ id: u.id })}
+                confirm={{
+                  title: `Unblock @${u.username}?`,
+                  description:
+                    "They will be able to find and message you again.",
+                  actionLabel: "Unblock",
+                }}
               />
             ))}
           </ul>
@@ -1826,6 +1843,7 @@ function BlockMuteUserRow({
   testIdPrefix,
   disabled,
   onAction,
+  confirm,
 }: {
   user: {
     id: string;
@@ -1838,6 +1856,7 @@ function BlockMuteUserRow({
   testIdPrefix: string;
   disabled: boolean;
   onAction: () => void;
+  confirm?: { title: string; description: string; actionLabel?: string };
 }) {
   const initials = (user.displayName || user.username || "?")
     .split(" ")
@@ -1871,16 +1890,55 @@ function BlockMuteUserRow({
           )}
         </p>
       </div>
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        disabled={disabled}
-        onClick={onAction}
-        data-testid={`button-${testIdPrefix}-action-${user.id}`}
-      >
-        {actionLabel}
-      </Button>
+      {confirm ? (
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={disabled}
+              data-testid={`button-${testIdPrefix}-action-${user.id}`}
+            >
+              {actionLabel}
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent
+            data-testid={`dialog-${testIdPrefix}-confirm-${user.id}`}
+          >
+            <AlertDialogHeader>
+              <AlertDialogTitle>{confirm.title}</AlertDialogTitle>
+              <AlertDialogDescription>
+                {confirm.description}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel
+                data-testid={`button-${testIdPrefix}-cancel-${user.id}`}
+              >
+                Cancel
+              </AlertDialogCancel>
+              <AlertDialogAction
+                onClick={onAction}
+                data-testid={`button-${testIdPrefix}-confirm-${user.id}`}
+              >
+                {confirm.actionLabel ?? actionLabel}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      ) : (
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          disabled={disabled}
+          onClick={onAction}
+          data-testid={`button-${testIdPrefix}-action-${user.id}`}
+        >
+          {actionLabel}
+        </Button>
+      )}
     </li>
   );
 }
