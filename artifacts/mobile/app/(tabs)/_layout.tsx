@@ -11,6 +11,7 @@ import { Feather } from "@expo/vector-icons";
 import React from "react";
 import { Platform, StyleSheet, View, useColorScheme } from "react-native";
 
+import { ScheduledDmBanner } from "@/components/ScheduledDmBanner";
 import { useColors } from "@/hooks/useColors";
 import {
   getGetUnreadNotificationCountQueryKey,
@@ -187,8 +188,10 @@ function ClassicTabLayout() {
 }
 
 export default function TabLayout() {
-  if (isLiquidGlassAvailable()) {
-    return <NativeTabLayout />;
-  }
-  return <ClassicTabLayout />;
+  return (
+    <>
+      {isLiquidGlassAvailable() ? <NativeTabLayout /> : <ClassicTabLayout />}
+      <ScheduledDmBanner />
+    </>
+  );
 }
