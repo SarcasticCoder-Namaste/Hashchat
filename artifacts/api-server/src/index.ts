@@ -4,6 +4,7 @@ import { startHashtagMetricsScheduler } from "./lib/hashtagMetricsJob";
 import { startEventReminderScheduler } from "./lib/eventReminders";
 import { startPollReminderScheduler } from "./lib/pollReminders";
 import { startScheduledPostsScheduler } from "./lib/scheduledPostsJob";
+import { startExpiredSparksScheduler } from "./lib/schedulers/expiredSparksJob";
 import { initStripe } from "./lib/stripeInit";
 
 const rawPort = process.env["PORT"];
@@ -31,5 +32,6 @@ app.listen(port, (err) => {
   startEventReminderScheduler();
   startPollReminderScheduler();
   startScheduledPostsScheduler();
+  startExpiredSparksScheduler();
   void initStripe();
 });
