@@ -1,7 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import {
   useSearchGifs,
+  useGetGifCategories,
+  useGetGifTrendingSearches,
   getSearchGifsQueryKey,
+  getGetGifCategoriesQueryKey,
+  getGetGifTrendingSearchesQueryKey,
   type Gif,
 } from "@workspace/api-client-react";
 import {
@@ -11,7 +15,7 @@ import {
 } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Loader2, Search, Sparkles } from "lucide-react";
+import { ArrowLeft, Loader2, Search, Sparkles, TrendingUp } from "lucide-react";
 
 const GIF_ICON_PATH =
   "M11 9h1.5v6H11zM5.5 13.5H7v.5c0 .28.22.5.5.5s.5-.22.5-.5V13H7v-1h2v2.5c0 .83-.67 1.5-1.5 1.5S6 15.33 6 14.5V13c0-.28-.22-.5-.5-.5z";
@@ -40,6 +44,8 @@ function GifIcon({ className }: { className?: string }) {
   );
 }
 
+type ActiveCategory = { name: string; slug: string };
+
 export function GifPickerButton({
   onPick,
   testId = "button-pick-gif",
@@ -50,24 +56,54 @@ export function GifPickerButton({
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [debounced, setDebounced] = useState("");
+  const [activeCategory, setActiveCategory] = useState<ActiveCategory | null>(
+    null,
+  );
 
   useEffect(() => {
     const handle = setTimeout(() => setDebounced(query.trim()), 300);
     return () => clearTimeout(handle);
   }, [query]);
 
+  // Reset state when the picker closes so reopening starts fresh.
   useEffect(() => {
     if (!open) {
       setQuery("");
       setDebounced("");
+      setActiveCategory(null);
     }
   }, [open]);
 
-  const params = { q: debounced || undefined, limit: 24 };
+  // Typing in the search box overrides any active category selection.
+  useEffect(() => {
+    if (debounced && activeCategory) setActiveCategory(null);
+  }, [debounced, activeCategory]);
+
+  // Effective search term: free-text query takes precedence; otherwise the
+  // active category slug; otherwise undefined (which fetches trending GIFs).
+  const effectiveQuery = debounced || activeCategory?.slug || undefined;
+  const showBrowse = !debounced && !activeCategory;
+
+  const params = { q: effectiveQuery, limit: 24 };
   const gifsQ = useSearchGifs(params, {
     query: {
       enabled: open,
       queryKey: getSearchGifsQueryKey(params),
+    },
+  });
+
+  const categoriesQ = useGetGifCategories({
+    query: {
+      enabled: open && showBrowse,
+      queryKey: getGetGifCategoriesQueryKey(),
+      staleTime: 5 * 60 * 1000,
+    },
+  });
+  const trendingQ = useGetGifTrendingSearches({
+    query: {
+      enabled: open,
+      queryKey: getGetGifTrendingSearchesQueryKey(),
+      staleTime: 5 * 60 * 1000,
     },
   });
 
@@ -76,12 +112,31 @@ export function GifPickerButton({
     setOpen(false);
   }
 
+  function handlePickCategory(cat: ActiveCategory) {
+    setQuery("");
+    setDebounced("");
+    setActiveCategory(cat);
+  }
+
+  function handlePickTrendingTerm(term: string) {
+    setActiveCategory(null);
+    setQuery(term);
+    setDebounced(term);
+  }
+
+  function handleClearCategory() {
+    setActiveCategory(null);
+  }
+
   const items = gifsQ.data?.items ?? [];
   const errorPayload = gifsQ.error as
     | { status?: number; data?: { error?: string; message?: string } }
     | undefined;
   const notConfigured = errorPayload?.status === 503;
   const otherError = !!errorPayload && !notConfigured;
+
+  const categories = categoriesQ.data?.items ?? [];
+  const trendingTerms = trendingQ.data?.items ?? [];
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -104,16 +159,51 @@ export function GifPickerButton({
         data-testid="gif-picker"
       >
         <div className="flex items-center gap-2 border-b border-border px-3 py-2">
-          <Search className="h-4 w-4 text-muted-foreground" />
+          {activeCategory ? (
+            <button
+              type="button"
+              onClick={handleClearCategory}
+              className="flex h-6 w-6 items-center justify-center rounded text-muted-foreground hover:bg-muted"
+              aria-label="Back to browse"
+              data-testid="button-gif-category-back"
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </button>
+          ) : (
+            <Search className="h-4 w-4 text-muted-foreground" />
+          )}
           <Input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search GIFs"
+            placeholder={
+              activeCategory ? activeCategory.name : "Search GIFs"
+            }
             className="h-8 border-0 bg-transparent px-0 shadow-none focus-visible:ring-0"
             data-testid="input-gif-search"
             autoFocus
           />
         </div>
+
+        {!notConfigured && trendingTerms.length > 0 && (
+          <div
+            className="flex gap-1.5 overflow-x-auto border-b border-border px-3 py-2"
+            data-testid="gif-trending-searches"
+          >
+            <TrendingUp className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+            {trendingTerms.slice(0, 12).map((term) => (
+              <button
+                key={term}
+                type="button"
+                onClick={() => handlePickTrendingTerm(term)}
+                className="shrink-0 rounded-full border border-border bg-muted/40 px-2.5 py-0.5 text-xs text-foreground transition-colors hover:bg-muted"
+                data-testid={`gif-trending-term-${term}`}
+              >
+                {term}
+              </button>
+            ))}
+          </div>
+        )}
+
         <div
           className="max-h-[320px] overflow-y-auto p-2"
           data-testid="gif-results"
@@ -134,13 +224,25 @@ export function GifPickerButton({
             <div className="px-3 py-8 text-center text-xs text-destructive">
               Couldn't load GIFs. Try again.
             </div>
+          ) : showBrowse && categories.length > 0 ? (
+            <GifBrowseSection
+              categories={categories}
+              trendingItems={items}
+              trendingLoading={gifsQ.isLoading}
+              onPickCategory={handlePickCategory}
+              onPickGif={handlePick}
+            />
           ) : gifsQ.isLoading ? (
             <div className="flex items-center justify-center py-10">
               <Loader2 className="h-5 w-5 animate-spin text-muted-foreground/70" />
             </div>
           ) : items.length === 0 ? (
             <div className="px-3 py-8 text-center text-xs text-muted-foreground">
-              {debounced ? `No GIFs for "${debounced}"` : "No GIFs to show."}
+              {debounced
+                ? `No GIFs for "${debounced}"`
+                : activeCategory
+                  ? `No GIFs in ${activeCategory.name}`
+                  : "No GIFs to show."}
             </div>
           ) : (
             <GifMasonry items={items} onPick={handlePick} />
@@ -151,6 +253,59 @@ export function GifPickerButton({
         </div>
       </PopoverContent>
     </Popover>
+  );
+}
+
+function GifBrowseSection({
+  categories,
+  trendingItems,
+  trendingLoading,
+  onPickCategory,
+  onPickGif,
+}: {
+  categories: { name: string; slug: string; previewUrl?: string | null }[];
+  trendingItems: Gif[];
+  trendingLoading: boolean;
+  onPickCategory: (cat: ActiveCategory) => void;
+  onPickGif: (g: Gif) => void;
+}) {
+  return (
+    <div className="flex flex-col gap-3">
+      <div data-testid="gif-categories">
+        <div className="mb-1.5 px-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+          Categories
+        </div>
+        <div className="flex flex-wrap gap-1.5">
+          {categories.map((cat) => (
+            <button
+              key={cat.slug}
+              type="button"
+              onClick={() => onPickCategory({ name: cat.name, slug: cat.slug })}
+              className="rounded-full border border-border bg-background px-2.5 py-1 text-xs font-medium text-foreground transition-colors hover:bg-muted"
+              data-testid={`gif-category-${cat.slug}`}
+            >
+              {cat.name}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div>
+        <div className="mb-1.5 px-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+          Trending
+        </div>
+        {trendingLoading ? (
+          <div className="flex items-center justify-center py-6">
+            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground/70" />
+          </div>
+        ) : trendingItems.length === 0 ? (
+          <div className="px-3 py-6 text-center text-xs text-muted-foreground">
+            No trending GIFs.
+          </div>
+        ) : (
+          <GifMasonry items={trendingItems} onPick={onPickGif} />
+        )}
+      </div>
+    </div>
   );
 }
 

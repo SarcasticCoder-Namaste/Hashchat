@@ -1575,6 +1575,40 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/GifConfigError" }
 
+  /gifs/categories:
+    get:
+      operationId: getGifCategories
+      tags: [gifs]
+      summary: List curated GIF categories
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GifCategoriesResult" }
+        "503":
+          description: GIF provider not configured
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GifConfigError" }
+
+  /gifs/trending-searches:
+    get:
+      operationId: getGifTrendingSearches
+      tags: [gifs]
+      summary: List trending GIF search terms
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GifTrendingSearchesResult" }
+        "503":
+          description: GIF provider not configured
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GifConfigError" }
+
   /reels/youtube:
     get:
       operationId: getYoutubeReels
@@ -3026,6 +3060,33 @@ components:
           items: { $ref: "#/components/schemas/Gif" }
         nextOffset:
           type: ["integer", "null"]
+        provider: { type: string }
+      required: [items, provider]
+
+    GifCategory:
+      type: object
+      properties:
+        name: { type: string }
+        slug: { type: string }
+        previewUrl:
+          type: ["string", "null"]
+      required: [name, slug]
+
+    GifCategoriesResult:
+      type: object
+      properties:
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/GifCategory" }
+        provider: { type: string }
+      required: [items, provider]
+
+    GifTrendingSearchesResult:
+      type: object
+      properties:
+        items:
+          type: array
+          items: { type: string }
         provider: { type: string }
       required: [items, provider]
 

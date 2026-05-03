@@ -61,8 +61,10 @@ import type {
   GetUpcomingEventsParams,
   GetUserPostsParams,
   GetYoutubeReelsParams,
+  GifCategoriesResult,
   GifConfigError,
   GifSearchResult,
+  GifTrendingSearchesResult,
   GlobalSearchParams,
   Hashtag,
   HashtagAnalytics,
@@ -9340,6 +9342,160 @@ export function useSearchGifs<
   },
 ): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getSearchGifsQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary List curated GIF categories
+ */
+export const getGetGifCategoriesUrl = () => {
+  return `/api/gifs/categories`;
+};
+
+export const getGifCategories = async (
+  options?: RequestInit,
+): Promise<GifCategoriesResult> => {
+  return customFetch<GifCategoriesResult>(getGetGifCategoriesUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetGifCategoriesQueryKey = () => {
+  return [`/api/gifs/categories`] as const;
+};
+
+export const getGetGifCategoriesQueryOptions = <
+  TData = Awaited<ReturnType<typeof getGifCategories>>,
+  TError = ErrorType<GifConfigError>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getGifCategories>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetGifCategoriesQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getGifCategories>>
+  > = ({ signal }) => getGifCategories({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getGifCategories>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetGifCategoriesQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getGifCategories>>
+>;
+export type GetGifCategoriesQueryError = ErrorType<GifConfigError>;
+
+/**
+ * @summary List curated GIF categories
+ */
+
+export function useGetGifCategories<
+  TData = Awaited<ReturnType<typeof getGifCategories>>,
+  TError = ErrorType<GifConfigError>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getGifCategories>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetGifCategoriesQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary List trending GIF search terms
+ */
+export const getGetGifTrendingSearchesUrl = () => {
+  return `/api/gifs/trending-searches`;
+};
+
+export const getGifTrendingSearches = async (
+  options?: RequestInit,
+): Promise<GifTrendingSearchesResult> => {
+  return customFetch<GifTrendingSearchesResult>(
+    getGetGifTrendingSearchesUrl(),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getGetGifTrendingSearchesQueryKey = () => {
+  return [`/api/gifs/trending-searches`] as const;
+};
+
+export const getGetGifTrendingSearchesQueryOptions = <
+  TData = Awaited<ReturnType<typeof getGifTrendingSearches>>,
+  TError = ErrorType<GifConfigError>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getGifTrendingSearches>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetGifTrendingSearchesQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getGifTrendingSearches>>
+  > = ({ signal }) => getGifTrendingSearches({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getGifTrendingSearches>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetGifTrendingSearchesQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getGifTrendingSearches>>
+>;
+export type GetGifTrendingSearchesQueryError = ErrorType<GifConfigError>;
+
+/**
+ * @summary List trending GIF search terms
+ */
+
+export function useGetGifTrendingSearches<
+  TData = Awaited<ReturnType<typeof getGifTrendingSearches>>,
+  TError = ErrorType<GifConfigError>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getGifTrendingSearches>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetGifTrendingSearchesQueryOptions(options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;

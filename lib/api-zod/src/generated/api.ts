@@ -2647,6 +2647,28 @@ export const SearchGifsResponse = zod.object({
   provider: zod.string(),
 });
 
+/**
+ * @summary List curated GIF categories
+ */
+export const GetGifCategoriesResponse = zod.object({
+  items: zod.array(
+    zod.object({
+      name: zod.string(),
+      slug: zod.string(),
+      previewUrl: zod.string().nullish(),
+    }),
+  ),
+  provider: zod.string(),
+});
+
+/**
+ * @summary List trending GIF search terms
+ */
+export const GetGifTrendingSearchesResponse = zod.object({
+  items: zod.array(zod.string()),
+  provider: zod.string(),
+});
+
 export const GetYoutubeReelsQueryParams = zod.object({
   q: zod.coerce.string().optional(),
   max: zod.coerce.number().optional(),

@@ -830,6 +830,23 @@ export interface GifSearchResult {
   provider: string;
 }
 
+export interface GifCategory {
+  name: string;
+  slug: string;
+  /** @nullable */
+  previewUrl?: string | null;
+}
+
+export interface GifCategoriesResult {
+  items: GifCategory[];
+  provider: string;
+}
+
+export interface GifTrendingSearchesResult {
+  items: string[];
+  provider: string;
+}
+
 export interface GifConfigError {
   error: string;
   message: string;

@@ -124,6 +124,95 @@ export async function searchGiphy(
   return { items, nextOffset, provider: PROVIDER };
 }
 
+export type GifCategory = {
+  name: string;
+  slug: string;
+  previewUrl: string | null;
+};
+
+export type GifCategoriesPage = {
+  items: GifCategory[];
+  provider: "giphy";
+};
+
+export type GifTrendingSearchesPage = {
+  items: string[];
+  provider: "giphy";
+};
+
+type GiphyCategoryItem = {
+  name?: string;
+  name_encoded?: string;
+  gif?: GiphyItem;
+};
+
+type GiphyCategoriesResponse = {
+  data?: GiphyCategoryItem[];
+};
+
+type GiphyTrendingSearchesResponse = {
+  data?: string[];
+};
+
+/**
+ * Fetch curated GIF categories from Giphy. Each category has a display name,
+ * a slug usable as a search query, and an optional preview GIF URL.
+ */
+export async function getGiphyCategories(): Promise<GifCategoriesPage> {
+  const apiKey = process.env["GIPHY_API_KEY"];
+  if (!apiKey) throw new Error("GIPHY_API_KEY not set");
+
+  const url = new URL("https://api.giphy.com/v1/gifs/categories");
+  url.searchParams.set("api_key", apiKey);
+
+  const r = await fetch(url.toString(), {
+    headers: { Accept: "application/json" },
+  });
+  if (!r.ok) {
+    const body = await r.text();
+    throw new Error(`Giphy ${r.status}: ${body.slice(0, 200)}`);
+  }
+  const data = (await r.json()) as GiphyCategoriesResponse;
+  const items: GifCategory[] = (data.data ?? [])
+    .map((c) => {
+      const name = c.name?.trim();
+      const slug = (c.name_encoded ?? c.name ?? "").trim();
+      if (!name || !slug) return null;
+      const preview = c.gif ? pickPreview(c.gif) : undefined;
+      return {
+        name,
+        slug,
+        previewUrl: preview?.url ?? null,
+      } satisfies GifCategory;
+    })
+    .filter((v): v is GifCategory => v !== null);
+  return { items, provider: PROVIDER };
+}
+
+/**
+ * Fetch trending search terms surfaced by Giphy.
+ */
+export async function getGiphyTrendingSearches(): Promise<GifTrendingSearchesPage> {
+  const apiKey = process.env["GIPHY_API_KEY"];
+  if (!apiKey) throw new Error("GIPHY_API_KEY not set");
+
+  const url = new URL("https://api.giphy.com/v1/trending/searches");
+  url.searchParams.set("api_key", apiKey);
+
+  const r = await fetch(url.toString(), {
+    headers: { Accept: "application/json" },
+  });
+  if (!r.ok) {
+    const body = await r.text();
+    throw new Error(`Giphy ${r.status}: ${body.slice(0, 200)}`);
+  }
+  const data = (await r.json()) as GiphyTrendingSearchesResponse;
+  const items = (data.data ?? [])
+    .map((s) => (typeof s === "string" ? s.trim() : ""))
+    .filter((s) => s.length > 0);
+  return { items, provider: PROVIDER };
+}
+
 /**
  * Validate that a URL is one of our GIF provider's CDN URLs so we don't
  * let the chat endpoint mirror arbitrary external URLs into messages.
