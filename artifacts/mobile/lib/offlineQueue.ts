@@ -201,6 +201,12 @@ export async function retryMessage(id: string): Promise<void> {
   await persist();
 }
 
+/** @internal Test-only: clear in-memory cache & subscribers. */
+export function __resetForTests(): void {
+  cache = null;
+  listeners.clear();
+}
+
 export async function updateMessageContent(
   id: string,
   data: Partial<QueuedMessageData>,
