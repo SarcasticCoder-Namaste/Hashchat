@@ -62,6 +62,10 @@ function NativeTabLayout() {
         <Label>Activity</Label>
         {notifBadge ? <Badge>{notifBadge}</Badge> : <Badge hidden />}
       </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="saved">
+        <Icon sf={{ default: "bookmark", selected: "bookmark.fill" }} />
+        <Label>Saved</Label>
+      </NativeTabs.Trigger>
       <NativeTabs.Trigger name="profile">
         <Icon sf={{ default: "person", selected: "person.fill" }} />
         <Label>Profile</Label>
@@ -160,6 +164,14 @@ function ClassicTabLayout() {
             height: 16,
             lineHeight: 16,
           },
+        }}
+      />
+      <Tabs.Screen
+        name="saved"
+        options={{
+          tabBarIcon: ({ color }) => (
+            <Feather name="bookmark" size={22} color={color} />
+          ),
         }}
       />
       <Tabs.Screen
