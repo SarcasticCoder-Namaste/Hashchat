@@ -34,6 +34,12 @@ const router: IRouter = Router();
 const EDIT_WINDOW_MS = 30 * 60 * 1000;
 const PIN_LIMIT = 3;
 
+export const SCHEDULED_POST_LIMITS: Record<"free" | "premium" | "pro", number> = {
+  free: 5,
+  premium: 20,
+  pro: 50,
+};
+
 type PostRow = typeof postsTable.$inferSelect;
 
 function editableUntil(row: PostRow): Date | null {
@@ -440,6 +446,32 @@ router.post("/posts", requireAuth, async (req, res): Promise<void> => {
     }
     scheduledFor = dt;
     status = "scheduled";
+
+    const [user] = await db
+      .select({ tier: usersTable.tier })
+      .from(usersTable)
+      .where(eq(usersTable.id, me))
+      .limit(1);
+    const tier = (user?.tier as "free" | "premium" | "pro" | undefined) ?? "free";
+    const cap = SCHEDULED_POST_LIMITS[tier] ?? SCHEDULED_POST_LIMITS.free;
+    const [{ count }] = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(postsTable)
+      .where(
+        and(
+          eq(postsTable.authorId, me),
+          eq(postsTable.status, "scheduled"),
+          isNull(postsTable.deletedAt),
+        ),
+      );
+    if (count >= cap) {
+      res.status(403).json({
+        error: `You've reached your ${tier} tier limit of ${cap} scheduled posts`,
+        limit: cap,
+        tier,
+      });
+      return;
+    }
   }
 
   let quotedPostId: number | null = null;

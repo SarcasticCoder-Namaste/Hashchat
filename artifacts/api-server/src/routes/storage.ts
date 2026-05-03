@@ -5,10 +5,19 @@ import {
   RequestUploadUrlResponse,
 } from "@workspace/api-zod";
 import { ObjectStorageService, ObjectNotFoundError } from "../lib/objectStorage";
-import { requireAuth } from "../middlewares/requireAuth";
+import { requireAuth, getUserId } from "../middlewares/requireAuth";
+import { db, usersTable } from "@workspace/db";
+import { eq } from "drizzle-orm";
 
 const router: IRouter = Router();
 const objectStorageService = new ObjectStorageService();
+
+const MB = 1024 * 1024;
+export const UPLOAD_SIZE_LIMITS: Record<"free" | "premium" | "pro", number> = {
+  free: 5 * MB,
+  premium: 25 * MB,
+  pro: 100 * MB,
+};
 
 /**
  * POST /storage/uploads/request-url
@@ -26,6 +35,24 @@ router.post("/storage/uploads/request-url", requireAuth, async (req: Request, re
 
   try {
     const { name, size, contentType } = parsed.data;
+
+    const me = getUserId(req);
+    const [user] = await db
+      .select({ tier: usersTable.tier })
+      .from(usersTable)
+      .where(eq(usersTable.id, me))
+      .limit(1);
+    const tier = (user?.tier as "free" | "premium" | "pro" | undefined) ?? "free";
+    const limit = UPLOAD_SIZE_LIMITS[tier] ?? UPLOAD_SIZE_LIMITS.free;
+    if (size > limit) {
+      const limitMb = Math.round(limit / MB);
+      res.status(413).json({
+        error: `File exceeds your ${tier} tier upload limit of ${limitMb}MB`,
+        maxBytes: limit,
+        tier,
+      });
+      return;
+    }
 
     const uploadURL = await objectStorageService.getObjectEntityUploadURL();
     const objectPath = objectStorageService.normalizeObjectEntityPath(uploadURL);
