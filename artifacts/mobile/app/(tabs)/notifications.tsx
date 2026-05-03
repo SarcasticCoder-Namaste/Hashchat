@@ -31,6 +31,11 @@ const KIND_LABEL: Record<Notification["kind"], string> = {
   dm: "messaged you",
   event_starting: "starts soon",
   scheduled_post_published: "published your scheduled post",
+  post_milestone: "your post hit a milestone",
+  report_resolved: "your report was resolved",
+  moderation_action: "moderation action taken",
+  mod_promoted: "you were promoted to moderator",
+  post_pinned: "pinned your post",
 };
 
 export default function NotificationsScreen() {

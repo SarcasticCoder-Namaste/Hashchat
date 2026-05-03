@@ -462,6 +462,7 @@ export const GetForYouFeedResponse = zod.object({
               )
               .optional(),
             replyCount: zod.number(),
+            boostedUntil: zod.coerce.date().nullish(),
             createdAt: zod.coerce.date(),
           }),
           zod.null(),
@@ -938,6 +939,7 @@ export const GetExploreResponse = zod.object({
           )
           .optional(),
         replyCount: zod.number(),
+        boostedUntil: zod.coerce.date().nullish(),
         createdAt: zod.coerce.date(),
       }),
       engagement: zod.number(),
@@ -1033,6 +1035,7 @@ export const GetExploreResponse = zod.object({
               )
               .optional(),
             replyCount: zod.number(),
+            boostedUntil: zod.coerce.date().nullish(),
             createdAt: zod.coerce.date(),
           }),
           zod.null(),
@@ -1305,6 +1308,7 @@ export const GetHotInYourHashtagsResponseItem = zod.object({
       )
       .optional(),
     replyCount: zod.number(),
+    boostedUntil: zod.coerce.date().nullish(),
     createdAt: zod.coerce.date(),
   }),
   engagement: zod.number(),
@@ -4721,6 +4725,7 @@ export const GetPostResponse = zod.object({
     )
     .optional(),
   replyCount: zod.number(),
+  boostedUntil: zod.coerce.date().nullish(),
   createdAt: zod.coerce.date(),
 });
 
@@ -4825,6 +4830,7 @@ export const UpdatePostResponse = zod.object({
     )
     .optional(),
   replyCount: zod.number(),
+  boostedUntil: zod.coerce.date().nullish(),
   createdAt: zod.coerce.date(),
 });
 
@@ -4922,6 +4928,7 @@ export const GetPostRepliesResponseItem = zod.object({
     )
     .optional(),
   replyCount: zod.number(),
+  boostedUntil: zod.coerce.date().nullish(),
   createdAt: zod.coerce.date(),
 });
 export const GetPostRepliesResponse = zod.array(GetPostRepliesResponseItem);
@@ -5021,6 +5028,7 @@ export const GetPostQuotesResponseItem = zod.object({
     )
     .optional(),
   replyCount: zod.number(),
+  boostedUntil: zod.coerce.date().nullish(),
   createdAt: zod.coerce.date(),
 });
 export const GetPostQuotesResponse = zod.array(GetPostQuotesResponseItem);
@@ -5237,6 +5245,7 @@ export const GetMyScheduledPostsResponseItem = zod.object({
     )
     .optional(),
   replyCount: zod.number(),
+  boostedUntil: zod.coerce.date().nullish(),
   createdAt: zod.coerce.date(),
 });
 export const GetMyScheduledPostsResponse = zod.array(
@@ -5396,6 +5405,7 @@ export const GetMyAnalyticsResponse = zod.object({
           )
           .optional(),
         replyCount: zod.number(),
+        boostedUntil: zod.coerce.date().nullish(),
         createdAt: zod.coerce.date(),
       }),
       impressions: zod.number(),
@@ -5520,6 +5530,7 @@ export const GetRoomAnalyticsResponse = zod.object({
           )
           .optional(),
         replyCount: zod.number(),
+        boostedUntil: zod.coerce.date().nullish(),
         createdAt: zod.coerce.date(),
       }),
       impressions: zod.number(),
@@ -5625,6 +5636,7 @@ export const GetMyFeedPostsResponseItem = zod.object({
     )
     .optional(),
   replyCount: zod.number(),
+  boostedUntil: zod.coerce.date().nullish(),
   createdAt: zod.coerce.date(),
 });
 export const GetMyFeedPostsResponse = zod.array(GetMyFeedPostsResponseItem);
@@ -5729,6 +5741,7 @@ export const GetHashtagPostsResponseItem = zod.object({
     )
     .optional(),
   replyCount: zod.number(),
+  boostedUntil: zod.coerce.date().nullish(),
   createdAt: zod.coerce.date(),
 });
 export const GetHashtagPostsResponse = zod.array(GetHashtagPostsResponseItem);
@@ -5838,6 +5851,7 @@ export const GetUserPostsResponseItem = zod.object({
     )
     .optional(),
   replyCount: zod.number(),
+  boostedUntil: zod.coerce.date().nullish(),
   createdAt: zod.coerce.date(),
 });
 export const GetUserPostsResponse = zod.array(GetUserPostsResponseItem);
@@ -5930,6 +5944,7 @@ export const GetUserPinnedPostsResponseItem = zod.object({
     )
     .optional(),
   replyCount: zod.number(),
+  boostedUntil: zod.coerce.date().nullish(),
   createdAt: zod.coerce.date(),
 });
 export const GetUserPinnedPostsResponse = zod.array(
@@ -7070,6 +7085,7 @@ export const GetRoomVisibilityParams = zod.object({
 export const GetRoomVisibilityResponse = zod.object({
   tag: zod.string(),
   isPrivate: zod.boolean(),
+  isPremium: zod.boolean(),
   ownerId: zod.string().nullish(),
   canManage: zod.boolean(),
   canModerate: zod.boolean(),
@@ -7083,11 +7099,13 @@ export const SetRoomVisibilityParams = zod.object({
 
 export const SetRoomVisibilityBody = zod.object({
   isPrivate: zod.boolean(),
+  isPremium: zod.boolean().optional(),
 });
 
 export const SetRoomVisibilityResponse = zod.object({
   tag: zod.string(),
   isPrivate: zod.boolean(),
+  isPremium: zod.boolean(),
   ownerId: zod.string().nullish(),
   canManage: zod.boolean(),
   canModerate: zod.boolean(),
@@ -7289,6 +7307,7 @@ export const SetRoomSlowModeBody = zod.object({
 export const SetRoomSlowModeResponse = zod.object({
   tag: zod.string(),
   isPrivate: zod.boolean(),
+  isPremium: zod.boolean(),
   ownerId: zod.string().nullish(),
   canManage: zod.boolean(),
   canModerate: zod.boolean(),
@@ -7881,6 +7900,7 @@ export const GetRoomPinnedPostsResponseItem = zod.object({
     )
     .optional(),
   replyCount: zod.number(),
+  boostedUntil: zod.coerce.date().nullish(),
   createdAt: zod.coerce.date(),
 });
 export const GetRoomPinnedPostsResponse = zod.array(
@@ -7972,6 +7992,7 @@ export const GetCommunityPinnedPostsResponseItem = zod.object({
     )
     .optional(),
   replyCount: zod.number(),
+  boostedUntil: zod.coerce.date().nullish(),
   createdAt: zod.coerce.date(),
 });
 export const GetCommunityPinnedPostsResponse = zod.array(
@@ -8222,6 +8243,176 @@ export const CreatePremiumPortalSessionResponse = zod.object({
 });
 
 /**
+ * @summary Create a Stripe Checkout session to send a USD tip
+ */
+export const createTipCheckoutBodyAmountCentsMin = 100;
+
+export const CreateTipCheckoutBody = zod.object({
+  toUserId: zod.string(),
+  amountCents: zod.number().min(createTipCheckoutBodyAmountCentsMin),
+  message: zod.string().nullish(),
+  postId: zod.number().nullish(),
+});
+
+export const CreateTipCheckoutResponse = zod.object({
+  url: zod.string(),
+  sessionId: zod.string(),
+});
+
+/**
+ * @summary Record a completed Solana tip transfer
+ */
+export const RecordSolanaTipBody = zod.object({
+  toUserId: zod.string(),
+  amountLamports: zod.string(),
+  signature: zod.string(),
+  message: zod.string().nullish(),
+  postId: zod.number().nullish(),
+});
+
+/**
+ * @summary List tips received by the current user
+ */
+export const GetMyTipInboxResponseItem = zod.object({
+  id: zod.number(),
+  fromUser: zod.object({
+    id: zod.string(),
+    username: zod.string(),
+    displayName: zod.string(),
+    avatarUrl: zod.string().nullish(),
+    animatedAvatarUrl: zod.string().nullish(),
+    discriminator: zod.string().nullish(),
+    role: zod.string(),
+    mvpPlan: zod.boolean(),
+    verified: zod.boolean(),
+    tier: zod.enum(["free", "premium", "pro"]).optional(),
+  }),
+  toUser: zod.object({
+    id: zod.string(),
+    username: zod.string(),
+    displayName: zod.string(),
+    avatarUrl: zod.string().nullish(),
+    animatedAvatarUrl: zod.string().nullish(),
+    discriminator: zod.string().nullish(),
+    role: zod.string(),
+    mvpPlan: zod.boolean(),
+    verified: zod.boolean(),
+    tier: zod.enum(["free", "premium", "pro"]).optional(),
+  }),
+  postId: zod.number().nullish(),
+  currency: zod.enum(["usd", "sol"]),
+  amountCents: zod.number().nullish(),
+  amountLamports: zod.string().nullish(),
+  amountSol: zod.number().nullish(),
+  message: zod.string().nullish(),
+  status: zod.enum(["pending", "completed", "failed"]),
+  solanaSignature: zod.string().nullish(),
+  createdAt: zod.coerce.date(),
+  completedAt: zod.coerce.date().nullish(),
+});
+export const GetMyTipInboxResponse = zod.array(GetMyTipInboxResponseItem);
+
+/**
+ * @summary List tips sent by the current user
+ */
+export const GetMyTipOutboxResponseItem = zod.object({
+  id: zod.number(),
+  fromUser: zod.object({
+    id: zod.string(),
+    username: zod.string(),
+    displayName: zod.string(),
+    avatarUrl: zod.string().nullish(),
+    animatedAvatarUrl: zod.string().nullish(),
+    discriminator: zod.string().nullish(),
+    role: zod.string(),
+    mvpPlan: zod.boolean(),
+    verified: zod.boolean(),
+    tier: zod.enum(["free", "premium", "pro"]).optional(),
+  }),
+  toUser: zod.object({
+    id: zod.string(),
+    username: zod.string(),
+    displayName: zod.string(),
+    avatarUrl: zod.string().nullish(),
+    animatedAvatarUrl: zod.string().nullish(),
+    discriminator: zod.string().nullish(),
+    role: zod.string(),
+    mvpPlan: zod.boolean(),
+    verified: zod.boolean(),
+    tier: zod.enum(["free", "premium", "pro"]).optional(),
+  }),
+  postId: zod.number().nullish(),
+  currency: zod.enum(["usd", "sol"]),
+  amountCents: zod.number().nullish(),
+  amountLamports: zod.string().nullish(),
+  amountSol: zod.number().nullish(),
+  message: zod.string().nullish(),
+  status: zod.enum(["pending", "completed", "failed"]),
+  solanaSignature: zod.string().nullish(),
+  createdAt: zod.coerce.date(),
+  completedAt: zod.coerce.date().nullish(),
+});
+export const GetMyTipOutboxResponse = zod.array(GetMyTipOutboxResponseItem);
+
+/**
+ * @summary Accrued creator balance from tips
+ */
+export const GetMyCreatorBalanceResponse = zod.object({
+  usdCents: zod.number(),
+  solLamports: zod.string(),
+  cashOutAvailable: zod.boolean(),
+});
+
+/**
+ * @summary Get the recipient's primary Solana wallet for tipping
+ */
+export const GetUserTipTargetParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const GetUserTipTargetResponse = zod.object({
+  userId: zod.string(),
+  username: zod.string(),
+  displayName: zod.string(),
+  acceptsUsd: zod.boolean(),
+  acceptsSol: zod.boolean(),
+  solanaAddress: zod.string().nullish(),
+});
+
+/**
+ * @summary List premium emoji reactions and whether the caller can use them
+ */
+export const GetPremiumReactionsResponse = zod.object({
+  emojis: zod.array(zod.string()),
+  canUse: zod.boolean(),
+});
+
+/**
+ * @summary Start Stripe Checkout to boost a post for 24h
+ */
+export const CreatePostBoostCheckoutParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const CreatePostBoostCheckoutResponse = zod.object({
+  url: zod.string(),
+  sessionId: zod.string(),
+});
+
+/**
+ * @summary Get the active boost for a post (if any)
+ */
+export const GetPostBoostParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const GetPostBoostResponse = zod.object({
+  active: zod.boolean(),
+  expiresAt: zod.coerce.date().nullish(),
+  boostedBy: zod.string().nullish(),
+});
+
+/**
  * @summary Global search across users, hashtags, rooms, posts, and messages
  */
 export const GlobalSearchQueryParams = zod.object({
@@ -8454,6 +8645,7 @@ export const PingPresenceResponse = zod.object({
 export const GetMyPreferencesResponse = zod.object({
   theme: zod.string(),
   accent: zod.string(),
+  themeBackground: zod.string(),
   emailMentions: zod.boolean(),
   emailReplies: zod.boolean(),
   emailDms: zod.boolean(),
@@ -8477,6 +8669,7 @@ export const GetMyPreferencesResponse = zod.object({
 export const UpdateMyPreferencesBody = zod.object({
   theme: zod.string().optional(),
   accent: zod.string().optional(),
+  themeBackground: zod.string().optional(),
   emailMentions: zod.boolean().optional(),
   emailReplies: zod.boolean().optional(),
   emailDms: zod.boolean().optional(),
@@ -8494,6 +8687,7 @@ export const UpdateMyPreferencesBody = zod.object({
 export const UpdateMyPreferencesResponse = zod.object({
   theme: zod.string(),
   accent: zod.string(),
+  themeBackground: zod.string(),
   emailMentions: zod.boolean(),
   emailReplies: zod.boolean(),
   emailDms: zod.boolean(),

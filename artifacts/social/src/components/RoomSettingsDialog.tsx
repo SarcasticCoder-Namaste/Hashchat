@@ -74,6 +74,7 @@ export function RoomSettingsDialog({
   const v = visibility.data;
   const canManage = v?.canManage ?? false;
   const isPrivate = v?.isPrivate ?? false;
+  const isPremiumRoom = v?.isPremium ?? false;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -149,6 +150,35 @@ export function RoomSettingsDialog({
                     Free plan: 1 private room. Upgrade to Premium for unlimited.
                   </span>
                 </div>
+              )}
+
+              <div className="flex items-center justify-between rounded-lg border border-border p-3">
+                <div className="min-w-0 flex-1">
+                  <p className="flex items-center gap-1 text-sm font-medium text-foreground">
+                    <Sparkles className="h-3.5 w-3.5 text-violet-500" />
+                    Premium-only room
+                  </p>
+                  <p className="mt-0.5 text-xs text-muted-foreground">
+                    Only Premium members can read or post. You'll always have
+                    access as the owner.
+                  </p>
+                </div>
+                <Switch
+                  checked={isPremiumRoom}
+                  disabled={!canManage || !isPremium || setVisibility.isPending}
+                  onCheckedChange={(checked) =>
+                    setVisibility.mutate({
+                      tag,
+                      data: { isPrivate, isPremium: checked },
+                    })
+                  }
+                  data-testid="switch-room-premium"
+                />
+              </div>
+              {!isPremium && (
+                <p className="text-[11px] text-muted-foreground">
+                  Only Premium creators can mark a room as Premium-only.
+                </p>
               )}
             </TabsContent>
 

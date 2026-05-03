@@ -26,6 +26,7 @@ import type {
   BlocksAndMutes,
   Bookmark,
   BookmarkCheck,
+  BoostCheckoutResponse,
   Call,
   CallSignalBody,
   CallSignalList,
@@ -43,6 +44,7 @@ import type {
   CreateReportBody,
   CreateRoomInviteBody,
   CreatedCode,
+  CreatorBalance,
   DecideJoinRequestBody,
   DiscoverPeopleParams,
   Event,
@@ -107,6 +109,7 @@ import type {
   OverviewStats,
   Poll,
   Post,
+  PostBoostStatus,
   PostDraft,
   PostDraftBody,
   PostEdit,
@@ -114,6 +117,7 @@ import type {
   PremiumCheckoutBody,
   PremiumCheckoutResponse,
   PremiumPortalResponse,
+  PremiumReactions,
   PremiumStatus,
   PresencePingBody,
   PresencePingResponse,
@@ -145,7 +149,12 @@ import type {
   SetRoleBody,
   SetRoomVisibilityBody,
   SetSlowModeBody,
+  SolanaTipBody,
   SolanaWallet,
+  Tip,
+  TipCheckoutBody,
+  TipCheckoutResponse,
+  TipTarget,
   TrendingHashtag,
   TypingResponse,
   UnreadCountResponse,
@@ -15682,6 +15691,732 @@ export const useCreatePremiumPortalSession = <
 > => {
   return useMutation(getCreatePremiumPortalSessionMutationOptions(options));
 };
+
+/**
+ * @summary Create a Stripe Checkout session to send a USD tip
+ */
+export const getCreateTipCheckoutUrl = () => {
+  return `/api/tips/checkout`;
+};
+
+export const createTipCheckout = async (
+  tipCheckoutBody: TipCheckoutBody,
+  options?: RequestInit,
+): Promise<TipCheckoutResponse> => {
+  return customFetch<TipCheckoutResponse>(getCreateTipCheckoutUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(tipCheckoutBody),
+  });
+};
+
+export const getCreateTipCheckoutMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createTipCheckout>>,
+    TError,
+    { data: BodyType<TipCheckoutBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createTipCheckout>>,
+  TError,
+  { data: BodyType<TipCheckoutBody> },
+  TContext
+> => {
+  const mutationKey = ["createTipCheckout"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createTipCheckout>>,
+    { data: BodyType<TipCheckoutBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return createTipCheckout(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateTipCheckoutMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createTipCheckout>>
+>;
+export type CreateTipCheckoutMutationBody = BodyType<TipCheckoutBody>;
+export type CreateTipCheckoutMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Create a Stripe Checkout session to send a USD tip
+ */
+export const useCreateTipCheckout = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createTipCheckout>>,
+    TError,
+    { data: BodyType<TipCheckoutBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createTipCheckout>>,
+  TError,
+  { data: BodyType<TipCheckoutBody> },
+  TContext
+> => {
+  return useMutation(getCreateTipCheckoutMutationOptions(options));
+};
+
+/**
+ * @summary Record a completed Solana tip transfer
+ */
+export const getRecordSolanaTipUrl = () => {
+  return `/api/tips/solana/record`;
+};
+
+export const recordSolanaTip = async (
+  solanaTipBody: SolanaTipBody,
+  options?: RequestInit,
+): Promise<Tip> => {
+  return customFetch<Tip>(getRecordSolanaTipUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(solanaTipBody),
+  });
+};
+
+export const getRecordSolanaTipMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof recordSolanaTip>>,
+    TError,
+    { data: BodyType<SolanaTipBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof recordSolanaTip>>,
+  TError,
+  { data: BodyType<SolanaTipBody> },
+  TContext
+> => {
+  const mutationKey = ["recordSolanaTip"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof recordSolanaTip>>,
+    { data: BodyType<SolanaTipBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return recordSolanaTip(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RecordSolanaTipMutationResult = NonNullable<
+  Awaited<ReturnType<typeof recordSolanaTip>>
+>;
+export type RecordSolanaTipMutationBody = BodyType<SolanaTipBody>;
+export type RecordSolanaTipMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Record a completed Solana tip transfer
+ */
+export const useRecordSolanaTip = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof recordSolanaTip>>,
+    TError,
+    { data: BodyType<SolanaTipBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof recordSolanaTip>>,
+  TError,
+  { data: BodyType<SolanaTipBody> },
+  TContext
+> => {
+  return useMutation(getRecordSolanaTipMutationOptions(options));
+};
+
+/**
+ * @summary List tips received by the current user
+ */
+export const getGetMyTipInboxUrl = () => {
+  return `/api/me/tips/inbox`;
+};
+
+export const getMyTipInbox = async (options?: RequestInit): Promise<Tip[]> => {
+  return customFetch<Tip[]>(getGetMyTipInboxUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetMyTipInboxQueryKey = () => {
+  return [`/api/me/tips/inbox`] as const;
+};
+
+export const getGetMyTipInboxQueryOptions = <
+  TData = Awaited<ReturnType<typeof getMyTipInbox>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getMyTipInbox>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetMyTipInboxQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getMyTipInbox>>> = ({
+    signal,
+  }) => getMyTipInbox({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getMyTipInbox>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetMyTipInboxQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getMyTipInbox>>
+>;
+export type GetMyTipInboxQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List tips received by the current user
+ */
+
+export function useGetMyTipInbox<
+  TData = Awaited<ReturnType<typeof getMyTipInbox>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getMyTipInbox>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetMyTipInboxQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary List tips sent by the current user
+ */
+export const getGetMyTipOutboxUrl = () => {
+  return `/api/me/tips/outbox`;
+};
+
+export const getMyTipOutbox = async (options?: RequestInit): Promise<Tip[]> => {
+  return customFetch<Tip[]>(getGetMyTipOutboxUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetMyTipOutboxQueryKey = () => {
+  return [`/api/me/tips/outbox`] as const;
+};
+
+export const getGetMyTipOutboxQueryOptions = <
+  TData = Awaited<ReturnType<typeof getMyTipOutbox>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getMyTipOutbox>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetMyTipOutboxQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getMyTipOutbox>>> = ({
+    signal,
+  }) => getMyTipOutbox({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getMyTipOutbox>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetMyTipOutboxQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getMyTipOutbox>>
+>;
+export type GetMyTipOutboxQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List tips sent by the current user
+ */
+
+export function useGetMyTipOutbox<
+  TData = Awaited<ReturnType<typeof getMyTipOutbox>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getMyTipOutbox>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetMyTipOutboxQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Accrued creator balance from tips
+ */
+export const getGetMyCreatorBalanceUrl = () => {
+  return `/api/me/tips/balance`;
+};
+
+export const getMyCreatorBalance = async (
+  options?: RequestInit,
+): Promise<CreatorBalance> => {
+  return customFetch<CreatorBalance>(getGetMyCreatorBalanceUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetMyCreatorBalanceQueryKey = () => {
+  return [`/api/me/tips/balance`] as const;
+};
+
+export const getGetMyCreatorBalanceQueryOptions = <
+  TData = Awaited<ReturnType<typeof getMyCreatorBalance>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getMyCreatorBalance>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetMyCreatorBalanceQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getMyCreatorBalance>>
+  > = ({ signal }) => getMyCreatorBalance({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getMyCreatorBalance>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetMyCreatorBalanceQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getMyCreatorBalance>>
+>;
+export type GetMyCreatorBalanceQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Accrued creator balance from tips
+ */
+
+export function useGetMyCreatorBalance<
+  TData = Awaited<ReturnType<typeof getMyCreatorBalance>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getMyCreatorBalance>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetMyCreatorBalanceQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Get the recipient's primary Solana wallet for tipping
+ */
+export const getGetUserTipTargetUrl = (id: string) => {
+  return `/api/users/${id}/tip-target`;
+};
+
+export const getUserTipTarget = async (
+  id: string,
+  options?: RequestInit,
+): Promise<TipTarget> => {
+  return customFetch<TipTarget>(getGetUserTipTargetUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetUserTipTargetQueryKey = (id: string) => {
+  return [`/api/users/${id}/tip-target`] as const;
+};
+
+export const getGetUserTipTargetQueryOptions = <
+  TData = Awaited<ReturnType<typeof getUserTipTarget>>,
+  TError = ErrorType<unknown>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getUserTipTarget>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetUserTipTargetQueryKey(id);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getUserTipTarget>>
+  > = ({ signal }) => getUserTipTarget(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getUserTipTarget>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetUserTipTargetQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getUserTipTarget>>
+>;
+export type GetUserTipTargetQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get the recipient's primary Solana wallet for tipping
+ */
+
+export function useGetUserTipTarget<
+  TData = Awaited<ReturnType<typeof getUserTipTarget>>,
+  TError = ErrorType<unknown>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getUserTipTarget>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetUserTipTargetQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary List premium emoji reactions and whether the caller can use them
+ */
+export const getGetPremiumReactionsUrl = () => {
+  return `/api/reactions/premium`;
+};
+
+export const getPremiumReactions = async (
+  options?: RequestInit,
+): Promise<PremiumReactions> => {
+  return customFetch<PremiumReactions>(getGetPremiumReactionsUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetPremiumReactionsQueryKey = () => {
+  return [`/api/reactions/premium`] as const;
+};
+
+export const getGetPremiumReactionsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getPremiumReactions>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getPremiumReactions>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetPremiumReactionsQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getPremiumReactions>>
+  > = ({ signal }) => getPremiumReactions({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getPremiumReactions>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetPremiumReactionsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getPremiumReactions>>
+>;
+export type GetPremiumReactionsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List premium emoji reactions and whether the caller can use them
+ */
+
+export function useGetPremiumReactions<
+  TData = Awaited<ReturnType<typeof getPremiumReactions>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getPremiumReactions>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetPremiumReactionsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Start Stripe Checkout to boost a post for 24h
+ */
+export const getCreatePostBoostCheckoutUrl = (id: number) => {
+  return `/api/posts/${id}/boost/checkout`;
+};
+
+export const createPostBoostCheckout = async (
+  id: number,
+  options?: RequestInit,
+): Promise<BoostCheckoutResponse> => {
+  return customFetch<BoostCheckoutResponse>(getCreatePostBoostCheckoutUrl(id), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getCreatePostBoostCheckoutMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createPostBoostCheckout>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createPostBoostCheckout>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["createPostBoostCheckout"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createPostBoostCheckout>>,
+    { id: number }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return createPostBoostCheckout(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreatePostBoostCheckoutMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createPostBoostCheckout>>
+>;
+
+export type CreatePostBoostCheckoutMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Start Stripe Checkout to boost a post for 24h
+ */
+export const useCreatePostBoostCheckout = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createPostBoostCheckout>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createPostBoostCheckout>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  return useMutation(getCreatePostBoostCheckoutMutationOptions(options));
+};
+
+/**
+ * @summary Get the active boost for a post (if any)
+ */
+export const getGetPostBoostUrl = (id: number) => {
+  return `/api/posts/${id}/boost`;
+};
+
+export const getPostBoost = async (
+  id: number,
+  options?: RequestInit,
+): Promise<PostBoostStatus> => {
+  return customFetch<PostBoostStatus>(getGetPostBoostUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetPostBoostQueryKey = (id: number) => {
+  return [`/api/posts/${id}/boost`] as const;
+};
+
+export const getGetPostBoostQueryOptions = <
+  TData = Awaited<ReturnType<typeof getPostBoost>>,
+  TError = ErrorType<unknown>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getPostBoost>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetPostBoostQueryKey(id);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getPostBoost>>> = ({
+    signal,
+  }) => getPostBoost(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getPostBoost>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetPostBoostQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getPostBoost>>
+>;
+export type GetPostBoostQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get the active boost for a post (if any)
+ */
+
+export function useGetPostBoost<
+  TData = Awaited<ReturnType<typeof getPostBoost>>,
+  TError = ErrorType<unknown>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getPostBoost>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetPostBoostQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
 
 /**
  * @summary Global search across users, hashtags, rooms, posts, and messages

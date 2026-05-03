@@ -36,7 +36,7 @@ import { ShortcutsCheatSheet } from "@/components/ShortcutsCheatSheet";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { useSyncedPreferences } from "@/lib/serverPreferences";
 import { usePresenceHeartbeat } from "@/lib/usePresenceHeartbeat";
-import { Bookmark as BookmarkIcon } from "lucide-react";
+import { Bookmark as BookmarkIcon, DollarSign } from "lucide-react";
 import { useTranslation } from "@/lib/i18n";
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
@@ -70,6 +70,7 @@ const NAV_GROUPS: { labelKey: string; items: NavItem[] }[] = [
     items: [
       { href: "/app/friends", labelKey: "nav.friends", icon: UserPlus },
       { href: "/app/saved", labelKey: "nav.saved", icon: BookmarkIcon },
+      { href: "/app/tips", labelKey: "nav.tips", icon: DollarSign },
       { href: "/app/premium", labelKey: "nav.premium", icon: Sparkles },
       { href: "/app/settings", labelKey: "nav.settings", icon: SettingsIcon },
     ],

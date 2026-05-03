@@ -55,6 +55,7 @@ import InviteRedeem from "@/pages/InviteRedeem";
 import AdminPanel from "@/pages/AdminPanel";
 import SearchResults from "@/pages/SearchResults";
 import Saved from "@/pages/Saved";
+import TipsInbox from "@/pages/TipsInbox";
 import PostThread from "@/pages/PostThread";
 import Analytics from "@/pages/Analytics";
 import NotFound from "@/pages/not-found";
@@ -478,6 +479,11 @@ function ClerkProviderWithRoutes() {
             <Route path="/app/saved">
               <ProtectedShell>
                 <Saved />
+              </ProtectedShell>
+            </Route>
+            <Route path="/app/tips">
+              <ProtectedShell>
+                <TipsInbox />
               </ProtectedShell>
             </Route>
             <Route path="/app/analytics">

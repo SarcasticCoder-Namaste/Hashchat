@@ -1,8 +1,10 @@
 import { db, roomVisibilityTable, roomMembersTable } from "@workspace/db";
 import { eq, inArray, and } from "drizzle-orm";
+import { isUserPremium } from "./premiumHelpers";
 
 export type RoomAccess = {
   isPrivate: boolean;
+  isPremium: boolean;
   ownerId: string | null;
   isMember: boolean;
   canManage: boolean;
@@ -16,6 +18,7 @@ export async function getRoomAccess(tag: string, userId: string): Promise<RoomAc
     .where(eq(roomVisibilityTable.tag, tag))
     .limit(1);
   const isPrivate = !!vis?.isPrivate;
+  const isPremium = !!vis?.isPremium;
   const ownerId = vis?.ownerId ?? null;
   const slowModeSeconds = vis?.slowModeSeconds ?? 0;
   let isMember = !isPrivate;
@@ -29,11 +32,27 @@ export async function getRoomAccess(tag: string, userId: string): Promise<RoomAc
   }
   return {
     isPrivate,
+    isPremium,
     ownerId,
     isMember,
     canManage: ownerId === userId,
     slowModeSeconds,
   };
+}
+
+/**
+ * Returns true when the room is gated as premium-only and the user does not
+ * have an active premium tier (and is not the owner). Owners always have
+ * access to their own premium rooms.
+ */
+export async function isRoomPremiumLocked(
+  access: RoomAccess,
+  userId: string,
+): Promise<boolean> {
+  if (!access.isPremium) return false;
+  if (access.ownerId === userId) return false;
+  const ok = await isUserPremium(userId);
+  return !ok;
 }
 
 export async function loadPrivateTags(tags: string[]): Promise<Set<string>> {

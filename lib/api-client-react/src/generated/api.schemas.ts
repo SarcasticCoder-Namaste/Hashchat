@@ -889,6 +889,7 @@ export interface BookmarkCheck {
 export interface UserPreferences {
   theme: string;
   accent: string;
+  themeBackground: string;
   emailMentions: boolean;
   emailReplies: boolean;
   emailDms: boolean;
@@ -925,6 +926,7 @@ export interface PresencePingResponse {
 export interface UpdatePreferencesBody {
   theme?: string;
   accent?: string;
+  themeBackground?: string;
   emailMentions?: boolean;
   emailReplies?: boolean;
   emailDms?: boolean;
@@ -1158,6 +1160,8 @@ export interface Post {
   removedAt?: string | null;
   pinnedInScopes?: PostPinnedInScopesItem[];
   replyCount: number;
+  /** @nullable */
+  boostedUntil?: string | null;
   createdAt: string;
 }
 
@@ -1459,6 +1463,7 @@ export interface CreateCommunityBody {
 export interface RoomVisibility {
   tag: string;
   isPrivate: boolean;
+  isPremium: boolean;
   /** @nullable */
   ownerId?: string | null;
   canManage: boolean;
@@ -1469,6 +1474,104 @@ export interface RoomVisibility {
 
 export interface SetRoomVisibilityBody {
   isPrivate: boolean;
+  isPremium?: boolean;
+}
+
+export type TipCurrency = (typeof TipCurrency)[keyof typeof TipCurrency];
+
+export const TipCurrency = {
+  usd: "usd",
+  sol: "sol",
+} as const;
+
+export type TipStatus = (typeof TipStatus)[keyof typeof TipStatus];
+
+export const TipStatus = {
+  pending: "pending",
+  completed: "completed",
+  failed: "failed",
+} as const;
+
+export interface Tip {
+  id: number;
+  fromUser: PostAuthor;
+  toUser: PostAuthor;
+  /** @nullable */
+  postId?: number | null;
+  currency: TipCurrency;
+  /** @nullable */
+  amountCents?: number | null;
+  /** @nullable */
+  amountLamports?: string | null;
+  /** @nullable */
+  amountSol?: number | null;
+  /** @nullable */
+  message?: string | null;
+  status: TipStatus;
+  /** @nullable */
+  solanaSignature?: string | null;
+  createdAt: string;
+  /** @nullable */
+  completedAt?: string | null;
+}
+
+export interface TipCheckoutBody {
+  toUserId: string;
+  /** @minimum 100 */
+  amountCents: number;
+  /** @nullable */
+  message?: string | null;
+  /** @nullable */
+  postId?: number | null;
+}
+
+export interface TipCheckoutResponse {
+  url: string;
+  sessionId: string;
+}
+
+export interface SolanaTipBody {
+  toUserId: string;
+  amountLamports: string;
+  signature: string;
+  /** @nullable */
+  message?: string | null;
+  /** @nullable */
+  postId?: number | null;
+}
+
+export interface CreatorBalance {
+  usdCents: number;
+  solLamports: string;
+  cashOutAvailable: boolean;
+}
+
+export interface TipTarget {
+  userId: string;
+  username: string;
+  displayName: string;
+  acceptsUsd: boolean;
+  acceptsSol: boolean;
+  /** @nullable */
+  solanaAddress?: string | null;
+}
+
+export interface PremiumReactions {
+  emojis: string[];
+  canUse: boolean;
+}
+
+export interface BoostCheckoutResponse {
+  url: string;
+  sessionId: string;
+}
+
+export interface PostBoostStatus {
+  active: boolean;
+  /** @nullable */
+  expiresAt?: string | null;
+  /** @nullable */
+  boostedBy?: string | null;
 }
 
 export interface RoomInvite {

@@ -916,6 +916,7 @@ export const roomVisibilityTable = pgTable("room_visibility", {
     .primaryKey()
     .references(() => hashtagsTable.tag, { onDelete: "cascade" }),
   isPrivate: boolean("is_private").notNull().default(false),
+  isPremium: boolean("is_premium").notNull().default(false),
   ownerId: text("owner_id")
     .notNull()
     .references(() => usersTable.id, { onDelete: "cascade" }),
@@ -1168,6 +1169,7 @@ export const userPreferencesTable = pgTable("user_preferences", {
     .references(() => usersTable.id, { onDelete: "cascade" }),
   theme: text("theme").notNull().default("light"),
   accent: text("accent").notNull().default("default"),
+  themeBackground: text("theme_background").notNull().default("default"),
   emailMentions: boolean("email_mentions").notNull().default(true),
   emailReplies: boolean("email_replies").notNull().default(true),
   emailDms: boolean("email_dms").notNull().default(true),
@@ -1230,6 +1232,81 @@ export const notificationDeliveriesTable = pgTable(
     index("notification_deliveries_user_idx").on(t.userId, t.createdAt),
   ],
 );
+
+export const tipsTable = pgTable(
+  "tips",
+  {
+    id: serial("id").primaryKey(),
+    fromUserId: text("from_user_id")
+      .notNull()
+      .references(() => usersTable.id, { onDelete: "cascade" }),
+    toUserId: text("to_user_id")
+      .notNull()
+      .references(() => usersTable.id, { onDelete: "cascade" }),
+    postId: integer("post_id").references(() => postsTable.id, {
+      onDelete: "set null",
+    }),
+    currency: text("currency").notNull(),
+    amountCents: integer("amount_cents"),
+    amountLamports: text("amount_lamports"),
+    message: text("message"),
+    status: text("status").notNull().default("pending"),
+    stripeSessionId: text("stripe_session_id"),
+    solanaSignature: text("solana_signature"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+  },
+  (t) => [
+    index("tips_to_idx").on(t.toUserId, t.status, t.createdAt),
+    index("tips_from_idx").on(t.fromUserId, t.status, t.createdAt),
+    uniqueIndex("tips_stripe_session_unique").on(t.stripeSessionId),
+    uniqueIndex("tips_solana_sig_unique").on(t.solanaSignature),
+  ],
+);
+
+export const creatorBalancesTable = pgTable("creator_balances", {
+  userId: text("user_id")
+    .primaryKey()
+    .references(() => usersTable.id, { onDelete: "cascade" }),
+  usdCents: integer("usd_cents").notNull().default(0),
+  solLamports: text("sol_lamports").notNull().default("0"),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+export const postBoostsTable = pgTable(
+  "post_boosts",
+  {
+    id: serial("id").primaryKey(),
+    postId: integer("post_id")
+      .notNull()
+      .references(() => postsTable.id, { onDelete: "cascade" }),
+    buyerId: text("buyer_id")
+      .notNull()
+      .references(() => usersTable.id, { onDelete: "cascade" }),
+    amountCents: integer("amount_cents").notNull(),
+    durationHours: integer("duration_hours").notNull().default(24),
+    status: text("status").notNull().default("pending"),
+    stripeSessionId: text("stripe_session_id"),
+    startsAt: timestamp("starts_at", { withTimezone: true }),
+    expiresAt: timestamp("expires_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    index("post_boosts_post_idx").on(t.postId, t.status, t.expiresAt),
+    index("post_boosts_active_idx").on(t.status, t.expiresAt),
+    uniqueIndex("post_boosts_session_unique").on(t.stripeSessionId),
+  ],
+);
+
+export type Tip = typeof tipsTable.$inferSelect;
+export type CreatorBalance = typeof creatorBalancesTable.$inferSelect;
+export type PostBoost = typeof postBoostsTable.$inferSelect;
 
 export type Bookmark = typeof bookmarksTable.$inferSelect;
 export type UserPreferences = typeof userPreferencesTable.$inferSelect;

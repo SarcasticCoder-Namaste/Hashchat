@@ -39,6 +39,7 @@ import {
 } from "../lib/relationships";
 import {
   getRoomAccess,
+  isRoomPremiumLocked,
   loadPrivateTags,
   loadMyRoomMemberships,
 } from "../lib/roomVisibility";
@@ -203,6 +204,10 @@ router.get("/rooms/:tag/messages", requireAuth, async (req, res): Promise<void> 
     res.status(403).json({ error: "This is a private room. You need an invite to view messages." });
     return;
   }
+  if (await isRoomPremiumLocked(access, me)) {
+    res.status(402).json({ error: "This room is for Premium members. Upgrade to join the conversation." });
+    return;
+  }
   const [blockWall, mutes] = await Promise.all([
     loadBlockWall(me),
     loadMyMutes(me),
@@ -235,6 +240,10 @@ router.post("/rooms/:tag/messages", requireAuth, async (req, res): Promise<void>
   const access = await getRoomAccess(tag, me);
   if (access.isPrivate && !access.isMember) {
     res.status(403).json({ error: "This is a private room. You need an invite to post." });
+    return;
+  }
+  if (await isRoomPremiumLocked(access, me)) {
+    res.status(402).json({ error: "This room is for Premium members. Upgrade to post here." });
     return;
   }
   const modAccess = await getRoomModerationAccess(tag, me);
@@ -520,9 +529,15 @@ router.get("/rooms/:tag/visibility", requireAuth, async (req, res): Promise<void
   const me = getUserId(req);
   const access = await getRoomAccess(tag, me);
   const modAccess = await getRoomModerationAccess(tag, me);
+  const [vis] = await db
+    .select({ isPremium: roomVisibilityTable.isPremium })
+    .from(roomVisibilityTable)
+    .where(eq(roomVisibilityTable.tag, tag))
+    .limit(1);
   res.json({
     tag,
     isPrivate: access.isPrivate,
+    isPremium: !!vis?.isPremium,
     ownerId: access.ownerId,
     canManage: access.canManage,
     canModerate: modAccess.canModerate,
@@ -539,7 +554,9 @@ router.put("/rooms/:tag/visibility", requireAuth, async (req, res): Promise<void
     return;
   }
   const me = getUserId(req);
-  const isPrivate = !!(req.body as { isPrivate?: boolean })?.isPrivate;
+  const body = (req.body ?? {}) as { isPrivate?: boolean; isPremium?: boolean };
+  const isPrivate = !!body.isPrivate;
+  const isPremium = !!body.isPremium;
   await db.insert(hashtagsTable).values({ tag }).onConflictDoNothing();
   const [existing] = await db
     .select()
@@ -551,10 +568,19 @@ router.put("/rooms/:tag/visibility", requireAuth, async (req, res): Promise<void
       res.status(403).json({ error: "Only the room owner can change visibility" });
       return;
     }
+    if (isPremium && !existing.isPremium) {
+      const userIsPremium = await isUserPremium(me);
+      if (!userIsPremium) {
+        res
+          .status(402)
+          .json({ error: "Only Premium creators can mark rooms as premium-only." });
+        return;
+      }
+    }
     if (isPrivate && !existing.isPrivate) {
       // upgrading to private — check premium limit
-      const isPremium = await isUserPremium(me);
-      if (!isPremium) {
+      const userIsPremium = await isUserPremium(me);
+      if (!userIsPremium) {
         const [{ count }] = await db
           .select({ count: sql<number>`count(*)::int` })
           .from(roomVisibilityTable)
@@ -569,12 +595,21 @@ router.put("/rooms/:tag/visibility", requireAuth, async (req, res): Promise<void
     }
     await db
       .update(roomVisibilityTable)
-      .set({ isPrivate, updatedAt: new Date() })
+      .set({ isPrivate, isPremium, updatedAt: new Date() })
       .where(eq(roomVisibilityTable.tag, tag));
   } else {
+    if (isPremium) {
+      const userIsPremium = await isUserPremium(me);
+      if (!userIsPremium) {
+        res
+          .status(402)
+          .json({ error: "Only Premium creators can mark rooms as premium-only." });
+        return;
+      }
+    }
     if (isPrivate) {
-      const isPremium = await isUserPremium(me);
-      if (!isPremium) {
+      const userIsPremium = await isUserPremium(me);
+      if (!userIsPremium) {
         const [{ count }] = await db
           .select({ count: sql<number>`count(*)::int` })
           .from(roomVisibilityTable)
@@ -587,7 +622,9 @@ router.put("/rooms/:tag/visibility", requireAuth, async (req, res): Promise<void
         }
       }
     }
-    await db.insert(roomVisibilityTable).values({ tag, ownerId: me, isPrivate });
+    await db
+      .insert(roomVisibilityTable)
+      .values({ tag, ownerId: me, isPrivate, isPremium });
     // owner is automatically a member
     await db
       .insert(roomMembersTable)
@@ -596,9 +633,15 @@ router.put("/rooms/:tag/visibility", requireAuth, async (req, res): Promise<void
   }
   const access = await getRoomAccess(tag, me);
   const modAccess = await getRoomModerationAccess(tag, me);
+  const [vis2] = await db
+    .select({ isPremium: roomVisibilityTable.isPremium })
+    .from(roomVisibilityTable)
+    .where(eq(roomVisibilityTable.tag, tag))
+    .limit(1);
   res.json({
     tag,
     isPrivate: access.isPrivate,
+    isPremium: !!vis2?.isPremium,
     ownerId: access.ownerId,
     canManage: access.canManage,
     canModerate: modAccess.canModerate,

@@ -14,9 +14,13 @@ import {
   useUnpinMyPost,
   getGetUserPinnedPostsQueryKey,
   getGetUserPostsQueryKey,
+  useGetPremiumReactions,
+  getGetPremiumReactionsQueryKey,
+  useCreatePostBoostCheckout,
   type Post,
   type QuotedPost,
 } from "@workspace/api-client-react";
+import { TipDialog } from "./TipDialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -52,6 +56,9 @@ import {
   PinOff,
   CornerUpLeft,
   MessageCircle,
+  DollarSign,
+  Rocket,
+  Sparkles,
 } from "lucide-react";
 import { BlurImage } from "./BlurImage";
 import { BookmarkButton } from "./BookmarkButton";
@@ -110,6 +117,33 @@ export function PostCard({ post, meId, onDeleted, onChanged, scope, canModerate 
   const articleRef = useRef<HTMLElement | null>(null);
   usePostImpression(articleRef, post.id, !!meId && !isMine);
   const [quotesListOpen, setQuotesListOpen] = useState(false);
+  const [tipOpen, setTipOpen] = useState(false);
+
+  const premiumEmojiQ = useGetPremiumReactions({
+    query: {
+      queryKey: getGetPremiumReactionsQueryKey(),
+      enabled: pickerOpen,
+      staleTime: 5 * 60 * 1000,
+    },
+  });
+  const premiumEmojis = premiumEmojiQ.data?.emojis ?? [];
+  const canUsePremiumEmoji = premiumEmojiQ.data?.canUse ?? false;
+
+  const boostCheckout = useCreatePostBoostCheckout({
+    mutation: {
+      onError: () =>
+        toast({ title: "Could not start boost checkout", variant: "destructive" }),
+    },
+  });
+  async function startBoost() {
+    try {
+      const r = await boostCheckout.mutateAsync({ id: post.id });
+      window.location.href = r.url;
+    } catch {
+      // handled in onError
+    }
+  }
+  const isBoosted = !!post.boostedUntil && new Date(post.boostedUntil).getTime() > Date.now();
 
   useEffect(() => {
     setEditText(post.content);
@@ -252,6 +286,14 @@ export function PostCard({ post, meId, onDeleted, onChanged, scope, canModerate 
             <Pin className="h-3 w-3" /> Pinned
           </div>
         )}
+        {isBoosted && (
+          <div
+            className="mb-1 inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-600 dark:text-amber-400"
+            data-testid={`post-boosted-badge-${post.id}`}
+          >
+            <Rocket className="h-3 w-3" /> Boosted
+          </div>
+        )}
         <div className="flex items-baseline gap-2">
           <Link
             href={`/app/u/${post.author.username}`}
@@ -359,6 +401,23 @@ export function PostCard({ post, meId, onDeleted, onChanged, scope, canModerate 
                   >
                     <Pencil className="mr-2 h-4 w-4" />
                     Edit
+                  </DropdownMenuItem>
+                )}
+                {!isMine && (
+                  <DropdownMenuItem
+                    onSelect={() => setTipOpen(true)}
+                    data-testid={`button-tip-post-${post.id}`}
+                  >
+                    <DollarSign className="mr-2 h-4 w-4" /> Tip author
+                  </DropdownMenuItem>
+                )}
+                {isMine && !isBoosted && (
+                  <DropdownMenuItem
+                    onSelect={startBoost}
+                    disabled={boostCheckout.isPending}
+                    data-testid={`button-boost-post-${post.id}`}
+                  >
+                    <Rocket className="mr-2 h-4 w-4" /> Boost for 24h ($4.99)
                   </DropdownMenuItem>
                 )}
                 {isMine && (
@@ -583,19 +642,50 @@ export function PostCard({ post, meId, onDeleted, onChanged, scope, canModerate 
             <PopoverContent
               align="start"
               side="top"
-              className="flex w-auto gap-1 p-1.5"
+              className="flex w-auto flex-col gap-1 p-1.5"
             >
-              {QUICK_REACTIONS.map((e) => (
-                <button
-                  key={e}
-                  type="button"
-                  className="rounded-md p-1 text-lg hover:bg-accent"
-                  onClick={() => toggleEmoji(e, false)}
-                  data-testid={`pick-post-${e}`}
-                >
-                  {e}
-                </button>
-              ))}
+              <div className="flex gap-1">
+                {QUICK_REACTIONS.map((e) => (
+                  <button
+                    key={e}
+                    type="button"
+                    className="rounded-md p-1 text-lg hover:bg-accent"
+                    onClick={() => toggleEmoji(e, false)}
+                    data-testid={`pick-post-${e}`}
+                  >
+                    {e}
+                  </button>
+                ))}
+              </div>
+              {premiumEmojis.length > 0 && (
+                <div className="border-t border-border pt-1">
+                  <div className="flex items-center gap-1 px-1 text-[10px] font-semibold uppercase tracking-wide text-violet-500">
+                    <Sparkles className="h-2.5 w-2.5" /> Premium
+                  </div>
+                  <div
+                    className="flex flex-wrap gap-1"
+                    title={canUsePremiumEmoji ? "" : "Premium reactions are for Premium members"}
+                  >
+                    {premiumEmojis.map((e) => (
+                      <button
+                        key={e}
+                        type="button"
+                        disabled={!canUsePremiumEmoji}
+                        className={[
+                          "rounded-md p-1 text-lg",
+                          canUsePremiumEmoji
+                            ? "hover:bg-accent"
+                            : "cursor-not-allowed opacity-40",
+                        ].join(" ")}
+                        onClick={() => canUsePremiumEmoji && toggleEmoji(e, false)}
+                        data-testid={`pick-post-premium-${e}`}
+                      >
+                        {e}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </PopoverContent>
           </Popover>
         </div>
@@ -671,6 +761,15 @@ export function PostCard({ post, meId, onDeleted, onChanged, scope, canModerate 
           postId={post.id}
           open={statsOpen}
           onOpenChange={setStatsOpen}
+        />
+      )}
+      {!isMine && (
+        <TipDialog
+          open={tipOpen}
+          onOpenChange={setTipOpen}
+          toUserId={post.author.id}
+          toDisplayName={post.author.displayName}
+          postId={post.id}
         />
       )}
     </article>

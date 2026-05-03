@@ -97,13 +97,13 @@ export default function ChatsScreen() {
                 ]}
               >
                 <Avatar
-                  url={item.otherUser.avatarUrl}
-                  name={item.otherUser.displayName}
+                  url={item.otherUser?.avatarUrl ?? null}
+                  name={item.otherUser?.displayName ?? "Chat"}
                   size={48}
                 />
                 <View style={{ flex: 1 }}>
                   <Text style={[styles.name, { color: colors.foreground }]}>
-                    {item.otherUser.displayName}
+                    {item.otherUser?.displayName ?? "Chat"}
                   </Text>
                   <Text
                     numberOfLines={1}

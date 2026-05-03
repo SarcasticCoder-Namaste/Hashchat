@@ -58,6 +58,7 @@ function shape(row: any, count: number) {
   return {
     theme: row.theme,
     accent: row.accent,
+    themeBackground: row.themeBackground,
     emailMentions: row.emailMentions,
     emailReplies: row.emailReplies,
     emailDms: row.emailDms,
@@ -91,6 +92,8 @@ router.put("/me/preferences", requireAuth, async (req, res): Promise<void> => {
   const update: Record<string, unknown> = { updatedAt: new Date() };
   if (typeof b.theme === "string") update.theme = b.theme.slice(0, 32);
   if (typeof b.accent === "string") update.accent = b.accent.slice(0, 32);
+  if (typeof b.themeBackground === "string")
+    update.themeBackground = b.themeBackground.slice(0, 64);
   for (const k of [
     "emailMentions",
     "emailReplies",

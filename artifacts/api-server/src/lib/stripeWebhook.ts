@@ -1,8 +1,16 @@
 import type { Request, Response } from "express";
-import { db, usersTable, subscriptionsTable } from "@workspace/db";
+import {
+  db,
+  usersTable,
+  subscriptionsTable,
+  tipsTable,
+  creatorBalancesTable,
+  postBoostsTable,
+} from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { getStripeSync, getUncachableStripeClient, getCachedWebhookSecret } from "./stripeClient";
 import { logger } from "./logger";
+import { createNotification } from "./notifications";
 import type Stripe from "stripe";
 
 export async function handleStripeWebhook(req: Request, res: Response): Promise<void> {
@@ -51,13 +59,88 @@ export async function handleStripeWebhook(req: Request, res: Response): Promise<
 
   try {
     if (event && (event.type.startsWith("customer.subscription.") || event.type === "checkout.session.completed")) {
-      await reflectSubscriptionFromEvent(event);
+      const session =
+        event.type === "checkout.session.completed"
+          ? (event.data.object as Stripe.Checkout.Session)
+          : null;
+      const kind = session?.metadata?.kind;
+      if (kind === "tip") {
+        await reflectTipFromSession(session!);
+      } else if (kind === "boost") {
+        await reflectBoostFromSession(session!);
+      } else {
+        await reflectSubscriptionFromEvent(event);
+      }
     }
   } catch (err) {
-    logger.warn({ err, type: event?.type }, "Stripe webhook: failed to reflect subscription state");
+    logger.warn({ err, type: event?.type }, "Stripe webhook: failed to reflect state");
   }
 
   res.status(200).json({ received: true });
+}
+
+async function reflectTipFromSession(session: Stripe.Checkout.Session): Promise<void> {
+  if (session.payment_status !== "paid") return;
+  const tipIdRaw = session.metadata?.tipId;
+  if (!tipIdRaw) return;
+  const tipId = Number(tipIdRaw);
+  if (!Number.isFinite(tipId)) return;
+  const [tip] = await db
+    .select()
+    .from(tipsTable)
+    .where(eq(tipsTable.id, tipId))
+    .limit(1);
+  if (!tip || tip.status === "completed") return;
+  await db
+    .update(tipsTable)
+    .set({ status: "completed", completedAt: new Date() })
+    .where(eq(tipsTable.id, tipId));
+  if (tip.amountCents && tip.amountCents > 0) {
+    const [bal] = await db
+      .select()
+      .from(creatorBalancesTable)
+      .where(eq(creatorBalancesTable.userId, tip.toUserId))
+      .limit(1);
+    const newCents = (bal?.usdCents ?? 0) + tip.amountCents;
+    if (bal) {
+      await db
+        .update(creatorBalancesTable)
+        .set({ usdCents: newCents, updatedAt: new Date() })
+        .where(eq(creatorBalancesTable.userId, tip.toUserId));
+    } else {
+      await db
+        .insert(creatorBalancesTable)
+        .values({ userId: tip.toUserId, usdCents: newCents });
+    }
+    await createNotification({
+      recipientId: tip.toUserId,
+      actorId: tip.fromUserId,
+      kind: "reaction",
+      targetType: tip.postId ? "post" : "user",
+      targetId: tip.postId ?? null,
+      snippet: `tipped you $${(tip.amountCents / 100).toFixed(2)}`,
+    });
+  }
+}
+
+async function reflectBoostFromSession(session: Stripe.Checkout.Session): Promise<void> {
+  if (session.payment_status !== "paid") return;
+  const boostIdRaw = session.metadata?.boostId;
+  if (!boostIdRaw) return;
+  const boostId = Number(boostIdRaw);
+  if (!Number.isFinite(boostId)) return;
+  const [boost] = await db
+    .select()
+    .from(postBoostsTable)
+    .where(eq(postBoostsTable.id, boostId))
+    .limit(1);
+  if (!boost || boost.status === "active") return;
+  const now = new Date();
+  const expires = new Date(now.getTime() + boost.durationHours * 60 * 60 * 1000);
+  await db
+    .update(postBoostsTable)
+    .set({ status: "active", startsAt: now, expiresAt: expires })
+    .where(eq(postBoostsTable.id, boostId));
 }
 
 type ResolvedTier = {

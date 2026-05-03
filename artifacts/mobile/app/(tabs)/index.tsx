@@ -27,7 +27,7 @@ export default function HomeScreen() {
   const router = useRouter();
   const feed = useGetForYouFeed({ limit: 40 });
 
-  const data = feed.data ?? [];
+  const data = feed.data?.items ?? [];
 
   return (
     <View style={[styles.wrap, { backgroundColor: colors.background }]}>
@@ -119,6 +119,14 @@ function FeedCard({
               @{p.author.username}
             </Text>
           </View>
+          {p.boostedUntil && new Date(p.boostedUntil).getTime() > Date.now() ? (
+            <View style={[styles.boostBadge, { backgroundColor: colors.accent }]}>
+              <Feather name="zap" size={11} color={colors.accentForeground} />
+              <Text style={[styles.boostText, { color: colors.accentForeground }]}>
+                Boosted
+              </Text>
+            </View>
+          ) : null}
         </View>
         <Text style={[styles.body, { color: colors.foreground }]}>
           {p.content}
@@ -241,6 +249,15 @@ const styles = StyleSheet.create({
     backgroundColor: "#0001",
   },
   tagRow: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
+  boostBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 999,
+  },
+  boostText: { fontSize: 11, fontFamily: "Inter_600SemiBold" },
   tag: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999 },
   tagText: { fontSize: 12, fontFamily: "Inter_600SemiBold" },
   fab: {

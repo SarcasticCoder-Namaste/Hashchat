@@ -98,7 +98,7 @@ export default function ConversationChatScreen() {
   return (
     <View style={[styles.wrap, { backgroundColor: colors.background }]}>
       <Stack.Screen
-        options={{ title: conv?.otherUser.displayName ?? "Chat" }}
+        options={{ title: conv?.otherUser?.displayName ?? "Chat" }}
       />
       <KeyboardAvoidingView
         style={{ flex: 1 }}

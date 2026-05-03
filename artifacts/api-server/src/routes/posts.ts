@@ -28,6 +28,7 @@ import { resolveMentions, recordMentions } from "../lib/mentions";
 import { createNotification } from "../lib/notifications";
 import { isBlockedEitherWay } from "../lib/relationships";
 import { fetchPrefs } from "./preferences";
+import { loadActiveBoostsForPosts } from "./boosts";
 
 const router: IRouter = Router();
 
@@ -378,6 +379,8 @@ async function buildPosts(rows: PostRow[], myUserId: string) {
     pinnedByPost.set(p.postId, list);
   }
 
+  const boostMap = await loadActiveBoostsForPosts(ids);
+
   return rows.map((r) => {
     const a = authorMap.get(r.authorId);
     const eu = editableUntil(r);
@@ -409,6 +412,7 @@ async function buildPosts(rows: PostRow[], myUserId: string) {
       lockedAt: r.lockedAt ? r.lockedAt.toISOString() : null,
       removedAt: r.removedAt ? r.removedAt.toISOString() : null,
       pinnedInScopes: pinnedByPost.get(r.id) ?? [],
+      boostedUntil: boostMap.get(r.id)?.toISOString() ?? null,
       createdAt: r.createdAt.toISOString(),
     };
   });

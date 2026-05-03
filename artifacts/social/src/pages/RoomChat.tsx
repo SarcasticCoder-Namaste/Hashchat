@@ -73,6 +73,7 @@ export default function RoomChat({ tag }: { tag: string }) {
   const detail = hashtagQ.data;
   const isPrivate = detail?.isPrivate ?? false;
   const isMember = detail?.isMember ?? false;
+  const isPremiumRoom = detail?.isPremium ?? false;
   const isLocked = isPrivate && !isMember;
 
   const visibilityQ = useGetRoomVisibility(cleanTag, {
@@ -119,6 +120,7 @@ export default function RoomChat({ tag }: { tag: string }) {
   });
 
   const premium = useGetPremiumStatus();
+  const myIsPremium = (premium.data?.tier ?? "free") !== "free";
   const requestJoin = useRequestRoomJoin({
     mutation: {
       onSuccess: () => {
@@ -262,6 +264,9 @@ export default function RoomChat({ tag }: { tag: string }) {
 
   const meQ = useGetMe();
   const meId = meQ.data?.id ?? null;
+  const ownerId = visibilityQ.data?.ownerId ?? null;
+  const isPremiumLocked =
+    isPremiumRoom && !myIsPremium && meId !== ownerId;
   const [tab, setTab] = useState<"chat" | "posts" | "polls" | "events">(
     "chat",
   );
@@ -285,6 +290,15 @@ export default function RoomChat({ tag }: { tag: string }) {
             {isPrivate && (
               <span title="Private room" className="text-violet-500" data-testid="badge-private-room">
                 <Lock className="h-3 w-3" />
+              </span>
+            )}
+            {isPremiumRoom && (
+              <span
+                title="Premium-only room"
+                className="ml-1 rounded-full bg-violet-500/15 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-violet-600 dark:text-violet-400"
+                data-testid="badge-premium-room"
+              >
+                Premium
               </span>
             )}
           </p>
@@ -418,7 +432,32 @@ export default function RoomChat({ tag }: { tag: string }) {
           className="m-0 flex min-h-0 flex-1 flex-col data-[state=inactive]:hidden"
           forceMount
         >
-      {isLocked ? (
+      {isPremiumLocked ? (
+        <div className="flex min-h-0 flex-1 items-center justify-center bg-background px-6 py-10">
+          <div
+            className="max-w-sm rounded-2xl border border-violet-500/40 bg-card p-6 text-center shadow-sm"
+            data-testid="premium-room-gate"
+          >
+            <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-violet-500/15 text-violet-500">
+              <Lock className="h-6 w-6" />
+            </div>
+            <p className="text-base font-semibold text-foreground">
+              #{cleanTag} is for Premium members
+            </p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Upgrade to Premium to read and post in this room.
+            </p>
+            <Link href="/app/premium">
+              <Button
+                className="brand-gradient-bg mt-4 text-white"
+                data-testid="button-upgrade-premium-room"
+              >
+                Go Premium
+              </Button>
+            </Link>
+          </div>
+        </div>
+      ) : isLocked ? (
         <div className="flex min-h-0 flex-1 items-center justify-center bg-background px-6 py-10">
           <div
             className="max-w-sm rounded-2xl border border-border bg-card p-6 text-center shadow-sm"

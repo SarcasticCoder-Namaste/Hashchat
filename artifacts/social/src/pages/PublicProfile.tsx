@@ -34,7 +34,8 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs";
-import { Pin, MessageSquare, Image as ImageIcon, Heart } from "lucide-react";
+import { Pin, MessageSquare, Image as ImageIcon, Heart, DollarSign } from "lucide-react";
+import { TipDialog } from "@/components/TipDialog";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -76,6 +77,7 @@ export default function PublicProfile({ username }: { username: string }) {
   const meId = me?.id ?? null;
   const [tab, setTab] = useState<GetUserPostsTab>(GetUserPostsTab.posts);
   const isOwnProfile = !!meId && !!user && meId === user.id;
+  const [tipOpen, setTipOpen] = useState(false);
   const pinnedQ = useGetUserPinnedPosts(user?.id ?? "", {
     query: { enabled: !!user, queryKey: ["pinned-posts", user?.id] },
   });
@@ -274,6 +276,13 @@ export default function PublicProfile({ username }: { username: string }) {
                   data-testid="button-message"
                 >
                   <MessageCircle className="mr-1 h-4 w-4" /> Message
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => setTipOpen(true)}
+                  data-testid="button-tip-user"
+                >
+                  <DollarSign className="mr-1 h-4 w-4" /> Tip
                 </Button>
                 {status === "none" && (
                   <Button
@@ -479,6 +488,13 @@ export default function PublicProfile({ username }: { username: string }) {
       </section>
 
       <SimilarPeople username={user.username} onChanged={invalidate} />
+
+      <TipDialog
+        open={tipOpen}
+        onOpenChange={setTipOpen}
+        toUserId={user.id}
+        toDisplayName={user.displayName}
+      />
     </div>
   );
 }

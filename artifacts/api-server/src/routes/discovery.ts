@@ -31,6 +31,7 @@ import {
   loadSocialFlagsMap,
 } from "../lib/relationships";
 import { loadPrivateTags } from "../lib/roomVisibility";
+import { loadActiveBoostsForPosts } from "./boosts";
 
 const router: IRouter = Router();
 
@@ -1057,17 +1058,20 @@ async function loadHotInYourHashtagsHelper(
     .where(inArray(postReactionsTable.postId, ids))
     .groupBy(postReactionsTable.postId);
   const reactionMap = new Map(reactionRows.map((r) => [r.postId, r.n]));
+  const boostMap = await loadActiveBoostsForPosts(ids);
   const scored = filtered
     .map((r) => {
       const engagement = reactionMap.get(r.id) ?? 0;
       const ageH = (Date.now() - r.createdAt.getTime()) / 3_600_000;
       const recency = Math.max(0, 1 - ageH / 24);
+      const base = engagement * 4 + recency * 2;
+      const boostMul = boostMap.has(r.id) ? 1.5 : 1;
       return {
         id: r.id,
         authorId: r.authorId,
         matchedHashtag: r.matchedTag ?? null,
         engagement,
-        score: engagement * 4 + recency * 2,
+        score: base * boostMul,
       };
     })
     .sort((a, b) => b.score - a.score)

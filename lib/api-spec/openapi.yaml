@@ -2623,6 +2623,134 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/PremiumPortalResponse" }
 
+  /tips/checkout:
+    post:
+      operationId: createTipCheckout
+      tags: [tips]
+      summary: Create a Stripe Checkout session to send a USD tip
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/TipCheckoutBody" }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TipCheckoutResponse" }
+
+  /tips/solana/record:
+    post:
+      operationId: recordSolanaTip
+      tags: [tips]
+      summary: Record a completed Solana tip transfer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SolanaTipBody" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Tip" }
+
+  /me/tips/inbox:
+    get:
+      operationId: getMyTipInbox
+      tags: [tips]
+      summary: List tips received by the current user
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Tip" }
+
+  /me/tips/outbox:
+    get:
+      operationId: getMyTipOutbox
+      tags: [tips]
+      summary: List tips sent by the current user
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Tip" }
+
+  /me/tips/balance:
+    get:
+      operationId: getMyCreatorBalance
+      tags: [tips]
+      summary: Accrued creator balance from tips
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CreatorBalance" }
+
+  /users/{id}/tip-target:
+    get:
+      operationId: getUserTipTarget
+      tags: [tips]
+      summary: Get the recipient's primary Solana wallet for tipping
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TipTarget" }
+
+  /reactions/premium:
+    get:
+      operationId: getPremiumReactions
+      tags: [reactions]
+      summary: List premium emoji reactions and whether the caller can use them
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PremiumReactions" }
+
+  /posts/{id}/boost/checkout:
+    post:
+      operationId: createPostBoostCheckout
+      tags: [boosts]
+      summary: Start Stripe Checkout to boost a post for 24h
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/BoostCheckoutResponse" }
+
+  /posts/{id}/boost:
+    get:
+      operationId: getPostBoost
+      tags: [boosts]
+      summary: Get the active boost for a post (if any)
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PostBoostStatus" }
+
   /search:
     get:
       operationId: globalSearch
@@ -3785,6 +3913,7 @@ components:
       properties:
         theme: { type: string }
         accent: { type: string }
+        themeBackground: { type: string }
         emailMentions: { type: boolean }
         emailReplies: { type: boolean }
         emailDms: { type: boolean }
@@ -3802,7 +3931,7 @@ components:
         pushEnabled: { type: boolean }
         pushSubscriptionCount: { type: integer }
       required:
-        [theme, accent, emailMentions, emailReplies, emailDms, emailFollows,
+        [theme, accent, themeBackground, emailMentions, emailReplies, emailDms, emailFollows,
          emailReactions, pushMentions, pushReplies, pushDms, pushFollows,
          pushReactions, likesPublic, emailEnabled, pushEnabled, pushSubscriptionCount]
 
@@ -3827,6 +3956,7 @@ components:
       properties:
         theme: { type: string }
         accent: { type: string }
+        themeBackground: { type: string }
         emailMentions: { type: boolean }
         emailReplies: { type: boolean }
         emailDms: { type: boolean }
@@ -4130,6 +4260,9 @@ components:
               scopeKey: { type: string }
             required: [scopeType, scopeKey]
         replyCount: { type: integer }
+        boostedUntil:
+          type: ["string", "null"]
+          format: date-time
         createdAt: { type: string, format: date-time }
       required: [id, author, content, hashtags, imageUrls, reactions, mentions, status, quoteCount, replyCount, isPinned, createdAt]
 
@@ -4583,19 +4716,124 @@ components:
       properties:
         tag: { type: string }
         isPrivate: { type: boolean }
+        isPremium: { type: boolean }
         ownerId:
           type: ["string", "null"]
         canManage: { type: boolean }
         canModerate: { type: boolean }
         isMember: { type: boolean }
         slowModeSeconds: { type: integer }
-      required: [tag, isPrivate, canManage, canModerate, isMember, slowModeSeconds]
+      required: [tag, isPrivate, isPremium, canManage, canModerate, isMember, slowModeSeconds]
 
     SetRoomVisibilityBody:
       type: object
       properties:
         isPrivate: { type: boolean }
+        isPremium: { type: boolean }
       required: [isPrivate]
+
+    Tip:
+      type: object
+      properties:
+        id: { type: integer }
+        fromUser: { $ref: "#/components/schemas/PostAuthor" }
+        toUser: { $ref: "#/components/schemas/PostAuthor" }
+        postId:
+          type: ["integer", "null"]
+        currency: { type: string, enum: [usd, sol] }
+        amountCents:
+          type: ["integer", "null"]
+        amountLamports:
+          type: ["string", "null"]
+        amountSol:
+          type: ["number", "null"]
+        message:
+          type: ["string", "null"]
+        status: { type: string, enum: [pending, completed, failed] }
+        solanaSignature:
+          type: ["string", "null"]
+        createdAt: { type: string, format: date-time }
+        completedAt:
+          type: ["string", "null"]
+          format: date-time
+      required: [id, fromUser, toUser, currency, status, createdAt]
+
+    TipCheckoutBody:
+      type: object
+      properties:
+        toUserId: { type: string }
+        amountCents: { type: integer, minimum: 100 }
+        message:
+          type: ["string", "null"]
+        postId:
+          type: ["integer", "null"]
+      required: [toUserId, amountCents]
+
+    TipCheckoutResponse:
+      type: object
+      properties:
+        url: { type: string }
+        sessionId: { type: string }
+      required: [url, sessionId]
+
+    SolanaTipBody:
+      type: object
+      properties:
+        toUserId: { type: string }
+        amountLamports: { type: string }
+        signature: { type: string }
+        message:
+          type: ["string", "null"]
+        postId:
+          type: ["integer", "null"]
+      required: [toUserId, amountLamports, signature]
+
+    CreatorBalance:
+      type: object
+      properties:
+        usdCents: { type: integer }
+        solLamports: { type: string }
+        cashOutAvailable: { type: boolean }
+      required: [usdCents, solLamports, cashOutAvailable]
+
+    TipTarget:
+      type: object
+      properties:
+        userId: { type: string }
+        username: { type: string }
+        displayName: { type: string }
+        acceptsUsd: { type: boolean }
+        acceptsSol: { type: boolean }
+        solanaAddress:
+          type: ["string", "null"]
+      required: [userId, username, displayName, acceptsUsd, acceptsSol]
+
+    PremiumReactions:
+      type: object
+      properties:
+        emojis:
+          type: array
+          items: { type: string }
+        canUse: { type: boolean }
+      required: [emojis, canUse]
+
+    BoostCheckoutResponse:
+      type: object
+      properties:
+        url: { type: string }
+        sessionId: { type: string }
+      required: [url, sessionId]
+
+    PostBoostStatus:
+      type: object
+      properties:
+        active: { type: boolean }
+        expiresAt:
+          type: ["string", "null"]
+          format: date-time
+        boostedBy:
+          type: ["string", "null"]
+      required: [active]
 
     RoomInvite:
       type: object

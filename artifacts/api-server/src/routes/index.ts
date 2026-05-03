@@ -31,6 +31,9 @@ import pushRouter from "./push";
 import walletsRouter from "./wallets";
 import presenceRouter from "./presence";
 import moderationRouter from "./moderation";
+import tipsRouter from "./tips";
+import boostsRouter from "./boosts";
+import reactionsPremiumRouter from "./reactionsPremium";
 
 const router: IRouter = Router();
 
@@ -72,5 +75,8 @@ router.use(pushRouter);
 router.use(walletsRouter);
 router.use(presenceRouter);
 router.use(moderationRouter);
+router.use(tipsRouter);
+router.use(boostsRouter);
+router.use(reactionsPremiumRouter);
 
 export default router;
