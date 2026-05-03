@@ -8300,6 +8300,307 @@ export const ResolveReportResponse = zod.object({
   ok: zod.boolean(),
 });
 
+/**
+ * @summary Score draft content for likely violations (non-blocking)
+ */
+export const checkModerationBodyTextMax = 5000;
+
+export const CheckModerationBody = zod.object({
+  text: zod.string().max(checkModerationBodyTextMax),
+});
+
+export const CheckModerationResponse = zod.object({
+  flagged: zod.boolean(),
+  score: zod.number(),
+  categories: zod.array(zod.string()),
+  message: zod.string().nullish(),
+});
+
+/**
+ * @summary Reports the current user has filed
+ */
+export const ListMyReportsResponseItem = zod.object({
+  id: zod.number(),
+  scopeType: zod.string(),
+  scopeKey: zod.string(),
+  targetType: zod.string(),
+  targetId: zod.number(),
+  reason: zod.string(),
+  status: zod.enum(["open", "resolved", "dismissed"]),
+  resolution: zod.string().nullish(),
+  resolvedAt: zod.coerce.date().nullish(),
+  createdAt: zod.coerce.date(),
+  appeal: zod
+    .union([
+      zod.object({
+        id: zod.number(),
+        reportId: zod.number(),
+        requesterId: zod.string(),
+        reason: zod.string(),
+        status: zod.enum(["open", "decided"]),
+        decision: zod.string().nullish(),
+        decisionNote: zod.string().nullish(),
+        decidedBy: zod.string().nullish(),
+        decidedAt: zod.coerce.date().nullish(),
+        createdAt: zod.coerce.date(),
+        report: zod
+          .union([
+            zod.object({
+              id: zod.number(),
+              scopeType: zod.string(),
+              scopeKey: zod.string(),
+              targetType: zod.string(),
+              targetId: zod.number(),
+              reason: zod.string(),
+              status: zod.enum(["open", "resolved", "dismissed"]),
+              reporter: zod
+                .union([
+                  zod.object({
+                    id: zod.string(),
+                    username: zod.string(),
+                    displayName: zod.string(),
+                    avatarUrl: zod.string().nullish(),
+                  }),
+                  zod.null(),
+                ])
+                .optional(),
+              targetSnippet: zod.string().nullish(),
+              targetAuthorName: zod.string().nullish(),
+              resolvedBy: zod.string().nullish(),
+              resolvedAt: zod.coerce.date().nullish(),
+              resolution: zod.string().nullish(),
+              createdAt: zod.coerce.date(),
+            }),
+            zod.null(),
+          ])
+          .optional(),
+      }),
+      zod.null(),
+    ])
+    .optional(),
+  canAppeal: zod.boolean(),
+});
+export const ListMyReportsResponse = zod.array(ListMyReportsResponseItem);
+
+export const AppealReportParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const appealReportBodyReasonMax = 500;
+
+export const AppealReportBody = zod.object({
+  reason: zod.string().min(1).max(appealReportBodyReasonMax),
+});
+
+export const AppealReportResponse = zod.object({
+  id: zod.number(),
+  reportId: zod.number(),
+  requesterId: zod.string(),
+  reason: zod.string(),
+  status: zod.enum(["open", "decided"]),
+  decision: zod.string().nullish(),
+  decisionNote: zod.string().nullish(),
+  decidedBy: zod.string().nullish(),
+  decidedAt: zod.coerce.date().nullish(),
+  createdAt: zod.coerce.date(),
+  report: zod
+    .union([
+      zod.object({
+        id: zod.number(),
+        scopeType: zod.string(),
+        scopeKey: zod.string(),
+        targetType: zod.string(),
+        targetId: zod.number(),
+        reason: zod.string(),
+        status: zod.enum(["open", "resolved", "dismissed"]),
+        reporter: zod
+          .union([
+            zod.object({
+              id: zod.string(),
+              username: zod.string(),
+              displayName: zod.string(),
+              avatarUrl: zod.string().nullish(),
+            }),
+            zod.null(),
+          ])
+          .optional(),
+        targetSnippet: zod.string().nullish(),
+        targetAuthorName: zod.string().nullish(),
+        resolvedBy: zod.string().nullish(),
+        resolvedAt: zod.coerce.date().nullish(),
+        resolution: zod.string().nullish(),
+        createdAt: zod.coerce.date(),
+      }),
+      zod.null(),
+    ])
+    .optional(),
+});
+
+/**
+ * @summary Admin queue of open report appeals
+ */
+export const ListAdminAppealsResponseItem = zod.object({
+  id: zod.number(),
+  reportId: zod.number(),
+  requesterId: zod.string(),
+  reason: zod.string(),
+  status: zod.enum(["open", "decided"]),
+  decision: zod.string().nullish(),
+  decisionNote: zod.string().nullish(),
+  decidedBy: zod.string().nullish(),
+  decidedAt: zod.coerce.date().nullish(),
+  createdAt: zod.coerce.date(),
+  report: zod
+    .union([
+      zod.object({
+        id: zod.number(),
+        scopeType: zod.string(),
+        scopeKey: zod.string(),
+        targetType: zod.string(),
+        targetId: zod.number(),
+        reason: zod.string(),
+        status: zod.enum(["open", "resolved", "dismissed"]),
+        reporter: zod
+          .union([
+            zod.object({
+              id: zod.string(),
+              username: zod.string(),
+              displayName: zod.string(),
+              avatarUrl: zod.string().nullish(),
+            }),
+            zod.null(),
+          ])
+          .optional(),
+        targetSnippet: zod.string().nullish(),
+        targetAuthorName: zod.string().nullish(),
+        resolvedBy: zod.string().nullish(),
+        resolvedAt: zod.coerce.date().nullish(),
+        resolution: zod.string().nullish(),
+        createdAt: zod.coerce.date(),
+      }),
+      zod.null(),
+    ])
+    .optional(),
+});
+export const ListAdminAppealsResponse = zod.array(ListAdminAppealsResponseItem);
+
+export const DecideAppealParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const DecideAppealBody = zod.object({
+  decision: zod.enum(["upheld", "overturned"]),
+  note: zod.string().nullish(),
+});
+
+export const DecideAppealResponse = zod.object({
+  id: zod.number(),
+  reportId: zod.number(),
+  requesterId: zod.string(),
+  reason: zod.string(),
+  status: zod.enum(["open", "decided"]),
+  decision: zod.string().nullish(),
+  decisionNote: zod.string().nullish(),
+  decidedBy: zod.string().nullish(),
+  decidedAt: zod.coerce.date().nullish(),
+  createdAt: zod.coerce.date(),
+  report: zod
+    .union([
+      zod.object({
+        id: zod.number(),
+        scopeType: zod.string(),
+        scopeKey: zod.string(),
+        targetType: zod.string(),
+        targetId: zod.number(),
+        reason: zod.string(),
+        status: zod.enum(["open", "resolved", "dismissed"]),
+        reporter: zod
+          .union([
+            zod.object({
+              id: zod.string(),
+              username: zod.string(),
+              displayName: zod.string(),
+              avatarUrl: zod.string().nullish(),
+            }),
+            zod.null(),
+          ])
+          .optional(),
+        targetSnippet: zod.string().nullish(),
+        targetAuthorName: zod.string().nullish(),
+        resolvedBy: zod.string().nullish(),
+        resolvedAt: zod.coerce.date().nullish(),
+        resolution: zod.string().nullish(),
+        createdAt: zod.coerce.date(),
+      }),
+      zod.null(),
+    ])
+    .optional(),
+});
+
+export const GetMyTwoFactorResponse = zod.object({
+  enabled: zod.boolean(),
+  enabledAt: zod.coerce.date().nullish(),
+  backupCodesRemaining: zod.number(),
+});
+
+/**
+ * @summary Generate (or rotate) a TOTP secret and provisioning URI
+ */
+export const SetupMyTwoFactorResponse = zod.object({
+  secret: zod.string(),
+  otpauthUrl: zod.string(),
+});
+
+export const enableMyTwoFactorBodyCodeMin = 6;
+export const enableMyTwoFactorBodyCodeMax = 12;
+
+export const EnableMyTwoFactorBody = zod.object({
+  code: zod
+    .string()
+    .min(enableMyTwoFactorBodyCodeMin)
+    .max(enableMyTwoFactorBodyCodeMax),
+});
+
+export const EnableMyTwoFactorResponse = zod.object({
+  enabled: zod.boolean(),
+  backupCodes: zod.array(zod.string()),
+});
+
+export const disableMyTwoFactorBodyCodeMin = 6;
+export const disableMyTwoFactorBodyCodeMax = 12;
+
+export const DisableMyTwoFactorBody = zod.object({
+  code: zod
+    .string()
+    .min(disableMyTwoFactorBodyCodeMin)
+    .max(disableMyTwoFactorBodyCodeMax),
+});
+
+export const DisableMyTwoFactorResponse = zod.object({
+  ok: zod.boolean(),
+});
+
+export const ListMySessionsResponseItem = zod.object({
+  id: zod.number(),
+  sessionId: zod.string(),
+  deviceLabel: zod.string(),
+  userAgent: zod.string().nullish(),
+  ipRegion: zod.string().nullish(),
+  createdAt: zod.coerce.date(),
+  lastSeenAt: zod.coerce.date(),
+  revokedAt: zod.coerce.date().nullish(),
+  current: zod.boolean(),
+});
+export const ListMySessionsResponse = zod.array(ListMySessionsResponseItem);
+
+export const RevokeMySessionParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const RevokeMySessionResponse = zod.object({
+  ok: zod.boolean(),
+});
+
 export const GetPremiumStatusResponse = zod.object({
   verified: zod.boolean(),
   active: zod.boolean(),

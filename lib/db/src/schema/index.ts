@@ -1037,6 +1037,73 @@ export const reportsTable = pgTable(
   ],
 );
 
+export const reportAppealsTable = pgTable(
+  "report_appeals",
+  {
+    id: serial("id").primaryKey(),
+    reportId: integer("report_id")
+      .notNull()
+      .references(() => reportsTable.id, { onDelete: "cascade" }),
+    requesterId: text("requester_id")
+      .notNull()
+      .references(() => usersTable.id, { onDelete: "cascade" }),
+    reason: text("reason").notNull(),
+    status: text("status").notNull().default("open"),
+    decision: text("decision"),
+    decisionNote: text("decision_note"),
+    decidedBy: text("decided_by").references(() => usersTable.id, {
+      onDelete: "set null",
+    }),
+    decidedAt: timestamp("decided_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    index("report_appeals_report_idx").on(t.reportId),
+    index("report_appeals_status_idx").on(t.status, t.createdAt),
+    index("report_appeals_requester_idx").on(t.requesterId, t.createdAt),
+  ],
+);
+
+export const userTwoFactorTable = pgTable("user_two_factor", {
+  userId: text("user_id")
+    .primaryKey()
+    .references(() => usersTable.id, { onDelete: "cascade" }),
+  secret: text("secret").notNull(),
+  enabled: boolean("enabled").notNull().default(false),
+  enabledAt: timestamp("enabled_at", { withTimezone: true }),
+  backupCodesHash: text("backup_codes_hash").array().notNull().default(sql`ARRAY[]::text[]`),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+export const userSessionsTable = pgTable(
+  "user_sessions",
+  {
+    id: serial("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => usersTable.id, { onDelete: "cascade" }),
+    sessionId: text("session_id").notNull(),
+    deviceLabel: text("device_label").notNull().default("Unknown device"),
+    userAgent: text("user_agent"),
+    ipRegion: text("ip_region"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    lastSeenAt: timestamp("last_seen_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    revokedAt: timestamp("revoked_at", { withTimezone: true }),
+  },
+  (t) => [
+    uniqueIndex("user_sessions_session_idx").on(t.userId, t.sessionId),
+    index("user_sessions_user_idx").on(t.userId, t.lastSeenAt),
+  ],
+);
+
 export const roomMembersTable = pgTable(
   "room_members",
   {
@@ -1376,3 +1443,6 @@ export type UserHashtag = typeof userHashtagsTable.$inferSelect;
 export type Conversation = typeof conversationsTable.$inferSelect;
 export type Message = typeof messagesTable.$inferSelect;
 export type Reaction = typeof reactionsTable.$inferSelect;
+export type ReportAppeal = typeof reportAppealsTable.$inferSelect;
+export type UserTwoFactor = typeof userTwoFactorTable.$inferSelect;
+export type UserSession = typeof userSessionsTable.$inferSelect;

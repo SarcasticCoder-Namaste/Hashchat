@@ -34,6 +34,7 @@ import moderationRouter from "./moderation";
 import tipsRouter from "./tips";
 import boostsRouter from "./boosts";
 import reactionsPremiumRouter from "./reactionsPremium";
+import safetyRouter from "./safety";
 
 const router: IRouter = Router();
 
@@ -78,5 +79,6 @@ router.use(moderationRouter);
 router.use(tipsRouter);
 router.use(boostsRouter);
 router.use(reactionsPremiumRouter);
+router.use(safetyRouter);
 
 export default router;

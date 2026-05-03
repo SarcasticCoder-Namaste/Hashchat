@@ -56,6 +56,8 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs";
+import { SecurityPanel } from "@/components/SecurityPanel";
+import { MyReportsPanel } from "@/components/MyReportsPanel";
 import {
   Select,
   SelectContent,
@@ -376,7 +378,7 @@ export default function Settings() {
       </a>
 
       <Tabs defaultValue="profile">
-        <TabsList className="grid h-auto w-full grid-cols-3 gap-1 p-1 sm:grid-cols-10">
+        <TabsList className="grid h-auto w-full grid-cols-3 gap-1 p-1 sm:grid-cols-12">
           <TabsTrigger
             value="profile"
             data-testid="tab-profile"
@@ -456,6 +458,22 @@ export default function Settings() {
           >
             <UserIcon className="h-4 w-4 shrink-0" />
             <span className="truncate">Account</span>
+          </TabsTrigger>
+          <TabsTrigger
+            value="security"
+            data-testid="tab-security"
+            className="flex flex-col items-center gap-1 px-1 py-2 text-[11px] sm:flex-row sm:gap-1.5 sm:text-xs"
+          >
+            <Lock className="h-4 w-4 shrink-0" />
+            <span className="truncate">Security</span>
+          </TabsTrigger>
+          <TabsTrigger
+            value="reports"
+            data-testid="tab-reports"
+            className="flex flex-col items-center gap-1 px-1 py-2 text-[11px] sm:flex-row sm:gap-1.5 sm:text-xs"
+          >
+            <ShieldOff className="h-4 w-4 shrink-0" />
+            <span className="truncate">Reports</span>
           </TabsTrigger>
         </TabsList>
 
@@ -1072,6 +1090,23 @@ export default function Settings() {
             mvpPlan={me.mvpPlan}
             onSignOut={() => signOut({ redirectUrl: basePath || "/" })}
           />
+        </TabsContent>
+
+        <TabsContent value="security" className="mt-4">
+          <SecurityPanel />
+        </TabsContent>
+
+        <TabsContent value="reports" className="mt-4 space-y-3">
+          <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
+            <h2 className="text-lg font-semibold text-foreground">
+              My reports
+            </h2>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Track the status of reports you've filed and appeal moderation
+              decisions to admins if needed.
+            </p>
+          </div>
+          <MyReportsPanel />
         </TabsContent>
       </Tabs>
     </div>

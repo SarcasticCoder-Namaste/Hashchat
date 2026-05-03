@@ -2039,6 +2039,35 @@ export interface ResolveReportBody {
   note?: string | null;
 }
 
+export interface ModerationCheckBody {
+  /** @maxLength 5000 */
+  text: string;
+}
+
+export interface ModerationCheckResult {
+  flagged: boolean;
+  score: number;
+  categories: string[];
+  /** @nullable */
+  message?: string | null;
+}
+
+export type MyReportStatus =
+  (typeof MyReportStatus)[keyof typeof MyReportStatus];
+
+export const MyReportStatus = {
+  open: "open",
+  resolved: "resolved",
+  dismissed: "dismissed",
+} as const;
+
+export type AppealStatus = (typeof AppealStatus)[keyof typeof AppealStatus];
+
+export const AppealStatus = {
+  open: "open",
+  decided: "decided",
+} as const;
+
 export type ReportStatus = (typeof ReportStatus)[keyof typeof ReportStatus];
 
 export const ReportStatus = {
@@ -2067,6 +2096,103 @@ export interface Report {
   /** @nullable */
   resolution?: string | null;
   createdAt: string;
+}
+
+export interface Appeal {
+  id: number;
+  reportId: number;
+  requesterId: string;
+  reason: string;
+  status: AppealStatus;
+  /** @nullable */
+  decision?: string | null;
+  /** @nullable */
+  decisionNote?: string | null;
+  /** @nullable */
+  decidedBy?: string | null;
+  /** @nullable */
+  decidedAt?: string | null;
+  createdAt: string;
+  report?: Report | null;
+}
+
+export interface MyReport {
+  id: number;
+  scopeType: string;
+  scopeKey: string;
+  targetType: string;
+  targetId: number;
+  reason: string;
+  status: MyReportStatus;
+  /** @nullable */
+  resolution?: string | null;
+  /** @nullable */
+  resolvedAt?: string | null;
+  createdAt: string;
+  appeal?: Appeal | null;
+  canAppeal: boolean;
+}
+
+export interface AppealBody {
+  /**
+   * @minLength 1
+   * @maxLength 500
+   */
+  reason: string;
+}
+
+export type DecideAppealBodyDecision =
+  (typeof DecideAppealBodyDecision)[keyof typeof DecideAppealBodyDecision];
+
+export const DecideAppealBodyDecision = {
+  upheld: "upheld",
+  overturned: "overturned",
+} as const;
+
+export interface DecideAppealBody {
+  decision: DecideAppealBodyDecision;
+  /** @nullable */
+  note?: string | null;
+}
+
+export interface TwoFactorStatus {
+  enabled: boolean;
+  /** @nullable */
+  enabledAt?: string | null;
+  backupCodesRemaining: number;
+}
+
+export interface TwoFactorSetup {
+  secret: string;
+  otpauthUrl: string;
+}
+
+export interface TwoFactorVerifyBody {
+  /**
+   * @minLength 6
+   * @maxLength 12
+   */
+  code: string;
+}
+
+export interface TwoFactorEnableResult {
+  enabled: boolean;
+  backupCodes: string[];
+}
+
+export interface UserSessionInfo {
+  id: number;
+  sessionId: string;
+  deviceLabel: string;
+  /** @nullable */
+  userAgent?: string | null;
+  /** @nullable */
+  ipRegion?: string | null;
+  createdAt: string;
+  lastSeenAt: string;
+  /** @nullable */
+  revokedAt?: string | null;
+  current: boolean;
 }
 
 export type GetTrendingHashtagsParams = {

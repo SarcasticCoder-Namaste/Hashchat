@@ -31,6 +31,7 @@ tags:
   - name: push
   - name: wallets
   - name: presence
+  - name: safety
 paths:
   /healthz:
     get:
@@ -2636,6 +2637,168 @@ paths:
             schema: { $ref: "#/components/schemas/ResolveReportBody" }
       responses:
         "200": { description: OK, content: { application/json: { schema: { $ref: "#/components/schemas/OkResponse" } } } }
+
+  /moderation/check:
+    post:
+      operationId: checkModeration
+      tags: [safety]
+      summary: Score draft content for likely violations (non-blocking)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ModerationCheckBody" }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ModerationCheckResult" }
+
+  /me/reports:
+    get:
+      operationId: listMyReports
+      tags: [safety]
+      summary: Reports the current user has filed
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/MyReport" }
+
+  /reports/{id}/appeal:
+    post:
+      operationId: appealReport
+      tags: [safety]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AppealBody" }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Appeal" }
+
+  /admin/appeals:
+    get:
+      operationId: listAdminAppeals
+      tags: [safety]
+      summary: Admin queue of open report appeals
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Appeal" }
+
+  /appeals/{id}/decide:
+    post:
+      operationId: decideAppeal
+      tags: [safety]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/DecideAppealBody" }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Appeal" }
+
+  /me/2fa:
+    get:
+      operationId: getMyTwoFactor
+      tags: [safety]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TwoFactorStatus" }
+
+  /me/2fa/setup:
+    post:
+      operationId: setupMyTwoFactor
+      tags: [safety]
+      summary: Generate (or rotate) a TOTP secret and provisioning URI
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TwoFactorSetup" }
+
+  /me/2fa/enable:
+    post:
+      operationId: enableMyTwoFactor
+      tags: [safety]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/TwoFactorVerifyBody" }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TwoFactorEnableResult" }
+
+  /me/2fa/disable:
+    post:
+      operationId: disableMyTwoFactor
+      tags: [safety]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/TwoFactorVerifyBody" }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/OkResponse" }
+
+  /me/sessions:
+    get:
+      operationId: listMySessions
+      tags: [safety]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/UserSessionInfo" }
+
+  /me/sessions/{id}/revoke:
+    post:
+      operationId: revokeMySession
+      tags: [safety]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/OkResponse" }
 
   /premium/status:
     get:
@@ -5315,6 +5478,135 @@ components:
         note:
           type: ["string", "null"]
       required: [action]
+
+    ModerationCheckBody:
+      type: object
+      properties:
+        text: { type: string, maxLength: 5000 }
+      required: [text]
+
+    ModerationCheckResult:
+      type: object
+      properties:
+        flagged: { type: boolean }
+        score: { type: number }
+        categories:
+          type: array
+          items: { type: string }
+        message:
+          type: ["string", "null"]
+      required: [flagged, score, categories]
+
+    MyReport:
+      type: object
+      properties:
+        id: { type: integer }
+        scopeType: { type: string }
+        scopeKey: { type: string }
+        targetType: { type: string }
+        targetId: { type: integer }
+        reason: { type: string }
+        status: { type: string, enum: [open, resolved, dismissed] }
+        resolution:
+          type: ["string", "null"]
+        resolvedAt:
+          type: ["string", "null"]
+          format: date-time
+        createdAt: { type: string, format: date-time }
+        appeal:
+          oneOf:
+            - { $ref: "#/components/schemas/Appeal" }
+            - { type: "null" }
+        canAppeal: { type: boolean }
+      required: [id, scopeType, scopeKey, targetType, targetId, reason, status, createdAt, canAppeal]
+
+    AppealBody:
+      type: object
+      properties:
+        reason: { type: string, minLength: 1, maxLength: 500 }
+      required: [reason]
+
+    DecideAppealBody:
+      type: object
+      properties:
+        decision: { type: string, enum: [upheld, overturned] }
+        note:
+          type: ["string", "null"]
+      required: [decision]
+
+    Appeal:
+      type: object
+      properties:
+        id: { type: integer }
+        reportId: { type: integer }
+        requesterId: { type: string }
+        reason: { type: string }
+        status: { type: string, enum: [open, decided] }
+        decision:
+          type: ["string", "null"]
+        decisionNote:
+          type: ["string", "null"]
+        decidedBy:
+          type: ["string", "null"]
+        decidedAt:
+          type: ["string", "null"]
+          format: date-time
+        createdAt: { type: string, format: date-time }
+        report:
+          oneOf:
+            - { $ref: "#/components/schemas/Report" }
+            - { type: "null" }
+      required: [id, reportId, requesterId, reason, status, createdAt]
+
+    TwoFactorStatus:
+      type: object
+      properties:
+        enabled: { type: boolean }
+        enabledAt:
+          type: ["string", "null"]
+          format: date-time
+        backupCodesRemaining: { type: integer }
+      required: [enabled, backupCodesRemaining]
+
+    TwoFactorSetup:
+      type: object
+      properties:
+        secret: { type: string }
+        otpauthUrl: { type: string }
+      required: [secret, otpauthUrl]
+
+    TwoFactorVerifyBody:
+      type: object
+      properties:
+        code: { type: string, minLength: 6, maxLength: 12 }
+      required: [code]
+
+    TwoFactorEnableResult:
+      type: object
+      properties:
+        enabled: { type: boolean }
+        backupCodes:
+          type: array
+          items: { type: string }
+      required: [enabled, backupCodes]
+
+    UserSessionInfo:
+      type: object
+      properties:
+        id: { type: integer }
+        sessionId: { type: string }
+        deviceLabel: { type: string }
+        userAgent:
+          type: ["string", "null"]
+        ipRegion:
+          type: ["string", "null"]
+        createdAt: { type: string, format: date-time }
+        lastSeenAt: { type: string, format: date-time }
+        revokedAt:
+          type: ["string", "null"]
+          format: date-time
+        current: { type: boolean }
+      required: [id, sessionId, deviceLabel, createdAt, lastSeenAt, current]
 
     Report:
       type: object

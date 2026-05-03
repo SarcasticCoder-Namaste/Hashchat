@@ -35,6 +35,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { MentionTextarea } from "./MentionTextarea";
 import { QuotedPostPreview } from "./QuotedPostPreview";
+import { PrePostSafetyWarning } from "./PrePostSafetyWarning";
 import {
   CalendarClock,
   Clock,
@@ -378,6 +379,7 @@ export function PostComposer({
           ))}
         </div>
       )}
+      <PrePostSafetyWarning text={content} />
       {quoted && (
         <div className="relative">
           <QuotedPostPreview quoted={quoted} compact />

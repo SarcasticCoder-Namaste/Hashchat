@@ -289,6 +289,14 @@ export async function requireAuth(
   }
 
   void touchLastSeen(clerkUserId);
+  void (async () => {
+    try {
+      const { trackUserSession } = await import("../lib/sessionTracker");
+      await trackUserSession(req, clerkUserId);
+    } catch {
+      // best-effort
+    }
+  })();
 
   (req as Request & { userId?: string }).userId = clerkUserId;
   (req as Request & { userRole?: string }).userRole = existingRow.role;

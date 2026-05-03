@@ -37,10 +37,12 @@ import { GifPickerButton } from "@/components/GifPickerButton";
 import { VoiceMessageButton } from "@/components/VoiceMessageButton";
 import { CallButton } from "@/components/CallButton";
 import { PostComposer } from "@/components/PostComposer";
+import { PrePostSafetyWarning } from "@/components/PrePostSafetyWarning";
 import { PostFeed } from "@/components/PostFeed";
 import { PollsPanel } from "@/components/PollsPanel";
 import { EventsPanel, LiveEventBanner } from "@/components/EventsPanel";
 import { RoomSettingsDialog } from "@/components/RoomSettingsDialog";
+import { ReportsPanel } from "@/components/moderation-panels";
 import { useToast } from "@/hooks/use-toast";
 import {
   ArrowLeft,
@@ -280,7 +282,7 @@ export default function RoomChat({ tag }: { tag: string }) {
   const ownerId = visibilityQ.data?.ownerId ?? null;
   const isPremiumLocked =
     isPremiumRoom && !myIsPremium && meId !== ownerId;
-  const [tab, setTab] = useState<"chat" | "posts" | "polls" | "events">(
+  const [tab, setTab] = useState<"chat" | "posts" | "polls" | "events" | "modqueue">(
     "chat",
   );
 
@@ -440,15 +442,22 @@ export default function RoomChat({ tag }: { tag: string }) {
       <Tabs
         value={tab}
         onValueChange={(v) =>
-          setTab(v as "chat" | "posts" | "polls" | "events")
+          setTab(v as "chat" | "posts" | "polls" | "events" | "modqueue")
         }
         className="flex min-h-0 flex-1 flex-col"
       >
-        <TabsList className="mx-3 mt-2 grid w-auto grid-cols-4">
+        <TabsList
+          className={`mx-3 mt-2 grid w-auto ${canModerate ? "grid-cols-5" : "grid-cols-4"}`}
+        >
           <TabsTrigger value="chat" data-testid="tab-chat">Chat</TabsTrigger>
           <TabsTrigger value="posts" data-testid="tab-posts">Posts</TabsTrigger>
           <TabsTrigger value="polls" data-testid="tab-polls">Polls</TabsTrigger>
           <TabsTrigger value="events" data-testid="tab-events">Events</TabsTrigger>
+          {canModerate && (
+            <TabsTrigger value="modqueue" data-testid="tab-modqueue">
+              Mod queue
+            </TabsTrigger>
+          )}
         </TabsList>
         <TabsContent
           value="chat"
@@ -590,23 +599,26 @@ export default function RoomChat({ tag }: { tag: string }) {
             testId="button-pick-room-gif"
           />
           <VoiceMessageButton onUploaded={sendAudio} testId="button-record-room-voice" />
-          <MentionTextarea
-            ref={inputRef}
-            placeholder={`Message #${cleanTag}…`}
-            value={draft}
-            onChange={setDraft}
-            onSubmit={() => {
-              if (draft.trim() && !send.isPending) {
-                send.mutate({
-                  tag: cleanTag,
-                  data: { content: draft.trim(), replyToId: replyTo?.id ?? null },
-                });
-              }
-            }}
-            onUserActivity={pingTyping}
-            ariaLabel={`Message room ${cleanTag}`}
-            testId="input-room-message"
-          />
+          <div className="flex flex-1 flex-col gap-1.5">
+            <MentionTextarea
+              ref={inputRef}
+              placeholder={`Message #${cleanTag}…`}
+              value={draft}
+              onChange={setDraft}
+              onSubmit={() => {
+                if (draft.trim() && !send.isPending) {
+                  send.mutate({
+                    tag: cleanTag,
+                    data: { content: draft.trim(), replyToId: replyTo?.id ?? null },
+                  });
+                }
+              }}
+              onUserActivity={pingTyping}
+              ariaLabel={`Message room ${cleanTag}`}
+              testId="input-room-message"
+            />
+            <PrePostSafetyWarning text={draft} />
+          </div>
           <Button
             type="submit"
             disabled={!draft.trim() || send.isPending || sendDisabled}
@@ -704,6 +716,33 @@ export default function RoomChat({ tag }: { tag: string }) {
         >
           <EventsPanel tag={cleanTag} />
         </TabsContent>
+        {canModerate && (
+          <TabsContent
+            value="modqueue"
+            className="m-0 flex min-h-0 flex-1 flex-col"
+            data-testid="modqueue-panel"
+          >
+            <div className="min-h-0 flex-1 overflow-y-auto bg-background px-4 py-4">
+              <div className="mx-auto max-w-2xl space-y-3">
+                <div className="rounded-xl border border-border bg-card p-4">
+                  <h2 className="text-sm font-semibold text-foreground">
+                    Reports for #{cleanTag}
+                  </h2>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Review and act on member reports for this room.
+                  </p>
+                  <div className="mt-3">
+                    <ReportsPanel
+                      scopeType="room"
+                      scopeKey={cleanTag}
+                      canModerate={canModerate}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </TabsContent>
+        )}
       </Tabs>
       <RoomSettingsDialog
         tag={cleanTag}
