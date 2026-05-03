@@ -41,6 +41,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { BookmarkButton } from "./BookmarkButton";
+import { GifMedia, isGifUrl } from "./GifMedia";
 import { renderRichContent } from "@/lib/mentions";
 import { QuotedPostPreview } from "./QuotedPostPreview";
 import { PostComposer } from "./PostComposer";
@@ -300,12 +301,20 @@ export function PostCard({ post, meId, onDeleted, onChanged }: PostCardProps) {
                 rel="noreferrer"
                 className="block"
               >
-                <img
-                  src={u}
-                  alt={`Image attached by ${post.author.displayName}`}
-                  className="aspect-square w-full object-cover"
-                  loading="lazy"
-                />
+                {isGifUrl(u) ? (
+                  <GifMedia
+                    src={u}
+                    alt={`GIF attached by ${post.author.displayName}`}
+                    className="aspect-square w-full object-cover"
+                  />
+                ) : (
+                  <img
+                    src={u}
+                    alt={`Image attached by ${post.author.displayName}`}
+                    className="aspect-square w-full object-cover"
+                    loading="lazy"
+                  />
+                )}
               </a>
             ))}
           </div>

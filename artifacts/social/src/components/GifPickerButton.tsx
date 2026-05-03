@@ -16,6 +16,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { GifMedia } from "@/components/GifMedia";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ArrowLeft, Loader2, Search, Sparkles, TrendingUp } from "lucide-react";
@@ -306,10 +307,9 @@ function GifBrowseSection({
                 data-testid={`gif-recent-${g.id}`}
                 aria-label={g.title || "Send recent GIF"}
               >
-                <img
+                <GifMedia
                   src={g.previewUrl}
                   alt={g.title || ""}
-                  loading="lazy"
                   className="absolute inset-0 h-full w-full object-cover"
                 />
               </button>
@@ -407,10 +407,9 @@ function GifTile({
       data-testid={`gif-tile-${gif.id}`}
       aria-label={gif.title || "Send GIF"}
     >
-      <img
+      <GifMedia
         src={gif.previewUrl}
         alt={gif.title || ""}
-        loading="lazy"
         className="absolute inset-0 h-full w-full object-cover"
         style={{ aspectRatio: `${gif.width || 1} / ${gif.height || ratio}` }}
       />

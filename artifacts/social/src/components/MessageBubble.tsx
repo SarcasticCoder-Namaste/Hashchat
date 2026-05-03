@@ -13,6 +13,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Reply, Smile, CornerDownRight, MessageSquare, Check, CheckCheck } from "lucide-react";
+import { GifMedia, isGifUrl } from "./GifMedia";
 import { LinkPreviewCard } from "./LinkPreviewCard";
 import { PollCard } from "./PollCard";
 import { WaveformPlayer } from "./WaveformPlayer";
@@ -153,12 +154,21 @@ export function MessageBubble({
                 rel="noreferrer"
                 aria-label={`Open image from ${message.senderName}`}
               >
-                <img
-                  src={message.imageUrl}
-                  alt={`Image from ${message.senderName}`}
-                  className="block max-h-80 w-full object-cover"
-                  data-testid={`msg-image-${message.id}`}
-                />
+                {isGifUrl(message.imageUrl) ? (
+                  <GifMedia
+                    src={message.imageUrl}
+                    alt={`GIF from ${message.senderName}`}
+                    className="block max-h-80 w-full object-cover"
+                    testId={`msg-image-${message.id}`}
+                  />
+                ) : (
+                  <img
+                    src={message.imageUrl}
+                    alt={`Image from ${message.senderName}`}
+                    className="block max-h-80 w-full object-cover"
+                    data-testid={`msg-image-${message.id}`}
+                  />
+                )}
               </a>
             )}
             {message.audioUrl && (
@@ -301,12 +311,21 @@ export function MessageBubble({
             className="mt-1 block"
             aria-label={`Open image from ${message.senderName}`}
           >
-            <img
-              src={message.imageUrl}
-              alt={`Image from ${message.senderName}`}
-              className="max-h-80 max-w-full rounded-lg object-cover"
-              data-testid={`msg-image-${message.id}`}
-            />
+            {isGifUrl(message.imageUrl) ? (
+              <GifMedia
+                src={message.imageUrl}
+                alt={`GIF from ${message.senderName}`}
+                className="max-h-80 max-w-full rounded-lg object-cover"
+                testId={`msg-image-${message.id}`}
+              />
+            ) : (
+              <img
+                src={message.imageUrl}
+                alt={`Image from ${message.senderName}`}
+                className="max-h-80 max-w-full rounded-lg object-cover"
+                data-testid={`msg-image-${message.id}`}
+              />
+            )}
           </a>
         )}
         {message.audioUrl && (
