@@ -66,7 +66,7 @@ type ResolvedTier = {
   priceLookupKey: string | null;
 };
 
-function resolveTierFromSubscription(subscription: Stripe.Subscription): ResolvedTier {
+export function resolveTierFromSubscription(subscription: Stripe.Subscription): ResolvedTier {
   // Prefer the price's lookup_key; fallback to subscription metadata if present.
   const item = subscription.items.data[0];
   const lookupKey = item?.price?.lookup_key ?? null;
