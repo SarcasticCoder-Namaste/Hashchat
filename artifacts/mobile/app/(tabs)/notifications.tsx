@@ -15,6 +15,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Avatar } from "@/components/Avatar";
 import { EmptyState } from "@/components/EmptyState";
+import { OfflineBanner } from "@/components/OfflineBanner";
 import { useColors } from "@/hooks/useColors";
 import {
   getGetNotificationsQueryKey,
@@ -71,6 +72,7 @@ export default function NotificationsScreen() {
           Activity
         </Text>
       </View>
+      <OfflineBanner message="Offline · showing saved activity" />
       {notif.isLoading ? (
         <View style={styles.center}>
           <ActivityIndicator color={colors.primary} />

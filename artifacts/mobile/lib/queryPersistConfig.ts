@@ -8,6 +8,8 @@ const MAX_FEED_ITEMS = 60;
 const MAX_CONVERSATIONS = 50;
 const MAX_THREAD_MESSAGES = 60;
 const MAX_ROOM_MESSAGES = 60;
+const MAX_TRENDING_ROOMS = 40;
+const MAX_NOTIFICATIONS = 60;
 
 type Bounder = {
   match: (path: string, key: QueryKey) => boolean;
@@ -51,6 +53,29 @@ const BOUNDERS: Bounder[] = [
     match: (path) => /^\/api\/rooms\/[^/]+\/messages$/.test(path),
     bound: (data) =>
       Array.isArray(data) ? tail(data, MAX_ROOM_MESSAGES) : data,
+  },
+  {
+    match: (path) => path === "/api/rooms/trending",
+    bound: (data) =>
+      Array.isArray(data) ? head(data, MAX_TRENDING_ROOMS) : data,
+  },
+  {
+    match: (path) => path === "/api/notifications",
+    bound: (data) => {
+      if (
+        data &&
+        typeof data === "object" &&
+        Array.isArray((data as { items?: unknown }).items)
+      ) {
+        const obj = data as { items: unknown[] };
+        return { ...obj, items: head(obj.items, MAX_NOTIFICATIONS) };
+      }
+      return data;
+    },
+  },
+  {
+    match: (path) => path === "/api/me",
+    bound: (data) => data,
   },
 ];
 

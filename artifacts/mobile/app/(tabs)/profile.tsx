@@ -13,6 +13,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Avatar } from "@/components/Avatar";
+import { OfflineBanner } from "@/components/OfflineBanner";
 import { SparkComposer, SparksRow } from "@/components/SparksPanel";
 import { StreakBadge } from "@/components/StreakBadge";
 import { useColors } from "@/hooks/useColors";
@@ -38,13 +39,11 @@ export default function ProfileScreen() {
 
   if (me.isLoading) {
     return (
-      <View
-        style={[
-          styles.center,
-          { backgroundColor: colors.background },
-        ]}
-      >
-        <ActivityIndicator color={colors.primary} />
+      <View style={[styles.wrap, { backgroundColor: colors.background }]}>
+        <OfflineBanner message="Offline · showing saved profile" />
+        <View style={styles.center}>
+          <ActivityIndicator color={colors.primary} />
+        </View>
       </View>
     );
   }
@@ -59,10 +58,12 @@ export default function ProfileScreen() {
   const avatar = profile?.avatarUrl ?? user?.imageUrl ?? null;
 
   return (
-    <ScrollView
-      style={[styles.wrap, { backgroundColor: colors.background }]}
-      contentContainerStyle={{ paddingBottom: insets.bottom + 120 }}
-    >
+    <View style={[styles.wrap, { backgroundColor: colors.background }]}>
+      <OfflineBanner message="Offline · showing saved profile" />
+      <ScrollView
+        style={styles.wrap}
+        contentContainerStyle={{ paddingBottom: insets.bottom + 120 }}
+      >
       <LinearGradient
         colors={["#7c3aed", "#db2777"]}
         start={{ x: 0, y: 0 }}
@@ -228,7 +229,8 @@ export default function ProfileScreen() {
           </Text>
         </Pressable>
       </View>
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 }
 

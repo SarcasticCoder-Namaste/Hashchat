@@ -13,6 +13,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { EmptyState } from "@/components/EmptyState";
+import { OfflineBanner } from "@/components/OfflineBanner";
 import { useColors } from "@/hooks/useColors";
 import { useGetTrendingRooms } from "@workspace/api-client-react";
 
@@ -37,6 +38,7 @@ export default function DiscoverScreen() {
           Trending hashtag rooms
         </Text>
       </View>
+      <OfflineBanner message="Offline · showing saved trending rooms" />
       {rooms.isLoading ? (
         <View style={styles.center}>
           <ActivityIndicator color={colors.primary} />
