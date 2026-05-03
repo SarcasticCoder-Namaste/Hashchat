@@ -70,7 +70,11 @@ function isPrivateIPv6(ip: string): boolean {
 
 async function isHostSafe(hostname: string): Promise<boolean> {
   if (!hostname) return false;
-  const lower = hostname.toLowerCase();
+  let lower = hostname.toLowerCase();
+  // URL.hostname wraps IPv6 literals in brackets; strip them before checks.
+  if (lower.startsWith("[") && lower.endsWith("]")) {
+    lower = lower.slice(1, -1);
+  }
   if (
     lower === "localhost" ||
     lower.endsWith(".local") ||
