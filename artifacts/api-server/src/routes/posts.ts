@@ -986,6 +986,16 @@ export async function publishDueScheduledPosts(): Promise<number> {
         snippet: p.content.slice(0, 200),
       });
     }
+
+    // Notify the author that their scheduled post is now live.
+    await createNotification({
+      recipientId: p.authorId,
+      actorId: null,
+      kind: "scheduled_post_published",
+      targetType: "post",
+      targetId: p.id,
+      snippet: p.content.slice(0, 200),
+    });
   }
   return due.length;
 }

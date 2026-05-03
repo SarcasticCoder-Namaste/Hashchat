@@ -31,6 +31,8 @@ const PREF_KEY_BY_KIND: Record<
   dm: { email: "emailDms", push: "pushDms" },
   // Event reminders piggyback on mention preferences for now.
   event_starting: { email: "emailMentions", push: "pushMentions" },
+  // Scheduled post publication notifications piggyback on mention prefs.
+  scheduled_post_published: { email: "emailMentions", push: "pushMentions" },
 };
 
 const EMAIL_FIELDS = {
@@ -63,6 +65,8 @@ function titleFor(kind: NotificationKind, actor: string | null): string {
       return `New message from ${a}`;
     case "event_starting":
       return `Event starting soon on HashChat`;
+    case "scheduled_post_published":
+      return `Your scheduled post is now live on HashChat`;
   }
 }
 

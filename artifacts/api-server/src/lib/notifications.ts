@@ -12,7 +12,8 @@ export type NotificationKind =
   | "reaction"
   | "follow"
   | "dm"
-  | "event_starting";
+  | "event_starting"
+  | "scheduled_post_published";
 
 export type NotificationTargetType =
   | "message"
