@@ -1,5 +1,5 @@
 import { Feather } from "@expo/vector-icons";
-import { useUser } from "@clerk/clerk-expo";
+import { useAuth, useUser } from "@clerk/clerk-expo";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef } from "react";
 import {
@@ -15,7 +15,9 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Avatar } from "@/components/Avatar";
+import { RemoteAudio } from "@/components/RemoteAudio";
 import { useColors } from "@/hooks/useColors";
+import { useGroupCall } from "@/hooks/useGroupCall";
 import {
   getGetCallQueryKey,
   useDemoteToListener,
@@ -41,6 +43,7 @@ export function VoiceRoomModal({ visible, callId, onClose, title }: Props) {
   const insets = useSafeAreaInsets();
   const qc = useQueryClient();
   const { user } = useUser();
+  const { isSignedIn } = useAuth();
   const meId = user?.id ?? "";
   const joinedRef = useRef(false);
 
@@ -101,6 +104,23 @@ export function VoiceRoomModal({ visible, callId, onClose, title }: Props) {
   const myRole = me?.role ?? "speaker";
   const handIsRaised = !!me?.handRaisedAt;
   const amHost = myRole === "host";
+  const amSpeaker = myRole === "speaker" || myRole === "host";
+
+  // Live audio: connects this device to other participants' WebRTC streams.
+  // Only enable once we know our role from the server (otherwise we'd briefly
+  // request mic permission as a default-speaker before being placed as a
+  // listener in voice rooms).
+  const groupCall = useGroupCall({
+    callId,
+    myUserId: meId,
+    enabled: visible && callId != null && !!isSignedIn && !!me,
+    isSpeaker: amSpeaker,
+    onEnd: () => {
+      // The call has ended on the server side — fall back to closing the
+      // modal so the user isn't stuck on a dead room.
+      handleHangup();
+    },
+  });
 
   const joined = call?.participants.filter((p) => p.state === "joined") ?? [];
   const speakers = joined.filter((p) => p.role !== "listener");
@@ -150,6 +170,12 @@ export function VoiceRoomModal({ visible, callId, onClose, title }: Props) {
           </Pressable>
         </View>
 
+        {/* Hidden audio sinks for each remote speaker (web only; native
+            auto-plays through the device output). */}
+        {groupCall.remotePeers.map((peer) => (
+          <RemoteAudio key={peer.userId} stream={peer.stream} />
+        ))}
+
         {!call ? (
           <View style={styles.center}>
             <ActivityIndicator color={colors.primary} />
@@ -165,6 +191,7 @@ export function VoiceRoomModal({ visible, callId, onClose, title }: Props) {
                   key={p.userId}
                   participant={p}
                   isMe={p.userId === meId}
+                  isMutedSelf={p.userId === meId && groupCall.muted}
                   canDemote={amHost && p.role !== "host" && p.userId !== meId}
                   onDemote={() =>
                     callId != null &&
@@ -196,10 +223,13 @@ export function VoiceRoomModal({ visible, callId, onClose, title }: Props) {
                 ))
               )}
             </View>
-            <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 16 }}>
-              Audio streaming is web-only for now — this screen lets you raise
-              your hand and let hosts promote you to speaker.
-            </Text>
+            {groupCall.error ? (
+              <Text style={{ color: colors.destructive, fontSize: 12, lineHeight: 16 }}>
+                {amSpeaker
+                  ? `Microphone unavailable: ${groupCall.error}. You can still hear others.`
+                  : `Audio error: ${groupCall.error}`}
+              </Text>
+            ) : null}
           </ScrollView>
         )}
 
@@ -246,23 +276,40 @@ export function VoiceRoomModal({ visible, callId, onClose, title }: Props) {
               </Text>
             </Pressable>
           ) : (
-            <View
+            <Pressable
+              onPress={groupCall.toggleMute}
+              disabled={!groupCall.ready}
               style={[
                 styles.bigBtn,
-                { backgroundColor: colors.muted, opacity: 0.7 },
+                {
+                  backgroundColor: groupCall.muted
+                    ? colors.destructive
+                    : colors.muted,
+                  opacity: groupCall.ready ? 1 : 0.6,
+                },
               ]}
             >
-              <Feather name="mic" size={18} color={colors.foreground} />
+              <Feather
+                name={groupCall.muted ? "mic-off" : "mic"}
+                size={18}
+                color={groupCall.muted ? "#fff" : colors.foreground}
+              />
               <Text
                 style={{
-                  color: colors.foreground,
+                  color: groupCall.muted ? "#fff" : colors.foreground,
                   fontFamily: "Inter_600SemiBold",
                   fontSize: 14,
                 }}
               >
-                {amHost ? "You are host" : "You are a speaker"}
+                {!groupCall.ready
+                  ? "Connecting…"
+                  : groupCall.muted
+                    ? "Unmute"
+                    : amHost
+                      ? "Mute (host)"
+                      : "Mute"}
               </Text>
-            </View>
+            </Pressable>
           )}
           <Pressable
             onPress={handleHangup}
@@ -279,11 +326,13 @@ export function VoiceRoomModal({ visible, callId, onClose, title }: Props) {
 function SpeakerTile({
   participant,
   isMe,
+  isMutedSelf,
   canDemote,
   onDemote,
 }: {
   participant: CallParticipant;
   isMe: boolean;
+  isMutedSelf: boolean;
   canDemote: boolean;
   onDemote: () => void;
 }) {
@@ -308,12 +357,12 @@ function SpeakerTile({
         </Text>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginTop: 2 }}>
           <Feather
-            name={isHost ? "radio" : "mic"}
+            name={isMutedSelf ? "mic-off" : isHost ? "radio" : "mic"}
             size={11}
             color={colors.mutedForeground}
           />
           <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>
-            {isHost ? "Host" : "Speaker"}
+            {isMutedSelf ? "Muted" : isHost ? "Host" : "Speaker"}
           </Text>
         </View>
       </View>
