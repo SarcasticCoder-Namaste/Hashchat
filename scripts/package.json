@@ -6,10 +6,13 @@
   "scripts": {
     "hello": "tsx ./src/hello.ts",
     "seed-stripe-products": "tsx ./src/seed-stripe-products.ts",
+    "backfill-post-and-follower-stats": "tsx ./src/backfill-post-and-follower-stats.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "devDependencies": {
     "@types/node": "catalog:",
+    "@types/pg": "^8.18.0",
+    "pg": "^8.20.0",
     "stripe": "^22.1.0",
     "tsx": "catalog:"
   }
