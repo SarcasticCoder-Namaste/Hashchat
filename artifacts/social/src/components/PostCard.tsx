@@ -51,6 +51,7 @@ import {
   Pin,
   PinOff,
   CornerUpLeft,
+  MessageCircle,
 } from "lucide-react";
 import { BookmarkButton } from "./BookmarkButton";
 import { GifMedia, isGifUrl } from "./GifMedia";
@@ -104,6 +105,7 @@ export function PostCard({ post, meId, onDeleted, onChanged, scope, canModerate 
   const [quoteOpen, setQuoteOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [statsOpen, setStatsOpen] = useState(false);
+  const [replyOpen, setReplyOpen] = useState(false);
   const articleRef = useRef<HTMLElement | null>(null);
   usePostImpression(articleRef, post.id, !!meId && !isMine);
   const [quotesListOpen, setQuotesListOpen] = useState(false);
@@ -522,6 +524,31 @@ export function PostCard({ post, meId, onDeleted, onChanged, scope, canModerate 
               <span className="font-medium">{r.count}</span>
             </button>
           ))}
+          <Link
+            href={`/app/post/${post.id}`}
+            className={[
+              "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs transition-colors",
+              post.replyCount > 0
+                ? "border-border bg-card text-muted-foreground hover:bg-accent"
+                : "border-border/60 bg-card text-muted-foreground/60 hover:bg-accent",
+            ].join(" ")}
+            data-testid={`button-post-reply-count-${post.id}`}
+            aria-label={`${post.replyCount} ${post.replyCount === 1 ? "reply" : "replies"}, view thread`}
+          >
+            <MessageCircle className="h-3 w-3" />
+            <span className="font-medium">{post.replyCount}</span>
+          </Link>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
+            onClick={() => setReplyOpen(true)}
+            data-testid={`button-post-reply-${post.id}`}
+            aria-label="Reply to post"
+          >
+            <CornerUpLeft className="mr-1 h-3 w-3" /> Reply
+          </Button>
           <button
             type="button"
             onClick={() => setQuotesListOpen(true)}
@@ -582,6 +609,38 @@ export function PostCard({ post, meId, onDeleted, onChanged, scope, canModerate 
             meId={meId}
             open={quotesListOpen}
             onChanged={onChanged}
+          />
+          <DialogFooter />
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={replyOpen} onOpenChange={setReplyOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Reply to @{post.author.username}</DialogTitle>
+          </DialogHeader>
+          <div
+            className="rounded-md border border-border bg-muted/30 p-2 text-xs text-muted-foreground"
+            data-testid={`reply-parent-preview-${post.id}`}
+          >
+            <span className="font-medium text-foreground">
+              {post.author.displayName}
+            </span>
+            <span className="ml-1 text-muted-foreground">
+              @{post.author.username}
+            </span>
+            <p className="mt-1 line-clamp-3 whitespace-pre-wrap break-words">
+              {post.content}
+            </p>
+          </div>
+          <PostComposer
+            placeholder={`Reply to @${post.author.username}…`}
+            replyToId={post.id}
+            onPosted={() => {
+              setReplyOpen(false);
+              onChanged?.();
+            }}
+            hideHistorySheets
           />
           <DialogFooter />
         </DialogContent>

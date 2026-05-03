@@ -55,6 +55,7 @@ import InviteRedeem from "@/pages/InviteRedeem";
 import AdminPanel from "@/pages/AdminPanel";
 import SearchResults from "@/pages/SearchResults";
 import Saved from "@/pages/Saved";
+import PostThread from "@/pages/PostThread";
 import Analytics from "@/pages/Analytics";
 import NotFound from "@/pages/not-found";
 import AppShell from "@/components/AppShell";
@@ -491,6 +492,13 @@ function ClerkProviderWithRoutes() {
             </Route>
             <Route path="/app/profile">
               <Redirect to="/app/settings" />
+            </Route>
+            <Route path="/app/post/:id">
+              {(params) => (
+                <ProtectedShell>
+                  <PostThread id={Number(params.id)} />
+                </ProtectedShell>
+              )}
             </Route>
             <Route path="/app/u/:username">
               {(params) => (

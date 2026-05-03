@@ -461,6 +461,7 @@ export const GetForYouFeedResponse = zod.object({
                 }),
               )
               .optional(),
+            replyCount: zod.number(),
             createdAt: zod.coerce.date(),
           }),
           zod.null(),
@@ -936,6 +937,7 @@ export const GetExploreResponse = zod.object({
             }),
           )
           .optional(),
+        replyCount: zod.number(),
         createdAt: zod.coerce.date(),
       }),
       engagement: zod.number(),
@@ -1030,6 +1032,7 @@ export const GetExploreResponse = zod.object({
                 }),
               )
               .optional(),
+            replyCount: zod.number(),
             createdAt: zod.coerce.date(),
           }),
           zod.null(),
@@ -1301,6 +1304,7 @@ export const GetHotInYourHashtagsResponseItem = zod.object({
         }),
       )
       .optional(),
+    replyCount: zod.number(),
     createdAt: zod.coerce.date(),
   }),
   engagement: zod.number(),
@@ -2530,6 +2534,9 @@ export const MuteConversationResponse = zod.object({
             zod.null(),
           ])
           .optional(),
+        pinnedAt: zod.coerce.date().nullish(),
+        lockedAt: zod.coerce.date().nullish(),
+        removedAt: zod.coerce.date().nullish(),
         createdAt: zod.coerce.date(),
         kind: zod.string().describe("user | system"),
       }),
@@ -2712,6 +2719,9 @@ export const UnmuteConversationResponse = zod.object({
             zod.null(),
           ])
           .optional(),
+        pinnedAt: zod.coerce.date().nullish(),
+        lockedAt: zod.coerce.date().nullish(),
+        removedAt: zod.coerce.date().nullish(),
         createdAt: zod.coerce.date(),
         kind: zod.string().describe("user | system"),
       }),
@@ -4597,6 +4607,97 @@ export const CreatePostBody = zod.object({
 });
 
 /**
+ * @summary Get a single post by id
+ */
+export const GetPostParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const GetPostResponse = zod.object({
+  id: zod.number(),
+  author: zod.object({
+    id: zod.string(),
+    username: zod.string(),
+    displayName: zod.string(),
+    avatarUrl: zod.string().nullish(),
+    animatedAvatarUrl: zod.string().nullish(),
+    discriminator: zod.string().nullish(),
+    role: zod.string(),
+    mvpPlan: zod.boolean(),
+    verified: zod.boolean(),
+    tier: zod.enum(["free", "premium", "pro"]).optional(),
+  }),
+  content: zod.string(),
+  hashtags: zod.array(zod.string()),
+  imageUrls: zod.array(zod.string()),
+  imageAlts: zod.array(zod.string()).optional(),
+  reactions: zod.array(
+    zod.object({
+      emoji: zod.string(),
+      count: zod.number(),
+      reactedByMe: zod.boolean(),
+    }),
+  ),
+  mentions: zod.array(
+    zod.object({
+      id: zod.string(),
+      username: zod.string(),
+      displayName: zod.string(),
+    }),
+  ),
+  status: zod.enum(["scheduled", "published"]),
+  scheduledFor: zod.coerce.date().nullish(),
+  editedAt: zod.coerce.date().nullish(),
+  editableUntil: zod.coerce.date().nullish(),
+  quotedPost: zod
+    .union([
+      zod.object({
+        id: zod.number(),
+        author: zod
+          .object({
+            id: zod.string(),
+            username: zod.string(),
+            displayName: zod.string(),
+            avatarUrl: zod.string().nullish(),
+            animatedAvatarUrl: zod.string().nullish(),
+            discriminator: zod.string().nullish(),
+            role: zod.string(),
+            mvpPlan: zod.boolean(),
+            verified: zod.boolean(),
+            tier: zod.enum(["free", "premium", "pro"]).optional(),
+          })
+          .optional(),
+        content: zod.string(),
+        imageUrls: zod.array(zod.string()),
+        imageAlts: zod.array(zod.string()).optional(),
+        createdAt: zod.coerce.date(),
+        unavailable: zod.boolean(),
+      }),
+      zod.null(),
+    ])
+    .optional(),
+  quoteCount: zod.number(),
+  isPinned: zod.boolean(),
+  pinnedAt: zod.coerce.date().nullish(),
+  replyToId: zod.number().nullish(),
+  replyToAuthorUsername: zod.string().nullish(),
+  replyToAuthorDisplayName: zod.string().nullish(),
+  replyToContent: zod.string().nullish(),
+  lockedAt: zod.coerce.date().nullish(),
+  removedAt: zod.coerce.date().nullish(),
+  pinnedInScopes: zod
+    .array(
+      zod.object({
+        scopeType: zod.enum(["room", "community"]),
+        scopeKey: zod.string(),
+      }),
+    )
+    .optional(),
+  replyCount: zod.number(),
+  createdAt: zod.coerce.date(),
+});
+
+/**
  * @summary Delete one of my posts
  */
 export const DeletePostParams = zod.object({
@@ -4696,8 +4797,107 @@ export const UpdatePostResponse = zod.object({
       }),
     )
     .optional(),
+  replyCount: zod.number(),
   createdAt: zod.coerce.date(),
 });
+
+/**
+ * @summary List replies to a post (oldest first)
+ */
+export const GetPostRepliesParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const getPostRepliesQueryLimitDefault = 50;
+
+export const GetPostRepliesQueryParams = zod.object({
+  limit: zod.coerce.number().default(getPostRepliesQueryLimitDefault),
+});
+
+export const GetPostRepliesResponseItem = zod.object({
+  id: zod.number(),
+  author: zod.object({
+    id: zod.string(),
+    username: zod.string(),
+    displayName: zod.string(),
+    avatarUrl: zod.string().nullish(),
+    animatedAvatarUrl: zod.string().nullish(),
+    discriminator: zod.string().nullish(),
+    role: zod.string(),
+    mvpPlan: zod.boolean(),
+    verified: zod.boolean(),
+    tier: zod.enum(["free", "premium", "pro"]).optional(),
+  }),
+  content: zod.string(),
+  hashtags: zod.array(zod.string()),
+  imageUrls: zod.array(zod.string()),
+  imageAlts: zod.array(zod.string()).optional(),
+  reactions: zod.array(
+    zod.object({
+      emoji: zod.string(),
+      count: zod.number(),
+      reactedByMe: zod.boolean(),
+    }),
+  ),
+  mentions: zod.array(
+    zod.object({
+      id: zod.string(),
+      username: zod.string(),
+      displayName: zod.string(),
+    }),
+  ),
+  status: zod.enum(["scheduled", "published"]),
+  scheduledFor: zod.coerce.date().nullish(),
+  editedAt: zod.coerce.date().nullish(),
+  editableUntil: zod.coerce.date().nullish(),
+  quotedPost: zod
+    .union([
+      zod.object({
+        id: zod.number(),
+        author: zod
+          .object({
+            id: zod.string(),
+            username: zod.string(),
+            displayName: zod.string(),
+            avatarUrl: zod.string().nullish(),
+            animatedAvatarUrl: zod.string().nullish(),
+            discriminator: zod.string().nullish(),
+            role: zod.string(),
+            mvpPlan: zod.boolean(),
+            verified: zod.boolean(),
+            tier: zod.enum(["free", "premium", "pro"]).optional(),
+          })
+          .optional(),
+        content: zod.string(),
+        imageUrls: zod.array(zod.string()),
+        imageAlts: zod.array(zod.string()).optional(),
+        createdAt: zod.coerce.date(),
+        unavailable: zod.boolean(),
+      }),
+      zod.null(),
+    ])
+    .optional(),
+  quoteCount: zod.number(),
+  isPinned: zod.boolean(),
+  pinnedAt: zod.coerce.date().nullish(),
+  replyToId: zod.number().nullish(),
+  replyToAuthorUsername: zod.string().nullish(),
+  replyToAuthorDisplayName: zod.string().nullish(),
+  replyToContent: zod.string().nullish(),
+  lockedAt: zod.coerce.date().nullish(),
+  removedAt: zod.coerce.date().nullish(),
+  pinnedInScopes: zod
+    .array(
+      zod.object({
+        scopeType: zod.enum(["room", "community"]),
+        scopeKey: zod.string(),
+      }),
+    )
+    .optional(),
+  replyCount: zod.number(),
+  createdAt: zod.coerce.date(),
+});
+export const GetPostRepliesResponse = zod.array(GetPostRepliesResponseItem);
 
 /**
  * @summary List posts that quote this post (paginated, newest first)
@@ -4793,6 +4993,7 @@ export const GetPostQuotesResponseItem = zod.object({
       }),
     )
     .optional(),
+  replyCount: zod.number(),
   createdAt: zod.coerce.date(),
 });
 export const GetPostQuotesResponse = zod.array(GetPostQuotesResponseItem);
@@ -5008,6 +5209,7 @@ export const GetMyScheduledPostsResponseItem = zod.object({
       }),
     )
     .optional(),
+  replyCount: zod.number(),
   createdAt: zod.coerce.date(),
 });
 export const GetMyScheduledPostsResponse = zod.array(
@@ -5166,6 +5368,7 @@ export const GetMyAnalyticsResponse = zod.object({
             }),
           )
           .optional(),
+        replyCount: zod.number(),
         createdAt: zod.coerce.date(),
       }),
       impressions: zod.number(),
@@ -5289,6 +5492,7 @@ export const GetRoomAnalyticsResponse = zod.object({
             }),
           )
           .optional(),
+        replyCount: zod.number(),
         createdAt: zod.coerce.date(),
       }),
       impressions: zod.number(),
@@ -5393,6 +5597,7 @@ export const GetMyFeedPostsResponseItem = zod.object({
       }),
     )
     .optional(),
+  replyCount: zod.number(),
   createdAt: zod.coerce.date(),
 });
 export const GetMyFeedPostsResponse = zod.array(GetMyFeedPostsResponseItem);
@@ -5496,6 +5701,7 @@ export const GetHashtagPostsResponseItem = zod.object({
       }),
     )
     .optional(),
+  replyCount: zod.number(),
   createdAt: zod.coerce.date(),
 });
 export const GetHashtagPostsResponse = zod.array(GetHashtagPostsResponseItem);
@@ -5604,6 +5810,7 @@ export const GetUserPostsResponseItem = zod.object({
       }),
     )
     .optional(),
+  replyCount: zod.number(),
   createdAt: zod.coerce.date(),
 });
 export const GetUserPostsResponse = zod.array(GetUserPostsResponseItem);
@@ -5695,6 +5902,7 @@ export const GetUserPinnedPostsResponseItem = zod.object({
       }),
     )
     .optional(),
+  replyCount: zod.number(),
   createdAt: zod.coerce.date(),
 });
 export const GetUserPinnedPostsResponse = zod.array(
@@ -7645,6 +7853,7 @@ export const GetRoomPinnedPostsResponseItem = zod.object({
       }),
     )
     .optional(),
+  replyCount: zod.number(),
   createdAt: zod.coerce.date(),
 });
 export const GetRoomPinnedPostsResponse = zod.array(
@@ -7735,6 +7944,7 @@ export const GetCommunityPinnedPostsResponseItem = zod.object({
       }),
     )
     .optional(),
+  replyCount: zod.number(),
   createdAt: zod.coerce.date(),
 });
 export const GetCommunityPinnedPostsResponse = zod.array(

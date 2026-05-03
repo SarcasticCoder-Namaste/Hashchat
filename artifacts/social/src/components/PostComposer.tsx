@@ -59,6 +59,8 @@ interface PostComposerProps {
   initialDraft?: PostDraft | null;
   onDismissDraft?: () => void;
   hideHistorySheets?: boolean;
+  replyToId?: number | null;
+  autoFocus?: boolean;
 }
 
 interface AttachedImage {
@@ -92,6 +94,8 @@ export function PostComposer({
   initialDraft = null,
   onDismissDraft,
   hideHistorySheets = false,
+  replyToId = null,
+  autoFocus = false,
 }: PostComposerProps) {
   const { t } = useTranslation();
   const qc = useQueryClient();
@@ -166,6 +170,7 @@ export function PostComposer({
   useEffect(() => {
     const trimmed = content.trim();
     if (!trimmed && images.length === 0 && !quoted) return;
+    if (replyToId != null) return;
     const imageUrls = images.map((i) => i.url);
     const imageAlts = images.map((i) => i.alt);
     const snapshot = JSON.stringify({
@@ -216,6 +221,7 @@ export function PostComposer({
       hashtags: hashtagsForBody,
       quotedPostId: quoted?.id ?? null,
       fromDraftId: draftId,
+      replyToId: replyToId ?? null,
     };
     create.mutate({ data: body });
   }

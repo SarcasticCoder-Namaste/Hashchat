@@ -1157,6 +1157,7 @@ export interface Post {
   /** @nullable */
   removedAt?: string | null;
   pinnedInScopes?: PostPinnedInScopesItem[];
+  replyCount: number;
   createdAt: string;
 }
 
@@ -1976,6 +1977,10 @@ export type GetFollowSuggestionsParams = {
    * If provided, suggest people similar to this user.
    */
   username?: string;
+};
+
+export type GetPostRepliesParams = {
+  limit?: number;
 };
 
 export type GetPostQuotesParams = {

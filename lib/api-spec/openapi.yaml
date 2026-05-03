@@ -1591,6 +1591,19 @@ paths:
               schema: { $ref: "#/components/schemas/Post" }
 
   /posts/{id}:
+    get:
+      operationId: getPost
+      tags: [posts]
+      summary: Get a single post by id
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Post" }
+        "404": { description: Not found }
     delete:
       operationId: deletePost
       tags: [posts]
@@ -1616,6 +1629,23 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/Post" }
+
+  /posts/{id}/replies:
+    get:
+      operationId: getPostReplies
+      tags: [posts]
+      summary: List replies to a post (oldest first)
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+        - { name: limit, in: query, required: false, schema: { type: integer, default: 50 } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Post" }
 
   /posts/{id}/quotes:
     get:
@@ -4075,8 +4105,9 @@ components:
               scopeType: { type: string, enum: [room, community] }
               scopeKey: { type: string }
             required: [scopeType, scopeKey]
+        replyCount: { type: integer }
         createdAt: { type: string, format: date-time }
-      required: [id, author, content, hashtags, imageUrls, reactions, mentions, status, quoteCount, isPinned, createdAt]
+      required: [id, author, content, hashtags, imageUrls, reactions, mentions, status, quoteCount, replyCount, isPinned, createdAt]
 
     QuotedPost:
       type: object

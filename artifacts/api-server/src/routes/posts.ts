@@ -316,6 +316,25 @@ async function buildPosts(rows: PostRow[], myUserId: string) {
     if (r.quotedPostId != null) quoteCountByPost.set(r.quotedPostId, r.count);
   }
 
+  const replyCountRows = await db
+    .select({
+      replyToId: postsTable.replyToId,
+      count: sql<number>`count(*)::int`,
+    })
+    .from(postsTable)
+    .where(
+      and(
+        inArray(postsTable.replyToId, ids),
+        isNull(postsTable.deletedAt),
+        eq(postsTable.status, "published"),
+      ),
+    )
+    .groupBy(postsTable.replyToId);
+  const replyCountByPost = new Map<number, number>();
+  for (const r of replyCountRows) {
+    if (r.replyToId != null) replyCountByPost.set(r.replyToId, r.count);
+  }
+
   const replyToIds = Array.from(
     new Set(rows.map((r) => r.replyToId).filter((x): x is number => x != null)),
   );
@@ -380,6 +399,7 @@ async function buildPosts(rows: PostRow[], myUserId: string) {
       quotedPost:
         r.quotedPostId != null ? quotedMap.get(r.quotedPostId) ?? null : null,
       quoteCount: quoteCountByPost.get(r.id) ?? 0,
+      replyCount: replyCountByPost.get(r.id) ?? 0,
       isPinned: r.isPinned,
       pinnedAt: r.pinnedAt ? r.pinnedAt.toISOString() : null,
       replyToId: r.replyToId,
@@ -498,17 +518,28 @@ router.post("/posts", requireAuth, async (req, res): Promise<void> => {
   }
 
   let replyToId: number | null = null;
+  let replyParentAuthorId: string | null = null;
   if (parsed.data.replyToId != null) {
     const [parent] = await db
-      .select({ id: postsTable.id, deletedAt: postsTable.deletedAt })
+      .select({
+        id: postsTable.id,
+        deletedAt: postsTable.deletedAt,
+        authorId: postsTable.authorId,
+        status: postsTable.status,
+      })
       .from(postsTable)
       .where(eq(postsTable.id, parsed.data.replyToId))
       .limit(1);
-    if (!parent || parent.deletedAt) {
+    if (!parent || parent.deletedAt || parent.status !== "published") {
       res.status(400).json({ error: "Invalid replyToId" });
       return;
     }
+    if (await isBlockedEitherWay(me, parent.authorId)) {
+      res.status(403).json({ error: "Cannot reply to this post" });
+      return;
+    }
     replyToId = parent.id;
+    replyParentAuthorId = parent.authorId;
   }
 
   const [created] = await db
@@ -545,11 +576,27 @@ router.post("/posts", requireAuth, async (req, res): Promise<void> => {
       targetId: created.id,
       resolved,
     });
+    const mentionedIds = new Set(recorded.map((u) => u.id));
     for (const u of recorded) {
       await createNotification({
         recipientId: u.id,
         actorId: me,
         kind: "mention",
+        targetType: "post",
+        targetId: created.id,
+        snippet: content.slice(0, 200),
+      });
+    }
+    if (
+      replyToId != null &&
+      replyParentAuthorId != null &&
+      replyParentAuthorId !== me &&
+      !mentionedIds.has(replyParentAuthorId)
+    ) {
+      await createNotification({
+        recipientId: replyParentAuthorId,
+        actorId: me,
+        kind: "reply",
         targetType: "post",
         targetId: created.id,
         snippet: content.slice(0, 200),
@@ -683,6 +730,77 @@ router.get(
         editedAt: r.editedAt.toISOString(),
       })),
     );
+  },
+);
+
+router.get("/posts/:id", requireAuth, async (req, res): Promise<void> => {
+  const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const id = parseInt(raw, 10);
+  if (Number.isNaN(id)) {
+    res.status(400).json({ error: "Invalid id" });
+    return;
+  }
+  const me = getUserId(req);
+  const [row] = await db
+    .select()
+    .from(postsTable)
+    .where(eq(postsTable.id, id))
+    .limit(1);
+  if (!row || row.deletedAt || row.status !== "published") {
+    res.status(404).json({ error: "Not found" });
+    return;
+  }
+  if (await isBlockedEitherWay(me, row.authorId)) {
+    res.status(404).json({ error: "Not found" });
+    return;
+  }
+  const [built] = await buildPosts([row], me);
+  res.json(built);
+});
+
+router.get(
+  "/posts/:id/replies",
+  requireAuth,
+  async (req, res): Promise<void> => {
+    const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    const id = parseInt(raw, 10);
+    if (Number.isNaN(id)) {
+      res.status(400).json({ error: "Invalid id" });
+      return;
+    }
+    const me = getUserId(req);
+    const rawLimit = Array.isArray(req.query.limit)
+      ? req.query.limit[0]
+      : req.query.limit;
+    let limit = 50;
+    if (typeof rawLimit === "string" && rawLimit.length > 0) {
+      const parsed = parseInt(rawLimit, 10);
+      if (Number.isNaN(parsed) || parsed < 1) {
+        res.status(400).json({ error: "Invalid 'limit'" });
+        return;
+      }
+      limit = Math.min(parsed, 200);
+    }
+    const rows = await db
+      .select()
+      .from(postsTable)
+      .where(
+        and(
+          eq(postsTable.replyToId, id),
+          isNull(postsTable.deletedAt),
+          eq(postsTable.status, "published"),
+        ),
+      )
+      .orderBy(postsTable.createdAt)
+      .limit(limit);
+    const built = await buildPosts(rows, me);
+    const blockChecks = await Promise.all(
+      built.map(async (p) => [p.id, await isBlockedEitherWay(me, p.author.id)] as const),
+    );
+    const blockedSet = new Set(
+      blockChecks.filter(([, b]) => b).map(([pid]) => pid),
+    );
+    res.json(built.filter((p) => !blockedSet.has(p.id)));
   },
 );
 

@@ -66,6 +66,7 @@ import type {
   GetMyFeedPostsParams,
   GetNotificationsParams,
   GetPostQuotesParams,
+  GetPostRepliesParams,
   GetRecentGifsParams,
   GetRoomAnalyticsParams,
   GetTrendingEventsParams,
@@ -9505,6 +9506,83 @@ export const useCreatePost = <
 };
 
 /**
+ * @summary Get a single post by id
+ */
+export const getGetPostUrl = (id: number) => {
+  return `/api/posts/${id}`;
+};
+
+export const getPost = async (
+  id: number,
+  options?: RequestInit,
+): Promise<Post> => {
+  return customFetch<Post>(getGetPostUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetPostQueryKey = (id: number) => {
+  return [`/api/posts/${id}`] as const;
+};
+
+export const getGetPostQueryOptions = <
+  TData = Awaited<ReturnType<typeof getPost>>,
+  TError = ErrorType<void>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<Awaited<ReturnType<typeof getPost>>, TError, TData>;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetPostQueryKey(id);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getPost>>> = ({
+    signal,
+  }) => getPost(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof getPost>>, TError, TData> & {
+    queryKey: QueryKey;
+  };
+};
+
+export type GetPostQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getPost>>
+>;
+export type GetPostQueryError = ErrorType<void>;
+
+/**
+ * @summary Get a single post by id
+ */
+
+export function useGetPost<
+  TData = Awaited<ReturnType<typeof getPost>>,
+  TError = ErrorType<void>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<Awaited<ReturnType<typeof getPost>>, TError, TData>;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetPostQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
  * @summary Delete one of my posts
  */
 export const getDeletePostUrl = (id: number) => {
@@ -9674,6 +9752,115 @@ export const useUpdatePost = <
 > => {
   return useMutation(getUpdatePostMutationOptions(options));
 };
+
+/**
+ * @summary List replies to a post (oldest first)
+ */
+export const getGetPostRepliesUrl = (
+  id: number,
+  params?: GetPostRepliesParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/posts/${id}/replies?${stringifiedParams}`
+    : `/api/posts/${id}/replies`;
+};
+
+export const getPostReplies = async (
+  id: number,
+  params?: GetPostRepliesParams,
+  options?: RequestInit,
+): Promise<Post[]> => {
+  return customFetch<Post[]>(getGetPostRepliesUrl(id, params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetPostRepliesQueryKey = (
+  id: number,
+  params?: GetPostRepliesParams,
+) => {
+  return [`/api/posts/${id}/replies`, ...(params ? [params] : [])] as const;
+};
+
+export const getGetPostRepliesQueryOptions = <
+  TData = Awaited<ReturnType<typeof getPostReplies>>,
+  TError = ErrorType<unknown>,
+>(
+  id: number,
+  params?: GetPostRepliesParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getPostReplies>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetPostRepliesQueryKey(id, params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getPostReplies>>> = ({
+    signal,
+  }) => getPostReplies(id, params, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getPostReplies>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetPostRepliesQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getPostReplies>>
+>;
+export type GetPostRepliesQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List replies to a post (oldest first)
+ */
+
+export function useGetPostReplies<
+  TData = Awaited<ReturnType<typeof getPostReplies>>,
+  TError = ErrorType<unknown>,
+>(
+  id: number,
+  params?: GetPostRepliesParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getPostReplies>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetPostRepliesQueryOptions(id, params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
 
 /**
  * @summary List posts that quote this post (paginated, newest first)
