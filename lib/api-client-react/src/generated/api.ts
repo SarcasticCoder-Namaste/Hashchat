@@ -59,6 +59,7 @@ import type {
   GetMyBookmarksParams,
   GetMyFeedPostsParams,
   GetNotificationsParams,
+  GetPostQuotesParams,
   GetRecentGifsParams,
   GetRoomAnalyticsParams,
   GetTrendingEventsParams,
@@ -9063,6 +9064,115 @@ export const useUpdatePost = <
 > => {
   return useMutation(getUpdatePostMutationOptions(options));
 };
+
+/**
+ * @summary List posts that quote this post (paginated, newest first)
+ */
+export const getGetPostQuotesUrl = (
+  id: number,
+  params?: GetPostQuotesParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/posts/${id}/quotes?${stringifiedParams}`
+    : `/api/posts/${id}/quotes`;
+};
+
+export const getPostQuotes = async (
+  id: number,
+  params?: GetPostQuotesParams,
+  options?: RequestInit,
+): Promise<Post[]> => {
+  return customFetch<Post[]>(getGetPostQuotesUrl(id, params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetPostQuotesQueryKey = (
+  id: number,
+  params?: GetPostQuotesParams,
+) => {
+  return [`/api/posts/${id}/quotes`, ...(params ? [params] : [])] as const;
+};
+
+export const getGetPostQuotesQueryOptions = <
+  TData = Awaited<ReturnType<typeof getPostQuotes>>,
+  TError = ErrorType<unknown>,
+>(
+  id: number,
+  params?: GetPostQuotesParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getPostQuotes>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetPostQuotesQueryKey(id, params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getPostQuotes>>> = ({
+    signal,
+  }) => getPostQuotes(id, params, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getPostQuotes>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetPostQuotesQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getPostQuotes>>
+>;
+export type GetPostQuotesQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List posts that quote this post (paginated, newest first)
+ */
+
+export function useGetPostQuotes<
+  TData = Awaited<ReturnType<typeof getPostQuotes>>,
+  TError = ErrorType<unknown>,
+>(
+  id: number,
+  params?: GetPostQuotesParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getPostQuotes>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetPostQuotesQueryOptions(id, params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
 
 /**
  * @summary List edit history for a post (newest first)

@@ -7,6 +7,8 @@ import {
   useUpdatePost,
   useGetPostEdits,
   getGetPostEditsQueryKey,
+  useGetPostQuotes,
+  getGetPostQuotesQueryKey,
   type Post,
   type QuotedPost,
 } from "@workspace/api-client-react";
@@ -80,6 +82,7 @@ export function PostCard({ post, meId, onDeleted, onChanged }: PostCardProps) {
   const [statsOpen, setStatsOpen] = useState(false);
   const articleRef = useRef<HTMLElement | null>(null);
   usePostImpression(articleRef, post.id, !!meId && !isMine);
+  const [quotesListOpen, setQuotesListOpen] = useState(false);
 
   useEffect(() => {
     setEditText(post.content);
@@ -372,6 +375,22 @@ export function PostCard({ post, meId, onDeleted, onChanged }: PostCardProps) {
               <span className="font-medium">{r.count}</span>
             </button>
           ))}
+          <button
+            type="button"
+            onClick={() => setQuotesListOpen(true)}
+            disabled={post.quoteCount === 0}
+            className={[
+              "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs transition-colors",
+              post.quoteCount > 0
+                ? "border-border bg-card text-muted-foreground hover:bg-accent"
+                : "border-border/60 bg-card text-muted-foreground/60 cursor-default",
+            ].join(" ")}
+            data-testid={`button-post-quote-count-${post.id}`}
+            aria-label={`${post.quoteCount} quote${post.quoteCount === 1 ? "" : "s"}`}
+          >
+            <Quote className="h-3 w-3" />
+            <span className="font-medium">{post.quoteCount}</span>
+          </button>
           <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
             <PopoverTrigger asChild>
               <Button
@@ -406,6 +425,21 @@ export function PostCard({ post, meId, onDeleted, onChanged }: PostCardProps) {
         </div>
       </div>
 
+      <Dialog open={quotesListOpen} onOpenChange={setQuotesListOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Quotes</DialogTitle>
+          </DialogHeader>
+          <PostQuotesList
+            postId={post.id}
+            meId={meId}
+            open={quotesListOpen}
+            onChanged={onChanged}
+          />
+          <DialogFooter />
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={quoteOpen} onOpenChange={setQuoteOpen}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
@@ -432,6 +466,55 @@ export function PostCard({ post, meId, onDeleted, onChanged }: PostCardProps) {
         />
       )}
     </article>
+  );
+}
+
+function PostQuotesList({
+  postId,
+  meId,
+  open,
+  onChanged,
+}: {
+  postId: number;
+  meId: string | null;
+  open: boolean;
+  onChanged?: () => void;
+}) {
+  const q = useGetPostQuotes(
+    postId,
+    {},
+    {
+      query: {
+        queryKey: getGetPostQuotesQueryKey(postId, {}),
+        enabled: open,
+      },
+    },
+  );
+  const quotes = q.data ?? [];
+  return (
+    <div
+      className="max-h-[60vh] space-y-2 overflow-y-auto"
+      data-testid={`quotes-list-${postId}`}
+    >
+      {q.isLoading ? (
+        <div className="flex justify-center py-6">
+          <Loader2 className="h-4 w-4 animate-spin text-muted-foreground/70" />
+        </div>
+      ) : quotes.length === 0 ? (
+        <p className="py-6 text-center text-sm text-muted-foreground">
+          No quotes yet.
+        </p>
+      ) : (
+        quotes.map((p) => (
+          <PostCard
+            key={p.id}
+            post={p}
+            meId={meId}
+            onChanged={onChanged}
+          />
+        ))
+      )}
+    </div>
   );
 }
 

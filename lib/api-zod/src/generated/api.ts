@@ -440,6 +440,7 @@ export const GetForYouFeedResponseItem = zod.object({
             zod.null(),
           ])
           .optional(),
+        quoteCount: zod.number(),
         createdAt: zod.coerce.date(),
       }),
       zod.null(),
@@ -877,6 +878,7 @@ export const GetExploreResponse = zod.object({
             zod.null(),
           ])
           .optional(),
+        quoteCount: zod.number(),
         createdAt: zod.coerce.date(),
       }),
       engagement: zod.number(),
@@ -954,6 +956,7 @@ export const GetExploreResponse = zod.object({
                 zod.null(),
               ])
               .optional(),
+            quoteCount: zod.number(),
             createdAt: zod.coerce.date(),
           }),
           zod.null(),
@@ -1204,6 +1207,7 @@ export const GetHotInYourHashtagsResponseItem = zod.object({
         zod.null(),
       ])
       .optional(),
+    quoteCount: zod.number(),
     createdAt: zod.coerce.date(),
   }),
   engagement: zod.number(),
@@ -3697,8 +3701,91 @@ export const UpdatePostResponse = zod.object({
       zod.null(),
     ])
     .optional(),
+  quoteCount: zod.number(),
   createdAt: zod.coerce.date(),
 });
+
+/**
+ * @summary List posts that quote this post (paginated, newest first)
+ */
+export const GetPostQuotesParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const getPostQuotesQueryLimitDefault = 30;
+
+export const GetPostQuotesQueryParams = zod.object({
+  before: zod.date().optional(),
+  limit: zod.coerce.number().default(getPostQuotesQueryLimitDefault),
+});
+
+export const GetPostQuotesResponseItem = zod.object({
+  id: zod.number(),
+  author: zod.object({
+    id: zod.string(),
+    username: zod.string(),
+    displayName: zod.string(),
+    avatarUrl: zod.string().nullish(),
+    animatedAvatarUrl: zod.string().nullish(),
+    discriminator: zod.string().nullish(),
+    role: zod.string(),
+    mvpPlan: zod.boolean(),
+    verified: zod.boolean(),
+    tier: zod.enum(["free", "premium", "pro"]).optional(),
+  }),
+  content: zod.string(),
+  hashtags: zod.array(zod.string()),
+  imageUrls: zod.array(zod.string()),
+  imageAlts: zod.array(zod.string()).optional(),
+  reactions: zod.array(
+    zod.object({
+      emoji: zod.string(),
+      count: zod.number(),
+      reactedByMe: zod.boolean(),
+    }),
+  ),
+  mentions: zod.array(
+    zod.object({
+      id: zod.string(),
+      username: zod.string(),
+      displayName: zod.string(),
+    }),
+  ),
+  status: zod.enum(["scheduled", "published"]),
+  scheduledFor: zod.coerce.date().nullish(),
+  editedAt: zod.coerce.date().nullish(),
+  editableUntil: zod.coerce.date().nullish(),
+  quotedPost: zod
+    .union([
+      zod.object({
+        id: zod.number(),
+        author: zod
+          .object({
+            id: zod.string(),
+            username: zod.string(),
+            displayName: zod.string(),
+            avatarUrl: zod.string().nullish(),
+            animatedAvatarUrl: zod.string().nullish(),
+            discriminator: zod.string().nullish(),
+            role: zod.string(),
+            mvpPlan: zod.boolean(),
+            verified: zod.boolean(),
+            tier: zod.enum(["free", "premium", "pro"]).optional(),
+          })
+          .optional(),
+        content: zod.string(),
+        imageUrls: zod.array(zod.string()),
+        imageAlts: zod.array(zod.string()).optional(),
+        createdAt: zod.coerce.date(),
+        unavailable: zod.boolean(),
+      }),
+      zod.null(),
+    ])
+    .optional(),
+  quoteCount: zod.number(),
+  createdAt: zod.coerce.date(),
+});
+export const GetPostQuotesResponse = zod.array(GetPostQuotesResponseItem);
 
 /**
  * @summary List edit history for a post (newest first)
@@ -3894,6 +3981,7 @@ export const GetMyScheduledPostsResponseItem = zod.object({
       zod.null(),
     ])
     .optional(),
+  quoteCount: zod.number(),
   createdAt: zod.coerce.date(),
 });
 export const GetMyScheduledPostsResponse = zod.array(
@@ -3989,6 +4077,7 @@ export const GetMyAnalyticsResponse = zod.object({
         content: zod.string(),
         hashtags: zod.array(zod.string()),
         imageUrls: zod.array(zod.string()),
+        imageAlts: zod.array(zod.string()).optional(),
         reactions: zod.array(
           zod.object({
             emoji: zod.string(),
@@ -4027,12 +4116,14 @@ export const GetMyAnalyticsResponse = zod.object({
                 .optional(),
               content: zod.string(),
               imageUrls: zod.array(zod.string()),
+              imageAlts: zod.array(zod.string()).optional(),
               createdAt: zod.coerce.date(),
               unavailable: zod.boolean(),
             }),
             zod.null(),
           ])
           .optional(),
+        quoteCount: zod.number(),
         createdAt: zod.coerce.date(),
       }),
       impressions: zod.number(),
@@ -4093,6 +4184,7 @@ export const GetRoomAnalyticsResponse = zod.object({
         content: zod.string(),
         hashtags: zod.array(zod.string()),
         imageUrls: zod.array(zod.string()),
+        imageAlts: zod.array(zod.string()).optional(),
         reactions: zod.array(
           zod.object({
             emoji: zod.string(),
@@ -4131,12 +4223,14 @@ export const GetRoomAnalyticsResponse = zod.object({
                 .optional(),
               content: zod.string(),
               imageUrls: zod.array(zod.string()),
+              imageAlts: zod.array(zod.string()).optional(),
               createdAt: zod.coerce.date(),
               unavailable: zod.boolean(),
             }),
             zod.null(),
           ])
           .optional(),
+        quoteCount: zod.number(),
         createdAt: zod.coerce.date(),
       }),
       impressions: zod.number(),
@@ -4224,6 +4318,7 @@ export const GetMyFeedPostsResponseItem = zod.object({
       zod.null(),
     ])
     .optional(),
+  quoteCount: zod.number(),
   createdAt: zod.coerce.date(),
 });
 export const GetMyFeedPostsResponse = zod.array(GetMyFeedPostsResponseItem);
@@ -4310,6 +4405,7 @@ export const GetHashtagPostsResponseItem = zod.object({
       zod.null(),
     ])
     .optional(),
+  quoteCount: zod.number(),
   createdAt: zod.coerce.date(),
 });
 export const GetHashtagPostsResponse = zod.array(GetHashtagPostsResponseItem);
@@ -4396,6 +4492,7 @@ export const GetUserPostsResponseItem = zod.object({
       zod.null(),
     ])
     .optional(),
+  quoteCount: zod.number(),
   createdAt: zod.coerce.date(),
 });
 export const GetUserPostsResponse = zod.array(GetUserPostsResponseItem);

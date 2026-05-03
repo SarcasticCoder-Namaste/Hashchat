@@ -288,6 +288,25 @@ async function buildPosts(rows: PostRow[], myUserId: string) {
   );
   const quotedMap = await loadQuotedPosts(quotedIds, myUserId);
 
+  const quoteCountRows = await db
+    .select({
+      quotedPostId: postsTable.quotedPostId,
+      count: sql<number>`count(*)::int`,
+    })
+    .from(postsTable)
+    .where(
+      and(
+        inArray(postsTable.quotedPostId, ids),
+        isNull(postsTable.deletedAt),
+        eq(postsTable.status, "published"),
+      ),
+    )
+    .groupBy(postsTable.quotedPostId);
+  const quoteCountByPost = new Map<number, number>();
+  for (const r of quoteCountRows) {
+    if (r.quotedPostId != null) quoteCountByPost.set(r.quotedPostId, r.count);
+  }
+
   return rows.map((r) => {
     const a = authorMap.get(r.authorId);
     const eu = editableUntil(r);
@@ -306,6 +325,7 @@ async function buildPosts(rows: PostRow[], myUserId: string) {
       editableUntil: eu ? eu.toISOString() : null,
       quotedPost:
         r.quotedPostId != null ? quotedMap.get(r.quotedPostId) ?? null : null,
+      quoteCount: quoteCountByPost.get(r.id) ?? 0,
       createdAt: r.createdAt.toISOString(),
     };
   });
@@ -693,6 +713,40 @@ router.get(
       })
       .from(postsTable)
       .innerJoin(postHashtagsTable, eq(postHashtagsTable.postId, postsTable.id))
+      .where(and(...conditions))
+      .orderBy(desc(postsTable.createdAt))
+      .limit(pag.limit);
+    res.json(await buildPosts(rows, me));
+  },
+);
+
+router.get(
+  "/posts/:id/quotes",
+  requireAuth,
+  async (req, res): Promise<void> => {
+    const me = getUserId(req);
+    const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    const id = parseInt(raw, 10);
+    if (Number.isNaN(id)) {
+      res.status(400).json({ error: "Invalid id" });
+      return;
+    }
+    const pag = parsePagination(req);
+    if ("error" in pag) {
+      res.status(400).json({ error: pag.error });
+      return;
+    }
+    const conditions = [
+      eq(postsTable.quotedPostId, id),
+      sql`${postsTable.deletedAt} IS NULL`,
+      eq(postsTable.status, "published"),
+    ];
+    if (pag.before) {
+      conditions.push(lt(postsTable.createdAt, pag.before));
+    }
+    const rows = await db
+      .select()
+      .from(postsTable)
       .where(and(...conditions))
       .orderBy(desc(postsTable.createdAt))
       .limit(pag.limit);

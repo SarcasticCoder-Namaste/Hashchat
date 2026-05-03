@@ -1513,6 +1513,24 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/Post" }
 
+  /posts/{id}/quotes:
+    get:
+      operationId: getPostQuotes
+      tags: [posts]
+      summary: List posts that quote this post (paginated, newest first)
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+        - { name: before, in: query, required: false, schema: { type: string, format: date-time } }
+        - { name: limit, in: query, required: false, schema: { type: integer, default: 30 } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Post" }
+
   /posts/{id}/edits:
     get:
       operationId: getPostEdits
@@ -3504,8 +3522,9 @@ components:
           oneOf:
             - { $ref: "#/components/schemas/QuotedPost" }
             - type: "null"
+        quoteCount: { type: integer }
         createdAt: { type: string, format: date-time }
-      required: [id, author, content, hashtags, imageUrls, reactions, mentions, status, createdAt]
+      required: [id, author, content, hashtags, imageUrls, reactions, mentions, status, quoteCount, createdAt]
 
     QuotedPost:
       type: object

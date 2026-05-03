@@ -1021,6 +1021,7 @@ export interface Post {
   /** @nullable */
   editableUntil?: string | null;
   quotedPost?: QuotedPost | null;
+  quoteCount: number;
   createdAt: string;
 }
 
@@ -1685,6 +1686,11 @@ export type GetFollowSuggestionsParams = {
    * If provided, suggest people similar to this user.
    */
   username?: string;
+};
+
+export type GetPostQuotesParams = {
+  before?: string;
+  limit?: number;
 };
 
 export type GetMyAnalyticsParams = {
