@@ -4348,10 +4348,17 @@ export const UnblockUserParams = zod.object({
 });
 
 /**
- * @summary Mute a user (hide from feeds)
+ * @summary Mute a user globally (hide from feeds)
  */
 export const MuteUserParams = zod.object({
   id: zod.coerce.string(),
+});
+
+export const MuteUserBody = zod.object({
+  durationHours: zod
+    .number()
+    .nullish()
+    .describe("How long the mute should last. null or 0 means forever."),
 });
 
 /**
@@ -4362,10 +4369,40 @@ export const UnmuteUserParams = zod.object({
 });
 
 /**
- * @summary Mute a hashtag (hide from feeds & trending)
+ * @summary Mute a user only inside a single room (no global block)
+ */
+export const MuteUserInRoomParams = zod.object({
+  tag: zod.coerce.string(),
+  id: zod.coerce.string(),
+});
+
+export const MuteUserInRoomBody = zod.object({
+  durationHours: zod
+    .number()
+    .nullish()
+    .describe("How long the mute should last. null or 0 means forever."),
+});
+
+/**
+ * @summary Remove a per-room user mute
+ */
+export const UnmuteUserInRoomParams = zod.object({
+  tag: zod.coerce.string(),
+  id: zod.coerce.string(),
+});
+
+/**
+ * @summary Mute a hashtag (hide from feeds & trending) for a chosen duration
  */
 export const MuteHashtagParams = zod.object({
   tag: zod.coerce.string(),
+});
+
+export const MuteHashtagBody = zod.object({
+  durationHours: zod
+    .number()
+    .nullish()
+    .describe("How long the mute should last. null or 0 means forever."),
 });
 
 /**
@@ -4373,6 +4410,52 @@ export const MuteHashtagParams = zod.object({
  */
 export const UnmuteHashtagParams = zod.object({
   tag: zod.coerce.string(),
+});
+
+/**
+ * @summary AI hashtag suggestions for draft text
+ */
+export const suggestHashtagsBodyMaxDefault = 5;
+export const suggestHashtagsBodyMaxMax = 8;
+
+export const SuggestHashtagsBody = zod.object({
+  text: zod.string(),
+  max: zod
+    .number()
+    .min(1)
+    .max(suggestHashtagsBodyMaxMax)
+    .default(suggestHashtagsBodyMaxDefault),
+});
+
+export const SuggestHashtagsResponse = zod.object({
+  tags: zod.array(zod.string()),
+});
+
+/**
+ * @summary AI summary of recent activity in a room ("Catch me up")
+ */
+export const GetRoomSummaryParams = zod.object({
+  tag: zod.coerce.string(),
+});
+
+export const getRoomSummaryQueryHoursDefault = 24;
+export const getRoomSummaryQueryHoursMax = 168;
+
+export const GetRoomSummaryQueryParams = zod.object({
+  hours: zod.coerce
+    .number()
+    .min(1)
+    .max(getRoomSummaryQueryHoursMax)
+    .default(getRoomSummaryQueryHoursDefault),
+});
+
+export const GetRoomSummaryResponse = zod.object({
+  roomTag: zod.string(),
+  summary: zod.string(),
+  hours: zod.number(),
+  messageCount: zod.number(),
+  generatedAt: zod.coerce.date(),
+  cached: zod.boolean(),
 });
 
 /**
@@ -4397,6 +4480,11 @@ export const GetMyBlocksAndMutesResponse = zod.object({
       avatarUrl: zod.string().nullish(),
       discriminator: zod.string().nullish(),
       actedAt: zod.coerce.date(),
+      expiresAt: zod.coerce.date().nullish(),
+      roomTag: zod
+        .string()
+        .nullish()
+        .describe("If set, this mute only applies inside this room."),
     }),
   ),
   muted: zod.array(
@@ -4407,12 +4495,33 @@ export const GetMyBlocksAndMutesResponse = zod.object({
       avatarUrl: zod.string().nullish(),
       discriminator: zod.string().nullish(),
       actedAt: zod.coerce.date(),
+      expiresAt: zod.coerce.date().nullish(),
+      roomTag: zod
+        .string()
+        .nullish()
+        .describe("If set, this mute only applies inside this room."),
+    }),
+  ),
+  roomMutedUsers: zod.array(
+    zod.object({
+      id: zod.string(),
+      username: zod.string(),
+      displayName: zod.string(),
+      avatarUrl: zod.string().nullish(),
+      discriminator: zod.string().nullish(),
+      actedAt: zod.coerce.date(),
+      expiresAt: zod.coerce.date().nullish(),
+      roomTag: zod
+        .string()
+        .nullish()
+        .describe("If set, this mute only applies inside this room."),
     }),
   ),
   mutedHashtags: zod.array(
     zod.object({
       tag: zod.string(),
       actedAt: zod.coerce.date(),
+      expiresAt: zod.coerce.date().nullish(),
     }),
   ),
 });

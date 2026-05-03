@@ -1848,6 +1848,7 @@ function BlocksMutesTab() {
     },
   });
   const [tagInput, setTagInput] = useState("");
+  const [muteHours, setMuteHours] = useState<number | null>(null);
   const muteTag = useMuteHashtag({
     mutation: {
       onSuccess: () => {
@@ -1872,8 +1873,29 @@ function BlocksMutesTab() {
   const handleMuteTag = (e: React.FormEvent) => {
     e.preventDefault();
     if (!normalizedTag || muteTag.isPending) return;
-    muteTag.mutate({ tag: normalizedTag });
+    muteTag.mutate({
+      tag: normalizedTag,
+      data: { durationHours: muteHours },
+    });
   };
+
+  function formatExpiry(expiresAt: string | null | undefined): string | null {
+    if (!expiresAt) return null;
+    const ms = new Date(expiresAt).getTime() - Date.now();
+    if (!Number.isFinite(ms) || ms <= 0) return "expired";
+    const mins = Math.round(ms / 60000);
+    if (mins < 60) return `${mins}m left`;
+    const hrs = Math.round(mins / 60);
+    if (hrs < 48) return `${hrs}h left`;
+    const days = Math.round(hrs / 24);
+    return `${days}d left`;
+  }
+  const DURATION_OPTIONS: { label: string; value: number | null }[] = [
+    { label: "1h", value: 1 },
+    { label: "8h", value: 8 },
+    { label: "24h", value: 24 },
+    { label: "Forever", value: null },
+  ];
 
   if (isLoading || !data) {
     return (
@@ -2080,6 +2102,28 @@ function BlocksMutesTab() {
             )}
           </Button>
         </form>
+        <div
+          className="mb-3 flex flex-wrap items-center gap-1 text-xs text-muted-foreground"
+          data-testid="mute-duration-row"
+        >
+          <span>For:</span>
+          {DURATION_OPTIONS.map((opt) => (
+            <button
+              key={opt.label}
+              type="button"
+              onClick={() => setMuteHours(opt.value)}
+              className={[
+                "rounded-full border px-2 py-0.5",
+                muteHours === opt.value
+                  ? "border-primary bg-primary/10 text-primary"
+                  : "border-border bg-background hover:border-primary/40",
+              ].join(" ")}
+              data-testid={`button-mute-duration-${opt.label.toLowerCase()}`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
         {data.mutedHashtags.length === 0 ? (
           <p
             className="rounded-lg border border-dashed border-border px-3 py-6 text-center text-sm text-muted-foreground"
@@ -2100,32 +2144,100 @@ function BlocksMutesTab() {
             className="flex flex-wrap gap-2"
             data-testid="muted-tags-list"
           >
-            {mutedHashtagsView.map((h) => (
-              <li
-                key={h.tag}
-                className="inline-flex items-center gap-2 rounded-full border border-border bg-muted/40 py-1 pl-3 pr-1 text-sm text-foreground"
-                data-testid={`muted-tag-${h.tag}`}
-              >
-                <span className="inline-flex items-center gap-1">
-                  <Hash className="h-3.5 w-3.5 text-muted-foreground" />
-                  {h.tag}
-                </span>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 rounded-full px-2 text-xs"
-                  disabled={unmuteTag.isPending}
-                  onClick={() => unmuteTag.mutate({ tag: h.tag })}
-                  data-testid={`button-unmute-tag-${h.tag}`}
+            {mutedHashtagsView.map((h) => {
+              const expiry = formatExpiry(h.expiresAt);
+              return (
+                <li
+                  key={h.tag}
+                  className="inline-flex items-center gap-2 rounded-full border border-border bg-muted/40 py-1 pl-3 pr-1 text-sm text-foreground"
+                  data-testid={`muted-tag-${h.tag}`}
                 >
-                  Unmute
-                </Button>
-              </li>
-            ))}
+                  <span className="inline-flex items-center gap-1">
+                    <Hash className="h-3.5 w-3.5 text-muted-foreground" />
+                    {h.tag}
+                  </span>
+                  {expiry && (
+                    <span
+                      className="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[10px] text-amber-600 dark:text-amber-400"
+                      data-testid={`muted-tag-expiry-${h.tag}`}
+                    >
+                      {expiry}
+                    </span>
+                  )}
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 rounded-full px-2 text-xs"
+                    disabled={unmuteTag.isPending}
+                    onClick={() => unmuteTag.mutate({ tag: h.tag })}
+                    data-testid={`button-unmute-tag-${h.tag}`}
+                  >
+                    Unmute
+                  </Button>
+                </li>
+              );
+            })}
           </ul>
         )}
       </div>
+
+      {data.roomMutedUsers && data.roomMutedUsers.length > 0 && (
+        <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
+          <div className="mb-3 flex items-center justify-between gap-2">
+            <h3 className="flex items-center gap-2 text-base font-semibold text-foreground">
+              <EyeOff className="h-4 w-4 text-amber-500" />
+              Per-room user mutes
+            </h3>
+            <span
+              className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground"
+              data-testid="room-mutes-count"
+            >
+              {data.roomMutedUsers.length}
+            </span>
+          </div>
+          <ul className="divide-y divide-border" data-testid="room-mutes-list">
+            {data.roomMutedUsers.map((u) => {
+              const expiry = formatExpiry(u.expiresAt);
+              return (
+                <li
+                  key={`${u.id}-${u.roomTag}`}
+                  className="flex items-center justify-between gap-2 py-2"
+                  data-testid={`room-mute-${u.id}-${u.roomTag}`}
+                >
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium">
+                      @{u.username}
+                      <span className="ml-1 text-xs text-muted-foreground">
+                        in #{u.roomTag}
+                      </span>
+                    </p>
+                    {expiry && (
+                      <p className="text-[11px] text-amber-600 dark:text-amber-400">
+                        {expiry}
+                      </p>
+                    )}
+                  </div>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => {
+                      void fetch(
+                        `${import.meta.env.BASE_URL.replace(/\/$/, "")}/api/rooms/${u.roomTag}/users/${u.id}/mute`,
+                        { method: "DELETE", credentials: "include" },
+                      ).finally(invalidate);
+                    }}
+                    data-testid={`button-unmute-room-${u.id}-${u.roomTag}`}
+                  >
+                    Unmute
+                  </Button>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      )}
     </div>
   );
 }

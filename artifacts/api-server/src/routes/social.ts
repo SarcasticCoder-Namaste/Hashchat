@@ -5,13 +5,15 @@ import {
   userBlocksTable,
   userMutesTable,
   hashtagMutesTable,
+  roomUserMutesTable,
   hashtagsTable,
   usersTable,
   userHashtagsTable,
   messagesTable,
   friendshipsTable,
 } from "@workspace/db";
-import { and, desc, eq, inArray, ne, or, sql } from "drizzle-orm";
+import { and, desc, eq, gt, inArray, isNull, ne, or, sql } from "drizzle-orm";
+import { getOpenAIClient } from "../lib/openaiClient";
 import { requireAuth, getUserId } from "../middlewares/requireAuth";
 import { normalizeTag } from "../lib/hashtags";
 import { loadFriendStatuses } from "./friends";
@@ -181,6 +183,16 @@ router.delete(
 
 // ----- Mute user -----
 
+function parseExpiresAt(body: unknown): Date | null {
+  if (!body || typeof body !== "object") return null;
+  const raw = (body as { durationHours?: unknown }).durationHours;
+  if (raw === null || raw === undefined) return null;
+  const hours = Number(raw);
+  if (!Number.isFinite(hours) || hours <= 0) return null;
+  const capped = Math.min(hours, 24 * 365);
+  return new Date(Date.now() + capped * 60 * 60 * 1000);
+}
+
 router.post(
   "/users/:id/mute",
   requireAuth,
@@ -193,10 +205,14 @@ router.post(
       res.status(400).json({ error: "Cannot mute yourself" });
       return;
     }
+    const expiresAt = parseExpiresAt(req.body);
     await db
       .insert(userMutesTable)
-      .values({ muterId: me, mutedId: otherId })
-      .onConflictDoNothing();
+      .values({ muterId: me, mutedId: otherId, expiresAt })
+      .onConflictDoUpdate({
+        target: [userMutesTable.muterId, userMutesTable.mutedId],
+        set: { expiresAt },
+      });
     res.status(204).end();
   },
 );
@@ -221,6 +237,74 @@ router.delete(
   },
 );
 
+// ----- Mute user inside a single room -----
+
+router.post(
+  "/rooms/:tag/users/:id/mute",
+  requireAuth,
+  async (req, res): Promise<void> => {
+    const me = getUserId(req);
+    const otherId = String(
+      Array.isArray(req.params.id) ? req.params.id[0] : req.params.id,
+    );
+    const raw = Array.isArray(req.params.tag)
+      ? req.params.tag[0]
+      : req.params.tag;
+    const tag = normalizeTag(raw);
+    if (!tag) {
+      res.status(400).json({ error: "Invalid tag" });
+      return;
+    }
+    if (otherId === me) {
+      res.status(400).json({ error: "Cannot mute yourself" });
+      return;
+    }
+    const expiresAt = parseExpiresAt(req.body);
+    await db.insert(hashtagsTable).values({ tag }).onConflictDoNothing();
+    await db
+      .insert(roomUserMutesTable)
+      .values({ muterId: me, mutedId: otherId, roomTag: tag, expiresAt })
+      .onConflictDoUpdate({
+        target: [
+          roomUserMutesTable.muterId,
+          roomUserMutesTable.mutedId,
+          roomUserMutesTable.roomTag,
+        ],
+        set: { expiresAt },
+      });
+    res.status(204).end();
+  },
+);
+
+router.delete(
+  "/rooms/:tag/users/:id/mute",
+  requireAuth,
+  async (req, res): Promise<void> => {
+    const me = getUserId(req);
+    const otherId = String(
+      Array.isArray(req.params.id) ? req.params.id[0] : req.params.id,
+    );
+    const raw = Array.isArray(req.params.tag)
+      ? req.params.tag[0]
+      : req.params.tag;
+    const tag = normalizeTag(raw);
+    if (!tag) {
+      res.status(400).json({ error: "Invalid tag" });
+      return;
+    }
+    await db
+      .delete(roomUserMutesTable)
+      .where(
+        and(
+          eq(roomUserMutesTable.muterId, me),
+          eq(roomUserMutesTable.mutedId, otherId),
+          eq(roomUserMutesTable.roomTag, tag),
+        ),
+      );
+    res.status(204).end();
+  },
+);
+
 // ----- Mute hashtag -----
 
 router.post(
@@ -234,11 +318,15 @@ router.post(
       res.status(400).json({ error: "Invalid tag" });
       return;
     }
+    const expiresAt = parseExpiresAt(req.body);
     await db.insert(hashtagsTable).values({ tag }).onConflictDoNothing();
     await db
       .insert(hashtagMutesTable)
-      .values({ userId: me, tag })
-      .onConflictDoNothing();
+      .values({ userId: me, tag, expiresAt })
+      .onConflictDoUpdate({
+        target: [hashtagMutesTable.userId, hashtagMutesTable.tag],
+        set: { expiresAt },
+      });
     res.status(204).end();
   },
 );
@@ -263,6 +351,71 @@ router.delete(
         ),
       );
     res.status(204).end();
+  },
+);
+
+// ----- AI hashtag suggestions -----
+
+router.post(
+  "/ai/suggest-hashtags",
+  requireAuth,
+  async (req, res): Promise<void> => {
+    const body = (req.body ?? {}) as { text?: unknown; max?: unknown };
+    const text = typeof body.text === "string" ? body.text.trim() : "";
+    const max = Math.max(
+      1,
+      Math.min(8, Number.isFinite(Number(body.max)) ? Number(body.max) : 5),
+    );
+    if (!text || text.length < 3) {
+      res.json({ tags: [] });
+      return;
+    }
+    const client = getOpenAIClient();
+    if (!client) {
+      res.json({ tags: [] });
+      return;
+    }
+    try {
+      const completion = await client.chat.completions.create({
+        model: "gpt-4o-mini",
+        temperature: 0.4,
+        response_format: { type: "json_object" },
+        messages: [
+          {
+            role: "system",
+            content:
+              "You suggest short, lowercase, single-word hashtags (no spaces, no '#') for a social post. Reply ONLY as JSON {\"tags\": string[]}. Avoid repeats and stop-words.",
+          },
+          {
+            role: "user",
+            content: `Suggest up to ${max} hashtags for this draft post:\n\n${text.slice(0, 2000)}`,
+          },
+        ],
+      });
+      const raw = completion.choices?.[0]?.message?.content ?? "{}";
+      let parsedTags: string[] = [];
+      try {
+        const obj = JSON.parse(raw) as { tags?: unknown };
+        if (Array.isArray(obj.tags)) {
+          parsedTags = obj.tags
+            .filter((t): t is string => typeof t === "string")
+            .map((t) => normalizeTag(t.replace(/^#+/, "")) ?? "")
+            .filter((t) => t.length >= 2 && t.length <= 32);
+        }
+      } catch {
+        // ignore parse errors
+      }
+      const seen = new Set<string>();
+      const dedup = parsedTags.filter((t) => {
+        if (seen.has(t)) return false;
+        seen.add(t);
+        return true;
+      }).slice(0, max);
+      res.json({ tags: dedup });
+    } catch (err) {
+      req.log.warn({ err }, "ai hashtag suggestion failed");
+      res.json({ tags: [] });
+    }
   },
 );
 
@@ -293,7 +446,9 @@ router.get(
   requireAuth,
   async (req, res): Promise<void> => {
     const me = getUserId(req);
-    const [blockRows, muteRows, hashtagMuteRows] = await Promise.all([
+    const notExpired = (col: typeof userMutesTable.expiresAt) =>
+      or(isNull(col), gt(col, sql`now()`));
+    const [blockRows, muteRows, roomMuteRows, hashtagMuteRows] = await Promise.all([
       db
         .select({
           id: usersTable.id,
@@ -315,18 +470,35 @@ router.get(
           avatarUrl: usersTable.avatarUrl,
           discriminator: usersTable.discriminator,
           actedAt: userMutesTable.createdAt,
+          expiresAt: userMutesTable.expiresAt,
         })
         .from(userMutesTable)
         .innerJoin(usersTable, eq(usersTable.id, userMutesTable.mutedId))
-        .where(eq(userMutesTable.muterId, me))
+        .where(and(eq(userMutesTable.muterId, me), notExpired(userMutesTable.expiresAt)))
         .orderBy(desc(userMutesTable.createdAt)),
+      db
+        .select({
+          id: usersTable.id,
+          username: usersTable.username,
+          displayName: usersTable.displayName,
+          avatarUrl: usersTable.avatarUrl,
+          discriminator: usersTable.discriminator,
+          actedAt: roomUserMutesTable.createdAt,
+          expiresAt: roomUserMutesTable.expiresAt,
+          roomTag: roomUserMutesTable.roomTag,
+        })
+        .from(roomUserMutesTable)
+        .innerJoin(usersTable, eq(usersTable.id, roomUserMutesTable.mutedId))
+        .where(and(eq(roomUserMutesTable.muterId, me), notExpired(roomUserMutesTable.expiresAt)))
+        .orderBy(desc(roomUserMutesTable.createdAt)),
       db
         .select({
           tag: hashtagMutesTable.tag,
           actedAt: hashtagMutesTable.createdAt,
+          expiresAt: hashtagMutesTable.expiresAt,
         })
         .from(hashtagMutesTable)
-        .where(eq(hashtagMutesTable.userId, me))
+        .where(and(eq(hashtagMutesTable.userId, me), notExpired(hashtagMutesTable.expiresAt)))
         .orderBy(desc(hashtagMutesTable.createdAt)),
     ]);
     res.json({
@@ -337,6 +509,8 @@ router.get(
         avatarUrl: r.avatarUrl,
         discriminator: r.discriminator,
         actedAt: r.actedAt.toISOString(),
+        expiresAt: null,
+        roomTag: null,
       })),
       muted: muteRows.map((r) => ({
         id: r.id,
@@ -345,10 +519,23 @@ router.get(
         avatarUrl: r.avatarUrl,
         discriminator: r.discriminator,
         actedAt: r.actedAt.toISOString(),
+        expiresAt: r.expiresAt ? r.expiresAt.toISOString() : null,
+        roomTag: null,
+      })),
+      roomMutedUsers: roomMuteRows.map((r) => ({
+        id: r.id,
+        username: r.username,
+        displayName: r.displayName,
+        avatarUrl: r.avatarUrl,
+        discriminator: r.discriminator,
+        actedAt: r.actedAt.toISOString(),
+        expiresAt: r.expiresAt ? r.expiresAt.toISOString() : null,
+        roomTag: r.roomTag,
       })),
       mutedHashtags: hashtagMuteRows.map((r) => ({
         tag: r.tag,
         actedAt: r.actedAt.toISOString(),
+        expiresAt: r.expiresAt ? r.expiresAt.toISOString() : null,
       })),
     });
   },

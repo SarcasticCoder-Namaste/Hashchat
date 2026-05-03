@@ -694,6 +694,7 @@ export const userMutesTable = pgTable(
     mutedId: text("muted_id")
       .notNull()
       .references(() => usersTable.id, { onDelete: "cascade" }),
+    expiresAt: timestamp("expires_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -710,12 +711,48 @@ export const hashtagMutesTable = pgTable(
     tag: text("tag")
       .notNull()
       .references(() => hashtagsTable.tag, { onDelete: "cascade" }),
+    expiresAt: timestamp("expires_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
   },
   (t) => [primaryKey({ columns: [t.userId, t.tag] })],
 );
+
+export const roomUserMutesTable = pgTable(
+  "room_user_mutes",
+  {
+    muterId: text("muter_id")
+      .notNull()
+      .references(() => usersTable.id, { onDelete: "cascade" }),
+    mutedId: text("muted_id")
+      .notNull()
+      .references(() => usersTable.id, { onDelete: "cascade" }),
+    roomTag: text("room_tag")
+      .notNull()
+      .references(() => hashtagsTable.tag, { onDelete: "cascade" }),
+    expiresAt: timestamp("expires_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.muterId, t.mutedId, t.roomTag] }),
+    index("room_user_mutes_room_idx").on(t.muterId, t.roomTag),
+  ],
+);
+
+export const roomSummariesTable = pgTable("room_summaries", {
+  roomTag: text("room_tag")
+    .primaryKey()
+    .references(() => hashtagsTable.tag, { onDelete: "cascade" }),
+  summary: text("summary").notNull(),
+  hours: integer("hours").notNull(),
+  messageCount: integer("message_count").notNull(),
+  generatedAt: timestamp("generated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
 
 export const eventsTable = pgTable(
   "events",

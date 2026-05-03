@@ -3,7 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -23,6 +23,7 @@ import { uploadFile } from "@/lib/upload";
 import {
   getGetForYouFeedQueryKey,
   useCreatePost,
+  useSuggestHashtags,
   type CreatePostBody,
 } from "@workspace/api-client-react";
 
@@ -62,7 +63,46 @@ export default function ComposeScreen() {
     },
   });
 
-  const hashtags = useMemo(() => extractHashtags(content), [content]);
+  const inlineHashtags = useMemo(() => extractHashtags(content), [content]);
+  const [extraHashtags, setExtraHashtags] = useState<string[]>([]);
+  const [suggested, setSuggested] = useState<string[]>([]);
+  const [suggestText, setSuggestText] = useState("");
+  const suggestMut = useSuggestHashtags();
+  const hashtags = useMemo(() => {
+    const seen = new Set<string>();
+    const out: string[] = [];
+    for (const t of [...inlineHashtags, ...extraHashtags]) {
+      const norm = t.toLowerCase().replace(/^#+/, "");
+      if (!norm || seen.has(norm)) continue;
+      seen.add(norm);
+      out.push(norm);
+    }
+    return out;
+  }, [inlineHashtags, extraHashtags]);
+
+  useEffect(() => {
+    const trimmed = content.trim();
+    if (trimmed.length < 12) {
+      setSuggested([]);
+      setSuggestText("");
+      return;
+    }
+    if (trimmed === suggestText) return;
+    const handle = setTimeout(() => {
+      suggestMut.mutate(
+        { data: { text: trimmed, max: 5 } },
+        {
+          onSuccess: (resp) => {
+            setSuggestText(trimmed);
+            const taken = new Set(hashtags);
+            setSuggested(resp.tags.filter((t) => !taken.has(t)));
+          },
+        },
+      );
+    }, 800);
+    return () => clearTimeout(handle);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [content]);
   const remaining = MAX_LEN - content.length;
   const tooLong = content.length > MAX_LEN;
   const canPost =
@@ -225,8 +265,11 @@ export default function ComposeScreen() {
           {hashtags.length > 0 ? (
             <View style={styles.tagRow}>
               {hashtags.map((t) => (
-                <View
+                <Pressable
                   key={t}
+                  onPress={() =>
+                    setExtraHashtags((prev) => prev.filter((x) => x !== t))
+                  }
                   style={[styles.tag, { backgroundColor: colors.accent }]}
                 >
                   <Text
@@ -234,7 +277,46 @@ export default function ComposeScreen() {
                   >
                     #{t}
                   </Text>
-                </View>
+                </Pressable>
+              ))}
+            </View>
+          ) : null}
+          {suggested.length > 0 ? (
+            <View style={styles.tagRow}>
+              <Text
+                style={{
+                  color: colors.mutedForeground,
+                  fontSize: 11,
+                  marginRight: 4,
+                }}
+              >
+                Suggested:
+              </Text>
+              {suggested.map((t) => (
+                <Pressable
+                  key={`s-${t}`}
+                  onPress={() => {
+                    setExtraHashtags((prev) =>
+                      prev.includes(t) ? prev : [...prev, t].slice(0, 8),
+                    );
+                    setSuggested((prev) => prev.filter((x) => x !== t));
+                  }}
+                  style={[
+                    styles.tag,
+                    {
+                      backgroundColor: "transparent",
+                      borderWidth: 1,
+                      borderStyle: "dashed",
+                      borderColor: colors.border,
+                    },
+                  ]}
+                >
+                  <Text
+                    style={[styles.tagText, { color: colors.mutedForeground }]}
+                  >
+                    + #{t}
+                  </Text>
+                </Pressable>
               ))}
             </View>
           ) : (

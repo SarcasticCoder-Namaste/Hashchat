@@ -1371,9 +1371,14 @@ paths:
     post:
       operationId: muteUser
       tags: [users]
-      summary: Mute a user (hide from feeds)
+      summary: Mute a user globally (hide from feeds)
       parameters:
         - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/MuteBody" }
       responses:
         "204": { description: No content }
     delete:
@@ -1385,13 +1390,43 @@ paths:
       responses:
         "204": { description: No content }
 
+  /rooms/{tag}/users/{id}/mute:
+    post:
+      operationId: muteUserInRoom
+      tags: [rooms]
+      summary: Mute a user only inside a single room (no global block)
+      parameters:
+        - { name: tag, in: path, required: true, schema: { type: string } }
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/MuteBody" }
+      responses:
+        "204": { description: No content }
+    delete:
+      operationId: unmuteUserInRoom
+      tags: [rooms]
+      summary: Remove a per-room user mute
+      parameters:
+        - { name: tag, in: path, required: true, schema: { type: string } }
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "204": { description: No content }
+
   /hashtags/{tag}/mute:
     post:
       operationId: muteHashtag
       tags: [hashtags]
-      summary: Mute a hashtag (hide from feeds & trending)
+      summary: Mute a hashtag (hide from feeds & trending) for a chosen duration
       parameters:
         - { name: tag, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/MuteBody" }
       responses:
         "204": { description: No content }
     delete:
@@ -1402,6 +1437,41 @@ paths:
         - { name: tag, in: path, required: true, schema: { type: string } }
       responses:
         "204": { description: No content }
+
+  /ai/suggest-hashtags:
+    post:
+      operationId: suggestHashtags
+      tags: [hashtags]
+      summary: AI hashtag suggestions for draft text
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SuggestHashtagsBody" }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SuggestHashtagsResponse" }
+
+  /rooms/{tag}/summary:
+    get:
+      operationId: getRoomSummary
+      tags: [rooms]
+      summary: AI summary of recent activity in a room ("Catch me up")
+      parameters:
+        - { name: tag, in: path, required: true, schema: { type: string } }
+        - name: hours
+          in: query
+          required: false
+          schema: { type: integer, default: 24, minimum: 1, maximum: 168 }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RoomSummary" }
 
   /me/relationships:
     get:
@@ -3345,6 +3415,12 @@ components:
         discriminator:
           type: ["string", "null"]
         actedAt: { type: string, format: date-time }
+        expiresAt:
+          type: ["string", "null"]
+          format: date-time
+        roomTag:
+          type: ["string", "null"]
+          description: "If set, this mute only applies inside this room."
       required: [id, username, displayName, actedAt]
 
     BlocksAndMutes:
@@ -3356,6 +3432,9 @@ components:
         muted:
           type: array
           items: { $ref: "#/components/schemas/BlocksAndMutesUser" }
+        roomMutedUsers:
+          type: array
+          items: { $ref: "#/components/schemas/BlocksAndMutesUser" }
         mutedHashtags:
           type: array
           items:
@@ -3363,8 +3442,49 @@ components:
             properties:
               tag: { type: string }
               actedAt: { type: string, format: date-time }
+              expiresAt:
+                type: ["string", "null"]
+                format: date-time
             required: [tag, actedAt]
-      required: [blocked, muted, mutedHashtags]
+      required: [blocked, muted, mutedHashtags, roomMutedUsers]
+
+    MuteBody:
+      type: object
+      properties:
+        durationHours:
+          type: ["integer", "null"]
+          description: "How long the mute should last. null or 0 means forever."
+      required: []
+
+    SuggestHashtagsBody:
+      type: object
+      properties:
+        text: { type: string }
+        max:
+          type: integer
+          default: 5
+          minimum: 1
+          maximum: 8
+      required: [text]
+
+    SuggestHashtagsResponse:
+      type: object
+      properties:
+        tags:
+          type: array
+          items: { type: string }
+      required: [tags]
+
+    RoomSummary:
+      type: object
+      properties:
+        roomTag: { type: string }
+        summary: { type: string }
+        hours: { type: integer }
+        messageCount: { type: integer }
+        generatedAt: { type: string, format: date-time }
+        cached: { type: boolean }
+      required: [roomTag, summary, hours, messageCount, generatedAt, cached]
 
     FollowingFeedItem:
       type: object

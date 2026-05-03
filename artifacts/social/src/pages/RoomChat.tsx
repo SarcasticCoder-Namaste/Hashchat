@@ -14,6 +14,8 @@ import {
   useGetRoomVisibility,
   useGetRoomPinnedPosts,
   useGetRoomActiveUsers,
+  useGetRoomSummary,
+  getGetRoomSummaryQueryKey,
   getGetRoomMessagesQueryKey,
   getGetRoomTypingQueryKey,
   getGetRoomActiveUsersQueryKey,
@@ -54,7 +56,16 @@ import {
   Lock,
   Pin,
   Timer,
+  Sparkles,
+  RefreshCw,
 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { PostCard } from "@/components/PostCard";
 
 export default function RoomChat({ tag }: { tag: string }) {
@@ -63,6 +74,8 @@ export default function RoomChat({ tag }: { tag: string }) {
   const [draft, setDraft] = useState("");
   const [replyTo, setReplyTo] = useState<Message | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [summaryOpen, setSummaryOpen] = useState(false);
+  const [summaryHours, setSummaryHours] = useState(24);
   const [threadParent, setThreadParent] = useState<Message | null>(null);
   const scrollerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<MentionFieldHandle>(null);
@@ -327,6 +340,16 @@ export default function RoomChat({ tag }: { tag: string }) {
             <CallButton roomTag={cleanTag} kind="video" testId="button-room-call-video" />
           </>
         )}
+        <Button
+          size="icon"
+          variant="ghost"
+          onClick={() => setSummaryOpen(true)}
+          data-testid="button-room-catchup"
+          aria-label="Catch me up on this room"
+          title="Catch me up"
+        >
+          <Sparkles className="h-4 w-4" />
+        </Button>
         <Button
           size="icon"
           variant="ghost"
@@ -688,6 +711,108 @@ export default function RoomChat({ tag }: { tag: string }) {
         onOpenChange={setSettingsOpen}
         isPremium={premium.data?.verified ?? false}
       />
+      <CatchMeUpDialog
+        tag={cleanTag}
+        open={summaryOpen}
+        onOpenChange={setSummaryOpen}
+        hours={summaryHours}
+        onHoursChange={setSummaryHours}
+      />
     </div>
+  );
+}
+
+function CatchMeUpDialog({
+  tag,
+  open,
+  onOpenChange,
+  hours,
+  onHoursChange,
+}: {
+  tag: string;
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  hours: number;
+  onHoursChange: (v: number) => void;
+}) {
+  const qc = useQueryClient();
+  const summary = useGetRoomSummary(
+    tag,
+    { hours },
+    { query: { enabled: open, staleTime: 60_000 } },
+  );
+  const HOUR_OPTIONS = [1, 6, 24, 72];
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent data-testid="dialog-catch-me-up">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Sparkles className="h-4 w-4 text-primary" />
+            Catch me up on #{tag}
+          </DialogTitle>
+          <DialogDescription>
+            AI recap of activity in the last {hours} hour{hours === 1 ? "" : "s"}.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="flex flex-wrap items-center gap-1">
+          {HOUR_OPTIONS.map((h) => (
+            <Button
+              key={h}
+              size="sm"
+              variant={h === hours ? "default" : "ghost"}
+              onClick={() => onHoursChange(h)}
+              data-testid={`button-summary-hours-${h}`}
+            >
+              {h < 24 ? `${h}h` : `${h / 24}d`}
+            </Button>
+          ))}
+          <div className="ml-auto">
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() =>
+                qc.invalidateQueries({
+                  queryKey: getGetRoomSummaryQueryKey(tag, { hours }),
+                })
+              }
+              disabled={summary.isFetching}
+              data-testid="button-summary-refresh"
+              aria-label="Refresh summary"
+            >
+              <RefreshCw
+                className={[
+                  "h-3.5 w-3.5",
+                  summary.isFetching ? "animate-spin" : "",
+                ].join(" ")}
+              />
+            </Button>
+          </div>
+        </div>
+        <div className="min-h-[120px] rounded-md border border-border bg-muted/30 p-3 text-sm">
+          {summary.isLoading || summary.isFetching ? (
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <Loader2 className="h-3.5 w-3.5 animate-spin" /> Generating recap…
+            </div>
+          ) : summary.data ? (
+            <div className="space-y-2">
+              <p
+                className="whitespace-pre-wrap text-foreground"
+                data-testid="text-summary-body"
+              >
+                {summary.data.summary}
+              </p>
+              <p className="text-[11px] text-muted-foreground">
+                {summary.data.messageCount} message
+                {summary.data.messageCount === 1 ? "" : "s"} ·{" "}
+                {summary.data.cached ? "cached" : "fresh"} ·{" "}
+                {new Date(summary.data.generatedAt).toLocaleTimeString()}
+              </p>
+            </div>
+          ) : (
+            <p className="text-muted-foreground">No summary available.</p>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }

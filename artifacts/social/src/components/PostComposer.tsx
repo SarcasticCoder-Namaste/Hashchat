@@ -8,6 +8,7 @@ import {
   useUpdateDraft,
   useDeleteDraft,
   useGetMyScheduledPosts,
+  useSuggestHashtags,
   getGetMyDraftsQueryKey,
   getGetMyScheduledPostsQueryKey,
   type CreatePostBody,
@@ -15,6 +16,7 @@ import {
   type Post,
   type QuotedPost,
 } from "@workspace/api-client-react";
+import { Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -160,10 +162,61 @@ export function PostComposer({
   const createDraftMut = useCreateDraft();
   const updateDraftMut = useUpdateDraft();
 
-  const hashtagsForBody = useMemo(
-    () => (defaultHashtag ? [defaultHashtag] : []),
-    [defaultHashtag],
-  );
+  const [extraHashtags, setExtraHashtags] = useState<string[]>([]);
+  const hashtagsForBody = useMemo(() => {
+    const seen = new Set<string>();
+    const out: string[] = [];
+    if (defaultHashtag) {
+      const norm = defaultHashtag.toLowerCase();
+      seen.add(norm);
+      out.push(norm);
+    }
+    for (const tag of extraHashtags) {
+      const norm = tag.toLowerCase().replace(/^#+/, "");
+      if (!norm || seen.has(norm)) continue;
+      seen.add(norm);
+      out.push(norm);
+    }
+    return out;
+  }, [defaultHashtag, extraHashtags]);
+
+  // ----- AI hashtag suggestions (debounced) -----
+  const [suggested, setSuggested] = useState<string[]>([]);
+  const [suggestText, setSuggestText] = useState("");
+  const suggestMut = useSuggestHashtags();
+  useEffect(() => {
+    const trimmed = content.trim();
+    if (trimmed.length < 12) {
+      setSuggested([]);
+      setSuggestText("");
+      return;
+    }
+    if (trimmed === suggestText) return;
+    const handle = setTimeout(() => {
+      suggestMut.mutate(
+        { data: { text: trimmed, max: 5 } },
+        {
+          onSuccess: (resp) => {
+            setSuggestText(trimmed);
+            const taken = new Set(hashtagsForBody);
+            setSuggested(resp.tags.filter((t) => !taken.has(t)));
+          },
+        },
+      );
+    }, 800);
+    return () => clearTimeout(handle);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [content]);
+
+  function addSuggestedTag(tag: string) {
+    setExtraHashtags((prev) =>
+      prev.includes(tag) ? prev : [...prev, tag].slice(0, 8),
+    );
+    setSuggested((prev) => prev.filter((t) => t !== tag));
+  }
+  function removeExtraTag(tag: string) {
+    setExtraHashtags((prev) => prev.filter((t) => t !== tag));
+  }
 
   // Auto-save drafts when content/images/quote change (debounced)
   const lastSavedRef = useRef<string>("");
@@ -288,6 +341,43 @@ export function PostComposer({
         }
         testId="input-post-content"
       />
+      {(extraHashtags.length > 0 || suggested.length > 0) && (
+        <div
+          className="flex flex-wrap items-center gap-1.5"
+          data-testid="hashtag-suggestions"
+        >
+          {extraHashtags.map((tag) => (
+            <button
+              key={`added-${tag}`}
+              type="button"
+              onClick={() => removeExtraTag(tag)}
+              className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-xs text-primary hover:bg-primary/20"
+              data-testid={`chip-added-tag-${tag}`}
+              aria-label={`Remove hashtag ${tag}`}
+            >
+              #{tag}
+              <X className="h-3 w-3" />
+            </button>
+          ))}
+          {suggested.length > 0 && (
+            <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground">
+              <Sparkles className="h-3 w-3" />
+              Suggested:
+            </span>
+          )}
+          {suggested.map((tag) => (
+            <button
+              key={`sug-${tag}`}
+              type="button"
+              onClick={() => addSuggestedTag(tag)}
+              className="rounded-full border border-dashed border-border bg-background px-2 py-0.5 text-xs text-muted-foreground hover:border-primary hover:text-primary"
+              data-testid={`chip-suggest-tag-${tag}`}
+            >
+              + #{tag}
+            </button>
+          ))}
+        </div>
+      )}
       {quoted && (
         <div className="relative">
           <QuotedPostPreview quoted={quoted} compact />

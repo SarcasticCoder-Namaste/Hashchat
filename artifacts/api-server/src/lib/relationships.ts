@@ -4,8 +4,23 @@ import {
   userMutesTable,
   userFollowsTable,
   hashtagMutesTable,
+  roomUserMutesTable,
 } from "@workspace/db";
-import { eq, or, and, inArray } from "drizzle-orm";
+import { eq, or, and, inArray, isNull, gt, sql } from "drizzle-orm";
+
+/** SQL fragment matching mute rows that are still active (no expiry, or expiry > now). */
+const NOT_EXPIRED_USER_MUTE = or(
+  isNull(userMutesTable.expiresAt),
+  gt(userMutesTable.expiresAt, sql`now()`),
+);
+const NOT_EXPIRED_HASHTAG_MUTE = or(
+  isNull(hashtagMutesTable.expiresAt),
+  gt(hashtagMutesTable.expiresAt, sql`now()`),
+);
+const NOT_EXPIRED_ROOM_USER_MUTE = or(
+  isNull(roomUserMutesTable.expiresAt),
+  gt(roomUserMutesTable.expiresAt, sql`now()`),
+);
 
 /**
  * Returns the set of user ids that the given user is "isolated" from in either
@@ -50,7 +65,25 @@ export async function loadMyMutes(myId: string): Promise<Set<string>> {
   const rows = await db
     .select({ id: userMutesTable.mutedId })
     .from(userMutesTable)
-    .where(eq(userMutesTable.muterId, myId));
+    .where(and(eq(userMutesTable.muterId, myId), NOT_EXPIRED_USER_MUTE));
+  return new Set(rows.map((r) => r.id));
+}
+
+/** Per-room user mutes that are still active. */
+export async function loadRoomUserMutes(
+  myId: string,
+  roomTag: string,
+): Promise<Set<string>> {
+  const rows = await db
+    .select({ id: roomUserMutesTable.mutedId })
+    .from(roomUserMutesTable)
+    .where(
+      and(
+        eq(roomUserMutesTable.muterId, myId),
+        eq(roomUserMutesTable.roomTag, roomTag),
+        NOT_EXPIRED_ROOM_USER_MUTE,
+      ),
+    );
   return new Set(rows.map((r) => r.id));
 }
 
@@ -74,7 +107,7 @@ export async function loadMutedHashtags(myId: string): Promise<Set<string>> {
   const rows = await db
     .select({ tag: hashtagMutesTable.tag })
     .from(hashtagMutesTable)
-    .where(eq(hashtagMutesTable.userId, myId));
+    .where(and(eq(hashtagMutesTable.userId, myId), NOT_EXPIRED_HASHTAG_MUTE));
   return new Set(rows.map((r) => r.tag));
 }
 

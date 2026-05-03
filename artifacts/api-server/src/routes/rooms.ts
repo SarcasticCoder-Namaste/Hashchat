@@ -36,7 +36,10 @@ import {
   loadBlockWall,
   loadMyMutes,
   loadMutedHashtags,
+  loadRoomUserMutes,
 } from "../lib/relationships";
+import { getOpenAIClient } from "../lib/openaiClient";
+import { roomSummariesTable } from "@workspace/db";
 import {
   getRoomAccess,
   isRoomPremiumLocked,
@@ -208,11 +211,12 @@ router.get("/rooms/:tag/messages", requireAuth, async (req, res): Promise<void> 
     res.status(402).json({ error: "This room is for Premium members. Upgrade to join the conversation." });
     return;
   }
-  const [blockWall, mutes] = await Promise.all([
+  const [blockWall, mutes, roomMutes] = await Promise.all([
     loadBlockWall(me),
     loadMyMutes(me),
+    loadRoomUserMutes(me, tag),
   ]);
-  const hidden = new Set<string>([...blockWall, ...mutes]);
+  const hidden = new Set<string>([...blockWall, ...mutes, ...roomMutes]);
   const rows = await db
     .select()
     .from(messagesTable)
@@ -222,6 +226,163 @@ router.get("/rooms/:tag/messages", requireAuth, async (req, res): Promise<void> 
   const filtered = hidden.size > 0 ? rows.filter((r) => !hidden.has(r.senderId)) : rows;
   res.json(await buildMessages(filtered, me));
 });
+
+// ----- "Catch me up" room summary -----
+
+const SUMMARY_TTL_MS = 5 * 60 * 1000;
+
+router.get(
+  "/rooms/:tag/summary",
+  requireAuth,
+  async (req, res): Promise<void> => {
+    const raw = Array.isArray(req.params.tag) ? req.params.tag[0] : req.params.tag;
+    const tag = normalizeTag(raw);
+    if (!tag) {
+      res.status(400).json({ error: "Invalid tag" });
+      return;
+    }
+    const me = getUserId(req);
+    const access = await getRoomAccess(tag, me);
+    if (access.isPrivate && !access.isMember) {
+      res.status(403).json({ error: "This is a private room. You need an invite to view its summary." });
+      return;
+    }
+    const hoursRaw = Number(req.query.hours);
+    const hours = Number.isFinite(hoursRaw) && hoursRaw > 0
+      ? Math.min(168, Math.max(1, Math.floor(hoursRaw)))
+      : 24;
+
+    const [cached] = await db
+      .select()
+      .from(roomSummariesTable)
+      .where(eq(roomSummariesTable.roomTag, tag))
+      .limit(1);
+    if (
+      cached &&
+      cached.hours === hours &&
+      Date.now() - cached.generatedAt.getTime() < SUMMARY_TTL_MS
+    ) {
+      res.json({
+        roomTag: tag,
+        summary: cached.summary,
+        hours: cached.hours,
+        messageCount: cached.messageCount,
+        generatedAt: cached.generatedAt.toISOString(),
+        cached: true,
+      });
+      return;
+    }
+
+    const since = new Date(Date.now() - hours * 60 * 60 * 1000);
+    const [blockWall, mutes, roomMutes] = await Promise.all([
+      loadBlockWall(me),
+      loadMyMutes(me),
+      loadRoomUserMutes(me, tag),
+    ]);
+    const hidden = new Set<string>([...blockWall, ...mutes, ...roomMutes]);
+    const rows = await db
+      .select({
+        id: messagesTable.id,
+        senderId: messagesTable.senderId,
+        content: messagesTable.content,
+        createdAt: messagesTable.createdAt,
+        username: usersTable.username,
+        displayName: usersTable.displayName,
+      })
+      .from(messagesTable)
+      .innerJoin(usersTable, eq(usersTable.id, messagesTable.senderId))
+      .where(
+        and(
+          eq(messagesTable.roomTag, tag),
+          gt(messagesTable.createdAt, since),
+          sql`${messagesTable.deletedAt} IS NULL`,
+        ),
+      )
+      .orderBy(messagesTable.createdAt)
+      .limit(300);
+    const visible = rows.filter((r) => !hidden.has(r.senderId) && (r.content ?? "").trim());
+
+    if (visible.length === 0) {
+      const summary = `No new messages in #${tag} in the last ${hours}h.`;
+      const generatedAt = new Date();
+      await db
+        .insert(roomSummariesTable)
+        .values({ roomTag: tag, summary, hours, messageCount: 0, generatedAt })
+        .onConflictDoUpdate({
+          target: roomSummariesTable.roomTag,
+          set: { summary, hours, messageCount: 0, generatedAt },
+        });
+      res.json({
+        roomTag: tag,
+        summary,
+        hours,
+        messageCount: 0,
+        generatedAt: generatedAt.toISOString(),
+        cached: false,
+      });
+      return;
+    }
+
+    const client = getOpenAIClient();
+    let summary: string;
+    if (!client) {
+      summary = `${visible.length} message${visible.length === 1 ? "" : "s"} from ${
+        new Set(visible.map((v) => v.displayName ?? v.username)).size
+      } people in the last ${hours}h. AI summary is unavailable right now.`;
+    } else {
+      const transcript = visible
+        .slice(-150)
+        .map((v) => `${v.displayName ?? v.username}: ${(v.content ?? "").slice(0, 400)}`)
+        .join("\n");
+      try {
+        const completion = await client.chat.completions.create({
+          model: "gpt-4o-mini",
+          temperature: 0.3,
+          messages: [
+            {
+              role: "system",
+              content:
+                "You write concise 'catch me up' recaps of group chat activity. Use 3-6 bullet points covering who said what about which topics. No greetings, no preamble. Plain markdown bullets.",
+            },
+            {
+              role: "user",
+              content: `Recap activity in #${tag} from the last ${hours} hours:\n\n${transcript}`,
+            },
+          ],
+        });
+        summary =
+          (completion.choices?.[0]?.message?.content ?? "").trim() ||
+          `${visible.length} new messages in the last ${hours}h.`;
+      } catch (err) {
+        req.log.warn({ err, tag }, "room summary generation failed");
+        summary = `${visible.length} new messages in the last ${hours}h. Couldn't generate an AI summary right now.`;
+      }
+    }
+
+    const generatedAt = new Date();
+    await db
+      .insert(roomSummariesTable)
+      .values({
+        roomTag: tag,
+        summary,
+        hours,
+        messageCount: visible.length,
+        generatedAt,
+      })
+      .onConflictDoUpdate({
+        target: roomSummariesTable.roomTag,
+        set: { summary, hours, messageCount: visible.length, generatedAt },
+      });
+    res.json({
+      roomTag: tag,
+      summary,
+      hours,
+      messageCount: visible.length,
+      generatedAt: generatedAt.toISOString(),
+      cached: false,
+    });
+  },
+);
 
 router.post("/rooms/:tag/messages", requireAuth, async (req, res): Promise<void> => {
   const raw = Array.isArray(req.params.tag) ? req.params.tag[0] : req.params.tag;

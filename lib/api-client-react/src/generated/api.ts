@@ -73,6 +73,7 @@ import type {
   GetRecentGifsParams,
   GetRoomActiveUsersParams,
   GetRoomAnalyticsParams,
+  GetRoomSummaryParams,
   GetTrendingEventsParams,
   GetTrendingHashtagsParams,
   GetTrendingRoomsParams,
@@ -99,6 +100,7 @@ import type {
   Message,
   MessageThread,
   ModerationScopeBody,
+  MuteBody,
   MvpCode,
   MyAnalytics,
   MyRelationships,
@@ -139,6 +141,7 @@ import type {
   RoomInvite,
   RoomInvitePeek,
   RoomJoinRequest,
+  RoomSummary,
   RoomVisibility,
   SearchGifsParams,
   SearchHashtagsParams,
@@ -151,6 +154,8 @@ import type {
   SetSlowModeBody,
   SolanaTipBody,
   SolanaWallet,
+  SuggestHashtagsBody,
+  SuggestHashtagsResponse,
   Tip,
   TipCheckoutBody,
   TipCheckoutResponse,
@@ -8165,7 +8170,7 @@ export const useUnblockUser = <
 };
 
 /**
- * @summary Mute a user (hide from feeds)
+ * @summary Mute a user globally (hide from feeds)
  */
 export const getMuteUserUrl = (id: string) => {
   return `/api/users/${id}/mute`;
@@ -8173,11 +8178,14 @@ export const getMuteUserUrl = (id: string) => {
 
 export const muteUser = async (
   id: string,
+  muteBody?: MuteBody,
   options?: RequestInit,
 ): Promise<void> => {
   return customFetch<void>(getMuteUserUrl(id), {
     ...options,
     method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(muteBody),
   });
 };
 
@@ -8188,14 +8196,14 @@ export const getMuteUserMutationOptions = <
   mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof muteUser>>,
     TError,
-    { id: string },
+    { id: string; data: BodyType<MuteBody> },
     TContext
   >;
   request?: SecondParameter<typeof customFetch>;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof muteUser>>,
   TError,
-  { id: string },
+  { id: string; data: BodyType<MuteBody> },
   TContext
 > => {
   const mutationKey = ["muteUser"];
@@ -8209,11 +8217,11 @@ export const getMuteUserMutationOptions = <
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof muteUser>>,
-    { id: string }
+    { id: string; data: BodyType<MuteBody> }
   > = (props) => {
-    const { id } = props ?? {};
+    const { id, data } = props ?? {};
 
-    return muteUser(id, requestOptions);
+    return muteUser(id, data, requestOptions);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -8222,11 +8230,11 @@ export const getMuteUserMutationOptions = <
 export type MuteUserMutationResult = NonNullable<
   Awaited<ReturnType<typeof muteUser>>
 >;
-
+export type MuteUserMutationBody = BodyType<MuteBody>;
 export type MuteUserMutationError = ErrorType<unknown>;
 
 /**
- * @summary Mute a user (hide from feeds)
+ * @summary Mute a user globally (hide from feeds)
  */
 export const useMuteUser = <
   TError = ErrorType<unknown>,
@@ -8235,14 +8243,14 @@ export const useMuteUser = <
   mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof muteUser>>,
     TError,
-    { id: string },
+    { id: string; data: BodyType<MuteBody> },
     TContext
   >;
   request?: SecondParameter<typeof customFetch>;
 }): UseMutationResult<
   Awaited<ReturnType<typeof muteUser>>,
   TError,
-  { id: string },
+  { id: string; data: BodyType<MuteBody> },
   TContext
 > => {
   return useMutation(getMuteUserMutationOptions(options));
@@ -8333,7 +8341,180 @@ export const useUnmuteUser = <
 };
 
 /**
- * @summary Mute a hashtag (hide from feeds & trending)
+ * @summary Mute a user only inside a single room (no global block)
+ */
+export const getMuteUserInRoomUrl = (tag: string, id: string) => {
+  return `/api/rooms/${tag}/users/${id}/mute`;
+};
+
+export const muteUserInRoom = async (
+  tag: string,
+  id: string,
+  muteBody?: MuteBody,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getMuteUserInRoomUrl(tag, id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(muteBody),
+  });
+};
+
+export const getMuteUserInRoomMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof muteUserInRoom>>,
+    TError,
+    { tag: string; id: string; data: BodyType<MuteBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof muteUserInRoom>>,
+  TError,
+  { tag: string; id: string; data: BodyType<MuteBody> },
+  TContext
+> => {
+  const mutationKey = ["muteUserInRoom"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof muteUserInRoom>>,
+    { tag: string; id: string; data: BodyType<MuteBody> }
+  > = (props) => {
+    const { tag, id, data } = props ?? {};
+
+    return muteUserInRoom(tag, id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type MuteUserInRoomMutationResult = NonNullable<
+  Awaited<ReturnType<typeof muteUserInRoom>>
+>;
+export type MuteUserInRoomMutationBody = BodyType<MuteBody>;
+export type MuteUserInRoomMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Mute a user only inside a single room (no global block)
+ */
+export const useMuteUserInRoom = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof muteUserInRoom>>,
+    TError,
+    { tag: string; id: string; data: BodyType<MuteBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof muteUserInRoom>>,
+  TError,
+  { tag: string; id: string; data: BodyType<MuteBody> },
+  TContext
+> => {
+  return useMutation(getMuteUserInRoomMutationOptions(options));
+};
+
+/**
+ * @summary Remove a per-room user mute
+ */
+export const getUnmuteUserInRoomUrl = (tag: string, id: string) => {
+  return `/api/rooms/${tag}/users/${id}/mute`;
+};
+
+export const unmuteUserInRoom = async (
+  tag: string,
+  id: string,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getUnmuteUserInRoomUrl(tag, id), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getUnmuteUserInRoomMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof unmuteUserInRoom>>,
+    TError,
+    { tag: string; id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof unmuteUserInRoom>>,
+  TError,
+  { tag: string; id: string },
+  TContext
+> => {
+  const mutationKey = ["unmuteUserInRoom"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof unmuteUserInRoom>>,
+    { tag: string; id: string }
+  > = (props) => {
+    const { tag, id } = props ?? {};
+
+    return unmuteUserInRoom(tag, id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UnmuteUserInRoomMutationResult = NonNullable<
+  Awaited<ReturnType<typeof unmuteUserInRoom>>
+>;
+
+export type UnmuteUserInRoomMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Remove a per-room user mute
+ */
+export const useUnmuteUserInRoom = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof unmuteUserInRoom>>,
+    TError,
+    { tag: string; id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof unmuteUserInRoom>>,
+  TError,
+  { tag: string; id: string },
+  TContext
+> => {
+  return useMutation(getUnmuteUserInRoomMutationOptions(options));
+};
+
+/**
+ * @summary Mute a hashtag (hide from feeds & trending) for a chosen duration
  */
 export const getMuteHashtagUrl = (tag: string) => {
   return `/api/hashtags/${tag}/mute`;
@@ -8341,11 +8522,14 @@ export const getMuteHashtagUrl = (tag: string) => {
 
 export const muteHashtag = async (
   tag: string,
+  muteBody?: MuteBody,
   options?: RequestInit,
 ): Promise<void> => {
   return customFetch<void>(getMuteHashtagUrl(tag), {
     ...options,
     method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(muteBody),
   });
 };
 
@@ -8356,14 +8540,14 @@ export const getMuteHashtagMutationOptions = <
   mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof muteHashtag>>,
     TError,
-    { tag: string },
+    { tag: string; data: BodyType<MuteBody> },
     TContext
   >;
   request?: SecondParameter<typeof customFetch>;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof muteHashtag>>,
   TError,
-  { tag: string },
+  { tag: string; data: BodyType<MuteBody> },
   TContext
 > => {
   const mutationKey = ["muteHashtag"];
@@ -8377,11 +8561,11 @@ export const getMuteHashtagMutationOptions = <
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof muteHashtag>>,
-    { tag: string }
+    { tag: string; data: BodyType<MuteBody> }
   > = (props) => {
-    const { tag } = props ?? {};
+    const { tag, data } = props ?? {};
 
-    return muteHashtag(tag, requestOptions);
+    return muteHashtag(tag, data, requestOptions);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -8390,11 +8574,11 @@ export const getMuteHashtagMutationOptions = <
 export type MuteHashtagMutationResult = NonNullable<
   Awaited<ReturnType<typeof muteHashtag>>
 >;
-
+export type MuteHashtagMutationBody = BodyType<MuteBody>;
 export type MuteHashtagMutationError = ErrorType<unknown>;
 
 /**
- * @summary Mute a hashtag (hide from feeds & trending)
+ * @summary Mute a hashtag (hide from feeds & trending) for a chosen duration
  */
 export const useMuteHashtag = <
   TError = ErrorType<unknown>,
@@ -8403,14 +8587,14 @@ export const useMuteHashtag = <
   mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof muteHashtag>>,
     TError,
-    { tag: string },
+    { tag: string; data: BodyType<MuteBody> },
     TContext
   >;
   request?: SecondParameter<typeof customFetch>;
 }): UseMutationResult<
   Awaited<ReturnType<typeof muteHashtag>>,
   TError,
-  { tag: string },
+  { tag: string; data: BodyType<MuteBody> },
   TContext
 > => {
   return useMutation(getMuteHashtagMutationOptions(options));
@@ -8499,6 +8683,201 @@ export const useUnmuteHashtag = <
 > => {
   return useMutation(getUnmuteHashtagMutationOptions(options));
 };
+
+/**
+ * @summary AI hashtag suggestions for draft text
+ */
+export const getSuggestHashtagsUrl = () => {
+  return `/api/ai/suggest-hashtags`;
+};
+
+export const suggestHashtags = async (
+  suggestHashtagsBody: SuggestHashtagsBody,
+  options?: RequestInit,
+): Promise<SuggestHashtagsResponse> => {
+  return customFetch<SuggestHashtagsResponse>(getSuggestHashtagsUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(suggestHashtagsBody),
+  });
+};
+
+export const getSuggestHashtagsMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof suggestHashtags>>,
+    TError,
+    { data: BodyType<SuggestHashtagsBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof suggestHashtags>>,
+  TError,
+  { data: BodyType<SuggestHashtagsBody> },
+  TContext
+> => {
+  const mutationKey = ["suggestHashtags"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof suggestHashtags>>,
+    { data: BodyType<SuggestHashtagsBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return suggestHashtags(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SuggestHashtagsMutationResult = NonNullable<
+  Awaited<ReturnType<typeof suggestHashtags>>
+>;
+export type SuggestHashtagsMutationBody = BodyType<SuggestHashtagsBody>;
+export type SuggestHashtagsMutationError = ErrorType<unknown>;
+
+/**
+ * @summary AI hashtag suggestions for draft text
+ */
+export const useSuggestHashtags = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof suggestHashtags>>,
+    TError,
+    { data: BodyType<SuggestHashtagsBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof suggestHashtags>>,
+  TError,
+  { data: BodyType<SuggestHashtagsBody> },
+  TContext
+> => {
+  return useMutation(getSuggestHashtagsMutationOptions(options));
+};
+
+/**
+ * @summary AI summary of recent activity in a room ("Catch me up")
+ */
+export const getGetRoomSummaryUrl = (
+  tag: string,
+  params?: GetRoomSummaryParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/rooms/${tag}/summary?${stringifiedParams}`
+    : `/api/rooms/${tag}/summary`;
+};
+
+export const getRoomSummary = async (
+  tag: string,
+  params?: GetRoomSummaryParams,
+  options?: RequestInit,
+): Promise<RoomSummary> => {
+  return customFetch<RoomSummary>(getGetRoomSummaryUrl(tag, params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetRoomSummaryQueryKey = (
+  tag: string,
+  params?: GetRoomSummaryParams,
+) => {
+  return [`/api/rooms/${tag}/summary`, ...(params ? [params] : [])] as const;
+};
+
+export const getGetRoomSummaryQueryOptions = <
+  TData = Awaited<ReturnType<typeof getRoomSummary>>,
+  TError = ErrorType<unknown>,
+>(
+  tag: string,
+  params?: GetRoomSummaryParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getRoomSummary>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetRoomSummaryQueryKey(tag, params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getRoomSummary>>> = ({
+    signal,
+  }) => getRoomSummary(tag, params, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!tag,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getRoomSummary>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetRoomSummaryQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getRoomSummary>>
+>;
+export type GetRoomSummaryQueryError = ErrorType<unknown>;
+
+/**
+ * @summary AI summary of recent activity in a room ("Catch me up")
+ */
+
+export function useGetRoomSummary<
+  TData = Awaited<ReturnType<typeof getRoomSummary>>,
+  TError = ErrorType<unknown>,
+>(
+  tag: string,
+  params?: GetRoomSummaryParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getRoomSummary>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetRoomSummaryQueryOptions(tag, params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
 
 /**
  * @summary My follows / blocks / mutes / muted hashtags (ids)

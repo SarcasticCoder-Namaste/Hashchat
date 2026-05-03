@@ -287,17 +287,57 @@ export interface BlocksAndMutesUser {
   /** @nullable */
   discriminator?: string | null;
   actedAt: string;
+  /** @nullable */
+  expiresAt?: string | null;
+  /**
+   * If set, this mute only applies inside this room.
+   * @nullable
+   */
+  roomTag?: string | null;
 }
 
 export type BlocksAndMutesMutedHashtagsItem = {
   tag: string;
   actedAt: string;
+  /** @nullable */
+  expiresAt?: string | null;
 };
 
 export interface BlocksAndMutes {
   blocked: BlocksAndMutesUser[];
   muted: BlocksAndMutesUser[];
+  roomMutedUsers: BlocksAndMutesUser[];
   mutedHashtags: BlocksAndMutesMutedHashtagsItem[];
+}
+
+export interface MuteBody {
+  /**
+   * How long the mute should last. null or 0 means forever.
+   * @nullable
+   */
+  durationHours?: number | null;
+}
+
+export interface SuggestHashtagsBody {
+  text: string;
+  /**
+   * @minimum 1
+   * @maximum 8
+   */
+  max?: number;
+}
+
+export interface SuggestHashtagsResponse {
+  tags: string[];
+}
+
+export interface RoomSummary {
+  roomTag: string;
+  summary: string;
+  hours: number;
+  messageCount: number;
+  generatedAt: string;
+  cached: boolean;
 }
 
 export type FollowingFeedItemKind =
@@ -2094,6 +2134,14 @@ export type GetCallSignalsParams = {
 
 export type LookupUserByCodeParams = {
   code: string;
+};
+
+export type GetRoomSummaryParams = {
+  /**
+   * @minimum 1
+   * @maximum 168
+   */
+  hours?: number;
 };
 
 export type GetFollowingFeedParams = {
