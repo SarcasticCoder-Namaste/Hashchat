@@ -49,7 +49,7 @@ import type {
   ExpoPushSubscribeBody,
   ExpoPushUnsubscribeBody,
   FollowingFeedItem,
-  ForYouItem,
+  ForYouFeed,
   FriendCodeResponse,
   FriendRequestList,
   GetCallSignalsParams,
@@ -1350,8 +1350,8 @@ export const getGetForYouFeedUrl = (params?: GetForYouFeedParams) => {
 export const getForYouFeed = async (
   params?: GetForYouFeedParams,
   options?: RequestInit,
-): Promise<ForYouItem[]> => {
-  return customFetch<ForYouItem[]>(getGetForYouFeedUrl(params), {
+): Promise<ForYouFeed> => {
+  return customFetch<ForYouFeed>(getGetForYouFeedUrl(params), {
     ...options,
     method: "GET",
   });

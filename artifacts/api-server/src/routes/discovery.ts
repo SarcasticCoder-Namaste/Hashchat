@@ -146,6 +146,7 @@ router.get("/discover/foryou", requireAuth, async (req, res): Promise<void> => {
     Math.max(parseInt(String(req.query.limit ?? "30"), 10) || 30, 1),
     60,
   );
+  const offset = Math.max(parseInt(String(req.query.offset ?? "0"), 10) || 0, 0);
   const me = getUserId(req);
   const [blockWall, mutes, mutedTags, following] = await Promise.all([
     loadBlockWall(me),
@@ -169,6 +170,80 @@ router.get("/discover/foryou", requireAuth, async (req, res): Promise<void> => {
     (t) => !mutedTags.has(t),
   );
 
+  // ---- Per-user behavioral signals (last 30 days) ----
+  const signalsSince = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+
+  // Posts I've reacted to → infer affinity for their authors and their tags.
+  const myReactionRows = await db
+    .select({ postId: postReactionsTable.postId })
+    .from(postReactionsTable)
+    .where(
+      and(
+        eq(postReactionsTable.userId, me),
+        gte(postReactionsTable.createdAt, signalsSince),
+      ),
+    );
+  const reactedPostIds = Array.from(new Set(myReactionRows.map((r) => r.postId)));
+  const affinityAuthors = new Map<string, number>();
+  const affinityTags = new Map<string, number>();
+  if (reactedPostIds.length > 0) {
+    const [authorRows, tagRows] = await Promise.all([
+      db
+        .select({ authorId: postsTable.authorId })
+        .from(postsTable)
+        .where(inArray(postsTable.id, reactedPostIds)),
+      db
+        .select({ tag: postHashtagsTable.tag })
+        .from(postHashtagsTable)
+        .where(inArray(postHashtagsTable.postId, reactedPostIds)),
+    ]);
+    for (const a of authorRows) {
+      affinityAuthors.set(a.authorId, (affinityAuthors.get(a.authorId) ?? 0) + 1);
+    }
+    for (const t of tagRows) {
+      if (mutedTags.has(t.tag)) continue;
+      affinityTags.set(t.tag, (affinityTags.get(t.tag) ?? 0) + 1);
+    }
+  }
+
+  // Replies I've sent (in rooms) → recent room visits + author affinity.
+  const myMsgRows = await db
+    .select({
+      roomTag: messagesTable.roomTag,
+      replyToId: messagesTable.replyToId,
+    })
+    .from(messagesTable)
+    .where(
+      and(
+        eq(messagesTable.senderId, me),
+        gte(messagesTable.createdAt, signalsSince),
+      ),
+    );
+  const visitedRooms = new Map<string, number>();
+  const replyTargetIds: number[] = [];
+  for (const m of myMsgRows) {
+    if (m.roomTag && !mutedTags.has(m.roomTag)) {
+      visitedRooms.set(m.roomTag, (visitedRooms.get(m.roomTag) ?? 0) + 1);
+    }
+    if (m.replyToId) replyTargetIds.push(m.replyToId);
+  }
+  const recentReplies = replyTargetIds.length;
+  if (replyTargetIds.length > 0) {
+    const repliedTo = await db
+      .select({ senderId: messagesTable.senderId })
+      .from(messagesTable)
+      .where(inArray(messagesTable.id, replyTargetIds));
+    for (const r of repliedTo) {
+      if (r.senderId === me) continue;
+      affinityAuthors.set(r.senderId, (affinityAuthors.get(r.senderId) ?? 0) + 2);
+    }
+  }
+
+  // Combine candidate tags: explicit interest tags + inferred affinity tags.
+  const candidateTagSet = new Set<string>(interestTags);
+  for (const t of affinityTags.keys()) candidateTagSet.add(t);
+  const candidateTags = Array.from(candidateTagSet);
+
   const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
   let candidatePosts: Array<{
     id: number;
@@ -177,7 +252,8 @@ router.get("/discover/foryou", requireAuth, async (req, res): Promise<void> => {
     fromFollow: number;
   }> = [];
 
-  if (interestTags.length > 0) {
+  const fetchHorizon = (offset + limit) * 2 + 20;
+  if (candidateTags.length > 0) {
     const rows = await db
       .select({
         id: postsTable.id,
@@ -188,14 +264,14 @@ router.get("/discover/foryou", requireAuth, async (req, res): Promise<void> => {
       .innerJoin(postHashtagsTable, eq(postHashtagsTable.postId, postsTable.id))
       .where(
         and(
-          inArray(postHashtagsTable.tag, interestTags),
+          inArray(postHashtagsTable.tag, candidateTags),
           sql`${postsTable.deletedAt} IS NULL`,
           sql`${postsTable.createdAt} >= ${since}`,
         ),
       )
       .groupBy(postsTable.id, postsTable.authorId)
       .orderBy(desc(postsTable.createdAt))
-      .limit(limit * 2);
+      .limit(fetchHorizon);
     candidatePosts = rows.map((r) => ({
       id: r.id,
       authorId: r.authorId,
@@ -215,7 +291,7 @@ router.get("/discover/foryou", requireAuth, async (req, res): Promise<void> => {
         ),
       )
       .orderBy(desc(postsTable.createdAt))
-      .limit(limit);
+      .limit(fetchHorizon);
     for (const r of rows) {
       if (!candidatePosts.find((c) => c.id === r.id)) {
         candidatePosts.push({
@@ -227,7 +303,37 @@ router.get("/discover/foryou", requireAuth, async (req, res): Promise<void> => {
       }
     }
   }
-  candidatePosts = candidatePosts.filter((c) => !hidden.has(c.authorId));
+  // Authors I have affinity with (reactions/replies) — pull their recent posts.
+  const affinityAuthorIds = Array.from(affinityAuthors.keys()).filter(
+    (id) => id !== me && !hidden.has(id),
+  );
+  if (affinityAuthorIds.length > 0) {
+    const rows = await db
+      .select({ id: postsTable.id, authorId: postsTable.authorId })
+      .from(postsTable)
+      .where(
+        and(
+          inArray(postsTable.authorId, affinityAuthorIds),
+          sql`${postsTable.deletedAt} IS NULL`,
+          sql`${postsTable.createdAt} >= ${since}`,
+        ),
+      )
+      .orderBy(desc(postsTable.createdAt))
+      .limit(fetchHorizon);
+    for (const r of rows) {
+      if (!candidatePosts.find((c) => c.id === r.id)) {
+        candidatePosts.push({
+          id: r.id,
+          authorId: r.authorId,
+          matchedTags: 0,
+          fromFollow: following.has(r.authorId) ? 1 : 0,
+        });
+      }
+    }
+  }
+  candidatePosts = candidatePosts.filter(
+    (c) => !hidden.has(c.authorId) && c.authorId !== me,
+  );
 
   let postItems: unknown[] = [];
   if (candidatePosts.length > 0) {
@@ -281,14 +387,28 @@ router.get("/discover/foryou", requireAuth, async (req, res): Promise<void> => {
         const tags = tagsByPost.get(r.id) ?? [];
         const ageHours = (Date.now() - r.createdAt.getTime()) / 3_600_000;
         const recency = Math.max(0, 1 - ageHours / (24 * 7));
+        const authorAffinity = affinityAuthors.get(r.authorId) ?? 0;
+        const tagAffinity = tags.reduce(
+          (acc, t) => acc + (affinityTags.get(t) ?? 0),
+          0,
+        );
         const score =
-          cand.matchedTags * 5 + cand.fromFollow * 8 + recency * 6;
+          cand.matchedTags * 5 +
+          cand.fromFollow * 8 +
+          recency * 6 +
+          Math.min(authorAffinity, 6) * 3 +
+          Math.min(tagAffinity, 8) * 1.5;
         const matchedTagsList = tags.filter((t) => interestTags.includes(t));
+        const affinityTagMatch = tags.find((t) => affinityTags.has(t));
         const reason = cand.fromFollow
           ? `From ${a?.displayName ?? "someone"} you follow`
-          : matchedTagsList.length > 0
-            ? `Because you like #${matchedTagsList[0]}`
-            : "Recent on HashChat";
+          : authorAffinity > 0
+            ? `${a?.displayName ?? "Someone"} you've engaged with`
+            : matchedTagsList.length > 0
+              ? `Because you like #${matchedTagsList[0]}`
+              : affinityTagMatch
+                ? `You've reacted to #${affinityTagMatch}`
+                : "Recent on HashChat";
         return {
           kind: "post" as const,
           id: `post-${r.id}`,
@@ -317,7 +437,7 @@ router.get("/discover/foryou", requireAuth, async (req, res): Promise<void> => {
   }
 
   let roomItems: unknown[] = [];
-  if (interestTags.length > 0) {
+  {
     const sinceRoom = new Date(Date.now() - 24 * 60 * 60 * 1000);
     const rooms = await db
       .select({
@@ -334,14 +454,17 @@ router.get("/discover/foryou", requireAuth, async (req, res): Promise<void> => {
       )
       .groupBy(messagesTable.roomTag)
       .orderBy(desc(sql`count(*)`))
-      .limit(20);
+      .limit(30);
     const followedSet = new Set(followedTags);
     const interestSet = new Set(interestTags);
-    const filtered = rooms
-      .map((r) => r.tag!)
-      .filter((t) => t && !mutedTags.has(t))
-      .filter((t) => interestSet.has(t) || true)
-      .slice(0, 10);
+    const visitedSet = new Set(visitedRooms.keys());
+    const candidatePool = new Set<string>();
+    for (const r of rooms) {
+      if (r.tag && !mutedTags.has(r.tag)) candidatePool.add(r.tag);
+    }
+    for (const t of visitedSet) candidatePool.add(t);
+    for (const t of interestSet) candidatePool.add(t);
+    const filtered = Array.from(candidatePool).slice(0, 16);
 
     if (filtered.length > 0) {
       const memberRows = await db
@@ -362,20 +485,31 @@ router.get("/discover/foryou", requireAuth, async (req, res): Promise<void> => {
         .where(inArray(userFollowedHashtagsTable.tag, filtered))
         .groupBy(userFollowedHashtagsTable.tag);
       const followerMap = new Map(followerRows.map((f) => [f.tag, f.n]));
-      const recentMap = new Map(rooms.map((r) => [r.tag!, r.recent]));
+      const recentMap = new Map(
+        rooms.filter((r) => r.tag).map((r) => [r.tag!, r.recent]),
+      );
       roomItems = filtered.map((tag) => {
         const isInterest = interestSet.has(tag);
+        const visits = visitedRooms.get(tag) ?? 0;
+        const isFollowed = followedSet.has(tag);
         const score =
           (recentMap.get(tag) ?? 0) * 1 +
           (memberMap.get(tag) ?? 0) * 0.4 +
-          (isInterest ? 4 : 0);
+          (isInterest ? 4 : 0) +
+          Math.min(visits, 10) * 2 +
+          (isFollowed ? 3 : 0);
+        const reason = visits > 0
+          ? `You've been chatting in #${tag}`
+          : isFollowed
+            ? `Active room you follow`
+            : isInterest
+              ? `Matches your hashtags`
+              : `Trending right now`;
         return {
           kind: "room" as const,
           id: `room-${tag}`,
           score,
-          reason: isInterest
-            ? `Active room you follow`
-            : `Trending right now`,
+          reason,
           post: null,
           room: {
             tag,
@@ -393,26 +527,61 @@ router.get("/discover/foryou", requireAuth, async (req, res): Promise<void> => {
   }
 
   let peopleItems: unknown[] = [];
-  if (myTags.length > 0) {
-    const overlap = await db
-      .select({
-        userId: userHashtagsTable.userId,
-        score: sql<number>`count(*)::int`,
-      })
-      .from(userHashtagsTable)
-      .where(
-        and(
-          inArray(userHashtagsTable.tag, myTags),
-          ne(userHashtagsTable.userId, me),
-        ),
-      )
-      .groupBy(userHashtagsTable.userId)
-      .orderBy(desc(sql`count(*)`))
-      .limit(10);
-    const personIds = overlap
-      .map((o) => o.userId)
-      .filter((id) => !hidden.has(id) && !following.has(id))
-      .slice(0, 6);
+  {
+    const overlap = myTags.length > 0
+      ? await db
+          .select({
+            userId: userHashtagsTable.userId,
+            score: sql<number>`count(*)::int`,
+          })
+          .from(userHashtagsTable)
+          .where(
+            and(
+              inArray(userHashtagsTable.tag, myTags),
+              ne(userHashtagsTable.userId, me),
+            ),
+          )
+          .groupBy(userHashtagsTable.userId)
+          .orderBy(desc(sql`count(*)`))
+          .limit(20)
+      : [];
+    // Mix in users I've engaged with (replies/reactions) but don't already follow.
+    const engagedIds = Array.from(affinityAuthors.keys()).filter(
+      (id) => id !== me && !hidden.has(id) && !following.has(id),
+    );
+    // Mix in fellow members of rooms I've recently visited.
+    let coVisitorIds: string[] = [];
+    if (visitedRooms.size > 0) {
+      const visitedTags = Array.from(visitedRooms.keys());
+      const coVisitorRows = await db
+        .select({
+          userId: messagesTable.senderId,
+          n: sql<number>`count(*)::int`,
+        })
+        .from(messagesTable)
+        .where(
+          and(
+            inArray(messagesTable.roomTag, visitedTags),
+            gte(messagesTable.createdAt, signalsSince),
+            ne(messagesTable.senderId, me),
+          ),
+        )
+        .groupBy(messagesTable.senderId)
+        .orderBy(desc(sql`count(*)`))
+        .limit(20);
+      coVisitorIds = coVisitorRows
+        .map((r) => r.userId)
+        .filter((id) => !hidden.has(id) && !following.has(id));
+    }
+    const personIds = Array.from(
+      new Set([
+        ...engagedIds,
+        ...coVisitorIds,
+        ...overlap
+          .map((o) => o.userId)
+          .filter((id) => !hidden.has(id) && !following.has(id)),
+      ]),
+    ).slice(0, 12);
     if (personIds.length > 0) {
       const users = await db
         .select()
@@ -433,16 +602,29 @@ router.get("/discover/foryou", requireAuth, async (req, res): Promise<void> => {
         loadSocialFlagsMap(me, personIds),
       ]);
       const overlapMap = new Map(overlap.map((o) => [o.userId, o.score]));
+      const coVisitorSet = new Set(coVisitorIds);
       peopleItems = users.map((u) => {
         const tags = tagMap.get(u.id) ?? [];
         const shared = tags.filter((t) => myTagSet.has(t));
         const flags = socialMap.get(u.id);
         const overlapScore = overlapMap.get(u.id) ?? 0;
+        const engaged = affinityAuthors.get(u.id) ?? 0;
+        const coVisited = coVisitorSet.has(u.id);
+        const score =
+          overlapScore * 4 +
+          engaged * 5 +
+          (coVisited ? 4 : 0) +
+          2;
+        const reason = engaged > 0
+          ? `You've engaged with ${u.displayName}`
+          : coVisited
+            ? `Active in rooms you visit`
+            : `${shared.length} hashtag${shared.length === 1 ? "" : "s"} in common`;
         return {
           kind: "person" as const,
           id: `person-${u.id}`,
-          score: overlapScore * 4 + 2,
-          reason: `${shared.length} hashtag${shared.length === 1 ? "" : "s"} in common`,
+          score,
+          reason,
           post: null,
           room: null,
           person: {
@@ -485,29 +667,48 @@ router.get("/discover/foryou", requireAuth, async (req, res): Promise<void> => {
   const all = [...postItems, ...roomItems, ...peopleItems] as Item[];
   all.sort((a, b) => b.score - a.score);
 
-  const result: Item[] = [];
-  let sinceRoom = 0;
-  let sincePerson = 0;
+  // Build a fully-ranked, interleaved list (cap to a reasonable horizon)
+  // so we can paginate by offset.
+  const MAX_RANK = Math.max(offset + limit, 200);
+  const ranked: Item[] = [];
+  let lastRoomAt = -10;
+  let lastPersonAt = -10;
   for (const item of all) {
-    if (result.length >= limit) break;
-    if (item.kind === "room" && result.length - sinceRoom < 3 && result.length > 0) {
+    if (ranked.length >= MAX_RANK) break;
+    if (item.kind === "room" && ranked.length - lastRoomAt < 3 && ranked.length > 0) {
       continue;
     }
-    if (item.kind === "person" && result.length - sincePerson < 4 && result.length > 0) {
+    if (item.kind === "person" && ranked.length - lastPersonAt < 4 && ranked.length > 0) {
       continue;
     }
-    result.push(item);
-    if (item.kind === "room") sinceRoom = result.length;
-    if (item.kind === "person") sincePerson = result.length;
+    ranked.push(item);
+    if (item.kind === "room") lastRoomAt = ranked.length;
+    if (item.kind === "person") lastPersonAt = ranked.length;
   }
-  if (result.length < limit) {
+  if (ranked.length < MAX_RANK) {
     for (const item of all) {
-      if (result.length >= limit) break;
-      if (!result.find((r) => r.id === item.id)) result.push(item);
+      if (ranked.length >= MAX_RANK) break;
+      if (!ranked.find((r) => r.id === item.id)) ranked.push(item);
     }
   }
 
-  res.json(result);
+  const total = ranked.length;
+  const slice = ranked.slice(offset, offset + limit);
+  const nextOffset = offset + slice.length < total ? offset + slice.length : null;
+
+  res.json({
+    items: slice,
+    nextOffset,
+    total,
+    signals: {
+      ownHashtags: myTags.length,
+      followedHashtags: followedTags.length,
+      following: following.size,
+      recentReactions: reactedPostIds.length,
+      recentReplies,
+      recentRoomVisits: visitedRooms.size,
+    },
+  });
 });
 
 // ----------------------------- Explore helpers -----------------------------

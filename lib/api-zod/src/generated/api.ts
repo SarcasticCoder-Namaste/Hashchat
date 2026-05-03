@@ -362,277 +362,294 @@ export const DiscoverPeopleResponse = zod.array(DiscoverPeopleResponseItem);
  * @summary Personalized "For You" mixed feed of posts, rooms and people
  */
 export const getForYouFeedQueryLimitDefault = 30;
+export const getForYouFeedQueryOffsetDefault = 0;
 
 export const GetForYouFeedQueryParams = zod.object({
   limit: zod.coerce.number().default(getForYouFeedQueryLimitDefault),
+  offset: zod.coerce.number().default(getForYouFeedQueryOffsetDefault),
 });
 
-export const getForYouFeedResponseRoomOneLastMessageOneAudioWaveformItemMin = 0;
-export const getForYouFeedResponseRoomOneLastMessageOneAudioWaveformItemMax = 100;
+export const getForYouFeedResponseItemsItemRoomOneLastMessageOneAudioWaveformItemMin = 0;
+export const getForYouFeedResponseItemsItemRoomOneLastMessageOneAudioWaveformItemMax = 100;
 
-export const GetForYouFeedResponseItem = zod.object({
-  kind: zod.enum(["post", "room", "person"]),
-  id: zod.string(),
-  score: zod.number(),
-  reason: zod.string(),
-  post: zod
-    .union([
-      zod.object({
-        id: zod.number(),
-        author: zod.object({
-          id: zod.string(),
-          username: zod.string(),
-          displayName: zod.string(),
-          avatarUrl: zod.string().nullish(),
-          animatedAvatarUrl: zod.string().nullish(),
-          discriminator: zod.string().nullish(),
-          role: zod.string(),
-          mvpPlan: zod.boolean(),
-          verified: zod.boolean(),
-          tier: zod.enum(["free", "premium", "pro"]).optional(),
-        }),
-        content: zod.string(),
-        hashtags: zod.array(zod.string()),
-        imageUrls: zod.array(zod.string()),
-        imageAlts: zod.array(zod.string()).optional(),
-        reactions: zod.array(
+export const GetForYouFeedResponse = zod.object({
+  items: zod.array(
+    zod.object({
+      kind: zod.enum(["post", "room", "person"]),
+      id: zod.string(),
+      score: zod.number(),
+      reason: zod.string(),
+      post: zod
+        .union([
           zod.object({
-            emoji: zod.string(),
-            count: zod.number(),
-            reactedByMe: zod.boolean(),
+            id: zod.number(),
+            author: zod.object({
+              id: zod.string(),
+              username: zod.string(),
+              displayName: zod.string(),
+              avatarUrl: zod.string().nullish(),
+              animatedAvatarUrl: zod.string().nullish(),
+              discriminator: zod.string().nullish(),
+              role: zod.string(),
+              mvpPlan: zod.boolean(),
+              verified: zod.boolean(),
+              tier: zod.enum(["free", "premium", "pro"]).optional(),
+            }),
+            content: zod.string(),
+            hashtags: zod.array(zod.string()),
+            imageUrls: zod.array(zod.string()),
+            imageAlts: zod.array(zod.string()).optional(),
+            reactions: zod.array(
+              zod.object({
+                emoji: zod.string(),
+                count: zod.number(),
+                reactedByMe: zod.boolean(),
+              }),
+            ),
+            mentions: zod.array(
+              zod.object({
+                id: zod.string(),
+                username: zod.string(),
+                displayName: zod.string(),
+              }),
+            ),
+            status: zod.enum(["scheduled", "published"]),
+            scheduledFor: zod.coerce.date().nullish(),
+            editedAt: zod.coerce.date().nullish(),
+            editableUntil: zod.coerce.date().nullish(),
+            quotedPost: zod
+              .union([
+                zod.object({
+                  id: zod.number(),
+                  author: zod
+                    .object({
+                      id: zod.string(),
+                      username: zod.string(),
+                      displayName: zod.string(),
+                      avatarUrl: zod.string().nullish(),
+                      animatedAvatarUrl: zod.string().nullish(),
+                      discriminator: zod.string().nullish(),
+                      role: zod.string(),
+                      mvpPlan: zod.boolean(),
+                      verified: zod.boolean(),
+                      tier: zod.enum(["free", "premium", "pro"]).optional(),
+                    })
+                    .optional(),
+                  content: zod.string(),
+                  imageUrls: zod.array(zod.string()),
+                  imageAlts: zod.array(zod.string()).optional(),
+                  createdAt: zod.coerce.date(),
+                  unavailable: zod.boolean(),
+                }),
+                zod.null(),
+              ])
+              .optional(),
+            quoteCount: zod.number(),
+            isPinned: zod.boolean(),
+            pinnedAt: zod.coerce.date().nullish(),
+            replyToId: zod.number().nullish(),
+            replyToAuthorUsername: zod.string().nullish(),
+            replyToAuthorDisplayName: zod.string().nullish(),
+            replyToContent: zod.string().nullish(),
+            lockedAt: zod.coerce.date().nullish(),
+            removedAt: zod.coerce.date().nullish(),
+            pinnedInScopes: zod
+              .array(
+                zod.object({
+                  scopeType: zod.enum(["room", "community"]),
+                  scopeKey: zod.string(),
+                }),
+              )
+              .optional(),
+            createdAt: zod.coerce.date(),
           }),
-        ),
-        mentions: zod.array(
+          zod.null(),
+        ])
+        .optional(),
+      room: zod
+        .union([
+          zod.object({
+            tag: zod.string(),
+            memberCount: zod.number(),
+            messageCount: zod.number(),
+            followerCount: zod.number(),
+            recentMessages: zod.number(),
+            lastMessage: zod
+              .union([
+                zod.object({
+                  id: zod.number(),
+                  conversationId: zod.number().nullish(),
+                  roomTag: zod.string().nullish(),
+                  senderId: zod.string(),
+                  senderName: zod.string(),
+                  senderAvatarUrl: zod.string().nullish(),
+                  senderAnimatedAvatarUrl: zod.string().nullish(),
+                  content: zod.string(),
+                  replyToId: zod.number().nullish(),
+                  replyToContent: zod.string().nullish(),
+                  replyToSenderName: zod.string().nullish(),
+                  replyCount: zod.number(),
+                  imageUrl: zod.string().nullish(),
+                  imageAlt: zod.string().nullish(),
+                  audioUrl: zod.string().nullish(),
+                  audioWaveform: zod
+                    .array(
+                      zod
+                        .number()
+                        .min(
+                          getForYouFeedResponseItemsItemRoomOneLastMessageOneAudioWaveformItemMin,
+                        )
+                        .max(
+                          getForYouFeedResponseItemsItemRoomOneLastMessageOneAudioWaveformItemMax,
+                        ),
+                    )
+                    .nullish(),
+                  audioTranscript: zod.string().nullish(),
+                  reactions: zod.array(
+                    zod.object({
+                      emoji: zod.string(),
+                      count: zod.number(),
+                      reactedByMe: zod.boolean(),
+                    }),
+                  ),
+                  attachments: zod.array(
+                    zod.object({
+                      id: zod.number(),
+                      kind: zod.enum(["image", "gif", "link_preview", "poll"]),
+                      url: zod.string(),
+                      title: zod.string().nullish(),
+                      description: zod.string().nullish(),
+                      thumbnailUrl: zod.string().nullish(),
+                    }),
+                  ),
+                  mentions: zod.array(
+                    zod.object({
+                      id: zod.string(),
+                      username: zod.string(),
+                      displayName: zod.string(),
+                    }),
+                  ),
+                  readByOther: zod.boolean().nullish(),
+                  poll: zod
+                    .union([
+                      zod.object({
+                        id: zod.number(),
+                        roomTag: zod.string(),
+                        creatorId: zod.string(),
+                        creatorName: zod.string(),
+                        question: zod.string(),
+                        mode: zod.enum(["single", "multi", "ranked"]),
+                        maxSelections: zod.number(),
+                        options: zod.array(
+                          zod.object({
+                            id: zod.number(),
+                            text: zod.string(),
+                            votes: zod.number(),
+                            votedByMe: zod.boolean(),
+                            myRank: zod.number().nullish(),
+                          }),
+                        ),
+                        totalVotes: zod.number(),
+                        myVoteOptionId: zod.number().nullish(),
+                        myVoteOptionIds: zod.array(zod.number()),
+                        rounds: zod
+                          .array(
+                            zod.object({
+                              round: zod.number(),
+                              tallies: zod.array(
+                                zod.object({
+                                  optionId: zod.number(),
+                                  votes: zod.number(),
+                                }),
+                              ),
+                              eliminated: zod.array(zod.number()),
+                            }),
+                          )
+                          .optional(),
+                        winnerOptionId: zod.number().nullish(),
+                        expiresAt: zod.coerce.date().nullish(),
+                        isExpired: zod.boolean(),
+                        createdAt: zod.coerce.date(),
+                      }),
+                      zod.null(),
+                    ])
+                    .optional(),
+                  pinnedAt: zod.coerce.date().nullish(),
+                  lockedAt: zod.coerce.date().nullish(),
+                  removedAt: zod.coerce.date().nullish(),
+                  createdAt: zod.coerce.date(),
+                  kind: zod.string().describe("user | system"),
+                }),
+                zod.null(),
+              ])
+              .optional(),
+            isFollowed: zod.boolean(),
+            isPrivate: zod.boolean(),
+            isMember: zod.boolean(),
+          }),
+          zod.null(),
+        ])
+        .optional(),
+      person: zod
+        .union([
           zod.object({
             id: zod.string(),
             username: zod.string(),
             displayName: zod.string(),
+            bio: zod.string().nullish(),
+            avatarUrl: zod.string().nullish(),
+            status: zod.string(),
+            featuredHashtag: zod.string().nullish(),
+            discriminator: zod.string().nullish(),
+            role: zod.string(),
+            mvpPlan: zod.boolean(),
+            verified: zod.boolean(),
+            tier: zod.enum(["free", "premium", "pro"]).optional(),
+            animatedAvatarUrl: zod.string().nullish(),
+            bannerGifUrl: zod.string().nullish(),
+            lastSeenAt: zod.coerce.date(),
+            presenceState: zod
+              .enum(["online", "away", "offline"])
+              .optional()
+              .describe(
+                "Derived presence state — 'online' if active in the last 60s, 'away' within 10 min, otherwise 'offline'. Always 'offline' for users who hide their presence.",
+              ),
+            currentRoomTag: zod
+              .string()
+              .nullish()
+              .describe(
+                "Hashtag of the room the user is currently active in, if any. Null when hidden or not in a room.",
+              ),
+            hashtags: zod.array(zod.string()),
+            sharedHashtags: zod.array(zod.string()),
+            matchScore: zod.number(),
+            friendStatus: zod
+              .string()
+              .nullish()
+              .describe(
+                "One of: friends, request_sent, request_received, none",
+              ),
+            isFollowing: zod.boolean().optional(),
+            followsMe: zod.boolean().optional(),
+            isMuted: zod.boolean().optional(),
+            isBlocked: zod.boolean().optional(),
           }),
-        ),
-        status: zod.enum(["scheduled", "published"]),
-        scheduledFor: zod.coerce.date().nullish(),
-        editedAt: zod.coerce.date().nullish(),
-        editableUntil: zod.coerce.date().nullish(),
-        quotedPost: zod
-          .union([
-            zod.object({
-              id: zod.number(),
-              author: zod
-                .object({
-                  id: zod.string(),
-                  username: zod.string(),
-                  displayName: zod.string(),
-                  avatarUrl: zod.string().nullish(),
-                  animatedAvatarUrl: zod.string().nullish(),
-                  discriminator: zod.string().nullish(),
-                  role: zod.string(),
-                  mvpPlan: zod.boolean(),
-                  verified: zod.boolean(),
-                  tier: zod.enum(["free", "premium", "pro"]).optional(),
-                })
-                .optional(),
-              content: zod.string(),
-              imageUrls: zod.array(zod.string()),
-              imageAlts: zod.array(zod.string()).optional(),
-              createdAt: zod.coerce.date(),
-              unavailable: zod.boolean(),
-            }),
-            zod.null(),
-          ])
-          .optional(),
-        quoteCount: zod.number(),
-        isPinned: zod.boolean(),
-        pinnedAt: zod.coerce.date().nullish(),
-        replyToId: zod.number().nullish(),
-        replyToAuthorUsername: zod.string().nullish(),
-        replyToAuthorDisplayName: zod.string().nullish(),
-        replyToContent: zod.string().nullish(),
-        lockedAt: zod.coerce.date().nullish(),
-        removedAt: zod.coerce.date().nullish(),
-        pinnedInScopes: zod
-          .array(
-            zod.object({
-              scopeType: zod.enum(["room", "community"]),
-              scopeKey: zod.string(),
-            }),
-          )
-          .optional(),
-        createdAt: zod.coerce.date(),
-      }),
-      zod.null(),
-    ])
-    .optional(),
-  room: zod
-    .union([
-      zod.object({
-        tag: zod.string(),
-        memberCount: zod.number(),
-        messageCount: zod.number(),
-        followerCount: zod.number(),
-        recentMessages: zod.number(),
-        lastMessage: zod
-          .union([
-            zod.object({
-              id: zod.number(),
-              conversationId: zod.number().nullish(),
-              roomTag: zod.string().nullish(),
-              senderId: zod.string(),
-              senderName: zod.string(),
-              senderAvatarUrl: zod.string().nullish(),
-              senderAnimatedAvatarUrl: zod.string().nullish(),
-              content: zod.string(),
-              replyToId: zod.number().nullish(),
-              replyToContent: zod.string().nullish(),
-              replyToSenderName: zod.string().nullish(),
-              replyCount: zod.number(),
-              imageUrl: zod.string().nullish(),
-              imageAlt: zod.string().nullish(),
-              audioUrl: zod.string().nullish(),
-              audioWaveform: zod
-                .array(
-                  zod
-                    .number()
-                    .min(
-                      getForYouFeedResponseRoomOneLastMessageOneAudioWaveformItemMin,
-                    )
-                    .max(
-                      getForYouFeedResponseRoomOneLastMessageOneAudioWaveformItemMax,
-                    ),
-                )
-                .nullish(),
-              audioTranscript: zod.string().nullish(),
-              reactions: zod.array(
-                zod.object({
-                  emoji: zod.string(),
-                  count: zod.number(),
-                  reactedByMe: zod.boolean(),
-                }),
-              ),
-              attachments: zod.array(
-                zod.object({
-                  id: zod.number(),
-                  kind: zod.enum(["image", "gif", "link_preview", "poll"]),
-                  url: zod.string(),
-                  title: zod.string().nullish(),
-                  description: zod.string().nullish(),
-                  thumbnailUrl: zod.string().nullish(),
-                }),
-              ),
-              mentions: zod.array(
-                zod.object({
-                  id: zod.string(),
-                  username: zod.string(),
-                  displayName: zod.string(),
-                }),
-              ),
-              readByOther: zod.boolean().nullish(),
-              poll: zod
-                .union([
-                  zod.object({
-                    id: zod.number(),
-                    roomTag: zod.string(),
-                    creatorId: zod.string(),
-                    creatorName: zod.string(),
-                    question: zod.string(),
-                    mode: zod.enum(["single", "multi", "ranked"]),
-                    maxSelections: zod.number(),
-                    options: zod.array(
-                      zod.object({
-                        id: zod.number(),
-                        text: zod.string(),
-                        votes: zod.number(),
-                        votedByMe: zod.boolean(),
-                        myRank: zod.number().nullish(),
-                      }),
-                    ),
-                    totalVotes: zod.number(),
-                    myVoteOptionId: zod.number().nullish(),
-                    myVoteOptionIds: zod.array(zod.number()),
-                    rounds: zod
-                      .array(
-                        zod.object({
-                          round: zod.number(),
-                          tallies: zod.array(
-                            zod.object({
-                              optionId: zod.number(),
-                              votes: zod.number(),
-                            }),
-                          ),
-                          eliminated: zod.array(zod.number()),
-                        }),
-                      )
-                      .optional(),
-                    winnerOptionId: zod.number().nullish(),
-                    expiresAt: zod.coerce.date().nullish(),
-                    isExpired: zod.boolean(),
-                    createdAt: zod.coerce.date(),
-                  }),
-                  zod.null(),
-                ])
-                .optional(),
-              pinnedAt: zod.coerce.date().nullish(),
-              lockedAt: zod.coerce.date().nullish(),
-              removedAt: zod.coerce.date().nullish(),
-              createdAt: zod.coerce.date(),
-              kind: zod.string().describe("user | system"),
-            }),
-            zod.null(),
-          ])
-          .optional(),
-        isFollowed: zod.boolean(),
-        isPrivate: zod.boolean(),
-        isMember: zod.boolean(),
-      }),
-      zod.null(),
-    ])
-    .optional(),
-  person: zod
-    .union([
-      zod.object({
-        id: zod.string(),
-        username: zod.string(),
-        displayName: zod.string(),
-        bio: zod.string().nullish(),
-        avatarUrl: zod.string().nullish(),
-        status: zod.string(),
-        featuredHashtag: zod.string().nullish(),
-        discriminator: zod.string().nullish(),
-        role: zod.string(),
-        mvpPlan: zod.boolean(),
-        verified: zod.boolean(),
-        tier: zod.enum(["free", "premium", "pro"]).optional(),
-        animatedAvatarUrl: zod.string().nullish(),
-        bannerGifUrl: zod.string().nullish(),
-        lastSeenAt: zod.coerce.date(),
-        presenceState: zod
-          .enum(["online", "away", "offline"])
-          .optional()
-          .describe(
-            "Derived presence state — 'online' if active in the last 60s, 'away' within 10 min, otherwise 'offline'. Always 'offline' for users who hide their presence.",
-          ),
-        currentRoomTag: zod
-          .string()
-          .nullish()
-          .describe(
-            "Hashtag of the room the user is currently active in, if any. Null when hidden or not in a room.",
-          ),
-        hashtags: zod.array(zod.string()),
-        sharedHashtags: zod.array(zod.string()),
-        matchScore: zod.number(),
-        friendStatus: zod
-          .string()
-          .nullish()
-          .describe("One of: friends, request_sent, request_received, none"),
-        isFollowing: zod.boolean().optional(),
-        followsMe: zod.boolean().optional(),
-        isMuted: zod.boolean().optional(),
-        isBlocked: zod.boolean().optional(),
-      }),
-      zod.null(),
-    ])
-    .optional(),
+          zod.null(),
+        ])
+        .optional(),
+    }),
+  ),
+  nextOffset: zod.number().nullable(),
+  total: zod.number(),
+  signals: zod.object({
+    ownHashtags: zod.number(),
+    followedHashtags: zod.number(),
+    following: zod.number(),
+    recentReactions: zod.number(),
+    recentReplies: zod.number(),
+    recentRoomVisits: zod.number(),
+  }),
 });
-export const GetForYouFeedResponse = zod.array(GetForYouFeedResponseItem);
 
 /**
  * @summary Aggregated Explore page payload (trending, suggestions, hot posts, for-you preview)

@@ -1349,6 +1349,23 @@ export interface ForYouItem {
   person?: MatchUser | null;
 }
 
+export type ForYouFeedSignals = {
+  ownHashtags: number;
+  followedHashtags: number;
+  following: number;
+  recentReactions: number;
+  recentReplies: number;
+  recentRoomVisits: number;
+};
+
+export interface ForYouFeed {
+  items: ForYouItem[];
+  /** @nullable */
+  nextOffset: number | null;
+  total: number;
+  signals: ForYouFeedSignals;
+}
+
 export interface HotPost {
   post: Post;
   engagement: number;
@@ -1899,6 +1916,7 @@ export type DiscoverPeopleParams = {
 
 export type GetForYouFeedParams = {
   limit?: number;
+  offset?: number;
 };
 
 export type GetHotInYourHashtagsParams = {
