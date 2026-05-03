@@ -33,6 +33,9 @@ const PREF_KEY_BY_KIND: Record<
   event_starting: { email: "emailMentions", push: "pushMentions" },
   // Scheduled post publication notifications piggyback on mention prefs.
   scheduled_post_published: { email: "emailMentions", push: "pushMentions" },
+  // Scheduled DM delivery confirmations piggyback on DM prefs.
+  scheduled_dm_delivered: { email: "emailDms", push: "pushDms" },
+  scheduled_dm_failed: { email: "emailDms", push: "pushDms" },
   // Poll closing reminders piggyback on mention prefs.
   poll_closing: { email: "emailMentions", push: "pushMentions" },
   // Post impression milestones piggyback on mention preferences.
@@ -79,6 +82,10 @@ function titleFor(kind: NotificationKind, actor: string | null): string {
       return `Event starting soon on HashChat`;
     case "scheduled_post_published":
       return `Your scheduled post is now live on HashChat`;
+    case "scheduled_dm_delivered":
+      return `Your scheduled DM was delivered on HashChat`;
+    case "scheduled_dm_failed":
+      return `Your scheduled DM could not be delivered on HashChat`;
     case "poll_closing":
       return `A poll you can vote in is closing soon on HashChat`;
     case "post_milestone":

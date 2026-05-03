@@ -12,7 +12,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { Reply, Smile, CornerDownRight, MessageSquare, Check, CheckCheck, Lock } from "lucide-react";
+import { Reply, Smile, CornerDownRight, MessageSquare, Check, CheckCheck, Lock, CalendarClock } from "lucide-react";
 import { GifMedia, isGifUrl } from "./GifMedia";
 import { LinkPreviewCard } from "./LinkPreviewCard";
 import { PollCard } from "./PollCard";
@@ -270,6 +270,21 @@ export function MessageBubble({
               ].join(" ")}
             >
               <span>{time}</span>
+              {message.scheduledFor && (
+                <span
+                  className={[
+                    "inline-flex items-center gap-0.5 rounded-full px-1.5 py-px text-[9px] uppercase tracking-wide",
+                    isMine
+                      ? "bg-primary-foreground/15 text-primary-foreground/80"
+                      : "bg-muted text-muted-foreground",
+                  ].join(" ")}
+                  title={`Scheduled for ${new Date(message.scheduledFor).toLocaleString()}`}
+                  data-testid={`badge-scheduled-${message.id}`}
+                >
+                  <CalendarClock className="h-2.5 w-2.5" />
+                  scheduled
+                </span>
+              )}
               {showReadReceipt && isMine && (
                 message.readByOther ? (
                   <CheckCheck

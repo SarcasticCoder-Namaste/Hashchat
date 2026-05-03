@@ -582,6 +582,12 @@ export const GetForYouFeedResponse = zod.object({
                   removedAt: zod.coerce.date().nullish(),
                   createdAt: zod.coerce.date(),
                   kind: zod.string().describe("user | system"),
+                  scheduledFor: zod.coerce
+                    .date()
+                    .nullish()
+                    .describe(
+                      "Set when the message was originally a scheduled DM, indicating when it was scheduled to be delivered.",
+                    ),
                 }),
                 zod.null(),
               ])
@@ -807,6 +813,12 @@ export const GetExploreResponse = zod.object({
             removedAt: zod.coerce.date().nullish(),
             createdAt: zod.coerce.date(),
             kind: zod.string().describe("user | system"),
+            scheduledFor: zod.coerce
+              .date()
+              .nullish()
+              .describe(
+                "Set when the message was originally a scheduled DM, indicating when it was scheduled to be delivered.",
+              ),
           }),
           zod.null(),
         ])
@@ -1157,6 +1169,12 @@ export const GetExploreResponse = zod.object({
                   removedAt: zod.coerce.date().nullish(),
                   createdAt: zod.coerce.date(),
                   kind: zod.string().describe("user | system"),
+                  scheduledFor: zod.coerce
+                    .date()
+                    .nullish()
+                    .describe(
+                      "Set when the message was originally a scheduled DM, indicating when it was scheduled to be delivered.",
+                    ),
                 }),
                 zod.null(),
               ])
@@ -1771,6 +1789,12 @@ export const GetConversationsResponseItem = zod.object({
         removedAt: zod.coerce.date().nullish(),
         createdAt: zod.coerce.date(),
         kind: zod.string().describe("user | system"),
+        scheduledFor: zod.coerce
+          .date()
+          .nullish()
+          .describe(
+            "Set when the message was originally a scheduled DM, indicating when it was scheduled to be delivered.",
+          ),
       }),
       zod.null(),
     ])
@@ -1956,6 +1980,12 @@ export const OpenConversationResponse = zod.object({
         removedAt: zod.coerce.date().nullish(),
         createdAt: zod.coerce.date(),
         kind: zod.string().describe("user | system"),
+        scheduledFor: zod.coerce
+          .date()
+          .nullish()
+          .describe(
+            "Set when the message was originally a scheduled DM, indicating when it was scheduled to be delivered.",
+          ),
       }),
       zod.null(),
     ])
@@ -2160,6 +2190,12 @@ export const RenameConversationResponse = zod.object({
         removedAt: zod.coerce.date().nullish(),
         createdAt: zod.coerce.date(),
         kind: zod.string().describe("user | system"),
+        scheduledFor: zod.coerce
+          .date()
+          .nullish()
+          .describe(
+            "Set when the message was originally a scheduled DM, indicating when it was scheduled to be delivered.",
+          ),
       }),
       zod.null(),
     ])
@@ -2352,6 +2388,12 @@ export const AddConversationMembersResponse = zod.object({
         removedAt: zod.coerce.date().nullish(),
         createdAt: zod.coerce.date(),
         kind: zod.string().describe("user | system"),
+        scheduledFor: zod.coerce
+          .date()
+          .nullish()
+          .describe(
+            "Set when the message was originally a scheduled DM, indicating when it was scheduled to be delivered.",
+          ),
       }),
       zod.null(),
     ])
@@ -2551,6 +2593,12 @@ export const MuteConversationResponse = zod.object({
         removedAt: zod.coerce.date().nullish(),
         createdAt: zod.coerce.date(),
         kind: zod.string().describe("user | system"),
+        scheduledFor: zod.coerce
+          .date()
+          .nullish()
+          .describe(
+            "Set when the message was originally a scheduled DM, indicating when it was scheduled to be delivered.",
+          ),
       }),
       zod.null(),
     ])
@@ -2737,6 +2785,12 @@ export const UnmuteConversationResponse = zod.object({
         removedAt: zod.coerce.date().nullish(),
         createdAt: zod.coerce.date(),
         kind: zod.string().describe("user | system"),
+        scheduledFor: zod.coerce
+          .date()
+          .nullish()
+          .describe(
+            "Set when the message was originally a scheduled DM, indicating when it was scheduled to be delivered.",
+          ),
       }),
       zod.null(),
     ])
@@ -2857,6 +2911,12 @@ export const GetConversationMessagesResponseItem = zod.object({
   removedAt: zod.coerce.date().nullish(),
   createdAt: zod.coerce.date(),
   kind: zod.string().describe("user | system"),
+  scheduledFor: zod.coerce
+    .date()
+    .nullish()
+    .describe(
+      "Set when the message was originally a scheduled DM, indicating when it was scheduled to be delivered.",
+    ),
 });
 export const GetConversationMessagesResponse = zod.array(
   GetConversationMessagesResponseItem,
@@ -3025,6 +3085,12 @@ export const GetMessageRepliesResponse = zod.object({
     removedAt: zod.coerce.date().nullish(),
     createdAt: zod.coerce.date(),
     kind: zod.string().describe("user | system"),
+    scheduledFor: zod.coerce
+      .date()
+      .nullish()
+      .describe(
+        "Set when the message was originally a scheduled DM, indicating when it was scheduled to be delivered.",
+      ),
   }),
   replies: zod.array(
     zod.object({
@@ -3127,6 +3193,12 @@ export const GetMessageRepliesResponse = zod.object({
       removedAt: zod.coerce.date().nullish(),
       createdAt: zod.coerce.date(),
       kind: zod.string().describe("user | system"),
+      scheduledFor: zod.coerce
+        .date()
+        .nullish()
+        .describe(
+          "Set when the message was originally a scheduled DM, indicating when it was scheduled to be delivered.",
+        ),
     }),
   ),
 });
@@ -3192,6 +3264,8 @@ export const GetNotificationsResponse = zod.object({
         "dm",
         "event_starting",
         "scheduled_post_published",
+        "scheduled_dm_delivered",
+        "scheduled_dm_failed",
         "post_milestone",
         "report_resolved",
         "appeal_decided",
@@ -3434,6 +3508,12 @@ export const GetRoomsResponseItem = zod.object({
         removedAt: zod.coerce.date().nullish(),
         createdAt: zod.coerce.date(),
         kind: zod.string().describe("user | system"),
+        scheduledFor: zod.coerce
+          .date()
+          .nullish()
+          .describe(
+            "Set when the message was originally a scheduled DM, indicating when it was scheduled to be delivered.",
+          ),
       }),
       zod.null(),
     ])
@@ -3564,6 +3644,12 @@ export const GetTrendingRoomsResponseItem = zod.object({
         removedAt: zod.coerce.date().nullish(),
         createdAt: zod.coerce.date(),
         kind: zod.string().describe("user | system"),
+        scheduledFor: zod.coerce
+          .date()
+          .nullish()
+          .describe(
+            "Set when the message was originally a scheduled DM, indicating when it was scheduled to be delivered.",
+          ),
       }),
       zod.null(),
     ])
@@ -3684,6 +3770,12 @@ export const GetRoomMessagesResponseItem = zod.object({
   removedAt: zod.coerce.date().nullish(),
   createdAt: zod.coerce.date(),
   kind: zod.string().describe("user | system"),
+  scheduledFor: zod.coerce
+    .date()
+    .nullish()
+    .describe(
+      "Set when the message was originally a scheduled DM, indicating when it was scheduled to be delivered.",
+    ),
 });
 export const GetRoomMessagesResponse = zod.array(GetRoomMessagesResponseItem);
 
@@ -7069,6 +7161,12 @@ export const GetCommunityResponse = zod.object({
             removedAt: zod.coerce.date().nullish(),
             createdAt: zod.coerce.date(),
             kind: zod.string().describe("user | system"),
+            scheduledFor: zod.coerce
+              .date()
+              .nullish()
+              .describe(
+                "Set when the message was originally a scheduled DM, indicating when it was scheduled to be delivered.",
+              ),
           }),
           zod.null(),
         ])
@@ -7344,6 +7442,12 @@ export const JoinCommunityResponse = zod.object({
             removedAt: zod.coerce.date().nullish(),
             createdAt: zod.coerce.date(),
             kind: zod.string().describe("user | system"),
+            scheduledFor: zod.coerce
+              .date()
+              .nullish()
+              .describe(
+                "Set when the message was originally a scheduled DM, indicating when it was scheduled to be delivered.",
+              ),
           }),
           zod.null(),
         ])
@@ -7619,6 +7723,12 @@ export const LeaveCommunityResponse = zod.object({
             removedAt: zod.coerce.date().nullish(),
             createdAt: zod.coerce.date(),
             kind: zod.string().describe("user | system"),
+            scheduledFor: zod.coerce
+              .date()
+              .nullish()
+              .describe(
+                "Set when the message was originally a scheduled DM, indicating when it was scheduled to be delivered.",
+              ),
           }),
           zod.null(),
         ])
@@ -8141,6 +8251,12 @@ export const SetCommunitySlowModeResponse = zod.object({
             removedAt: zod.coerce.date().nullish(),
             createdAt: zod.coerce.date(),
             kind: zod.string().describe("user | system"),
+            scheduledFor: zod.coerce
+              .date()
+              .nullish()
+              .describe(
+                "Set when the message was originally a scheduled DM, indicating when it was scheduled to be delivered.",
+              ),
           }),
           zod.null(),
         ])

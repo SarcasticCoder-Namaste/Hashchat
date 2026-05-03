@@ -15,6 +15,8 @@ export type NotificationKind =
   | "dm"
   | "event_starting"
   | "scheduled_post_published"
+  | "scheduled_dm_delivered"
+  | "scheduled_dm_failed"
   | "poll_closing"
   | "post_milestone"
   | "report_resolved"

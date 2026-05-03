@@ -518,6 +518,11 @@ export interface Message {
   createdAt: string;
   /** user | system */
   kind: string;
+  /**
+   * Set when the message was originally a scheduled DM, indicating when it was scheduled to be delivered.
+   * @nullable
+   */
+  scheduledFor?: string | null;
 }
 
 export interface Conversation {
@@ -1948,6 +1953,8 @@ export const NotificationKind = {
   dm: "dm",
   event_starting: "event_starting",
   scheduled_post_published: "scheduled_post_published",
+  scheduled_dm_delivered: "scheduled_dm_delivered",
+  scheduled_dm_failed: "scheduled_dm_failed",
   post_milestone: "post_milestone",
   report_resolved: "report_resolved",
   appeal_decided: "appeal_decided",

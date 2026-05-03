@@ -32,6 +32,8 @@ const KIND_LABEL: Record<Notification["kind"], string> = {
   dm: "messaged you",
   event_starting: "starts soon",
   scheduled_post_published: "published your scheduled post",
+  scheduled_dm_delivered: "your scheduled DM was delivered",
+  scheduled_dm_failed: "your scheduled DM could not be delivered",
   post_milestone: "your post hit a milestone",
   report_resolved: "your report was resolved",
   moderation_action: "moderation action taken",

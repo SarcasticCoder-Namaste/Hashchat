@@ -27,6 +27,7 @@ type RawMessage = {
   audioWaveform: string | null;
   audioTranscript: string | null;
   replyToId: number | null;
+  scheduledFor?: Date | null;
   pinnedAt?: Date | null;
   lockedAt?: Date | null;
   removedAt?: Date | null;
@@ -401,6 +402,7 @@ export async function buildMessages(rows: RawMessage[], myUserId: string) {
       attachments: removed ? [] : (attachmentMap.get(r.id) ?? []),
       mentions: removed ? [] : (mentionMap.get(r.id) ?? []),
       readByOther,
+      scheduledFor: r.scheduledFor ? r.scheduledFor.toISOString() : null,
       poll: removed ? null : poll,
       pinnedAt: r.pinnedAt ? r.pinnedAt.toISOString() : null,
       lockedAt: r.lockedAt ? r.lockedAt.toISOString() : null,

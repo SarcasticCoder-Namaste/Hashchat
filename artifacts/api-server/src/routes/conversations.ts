@@ -66,6 +66,7 @@ type RawMessageRow = {
   audioWaveform: string | null;
   audioTranscript: string | null;
   replyToId: number | null;
+  scheduledFor?: Date | null;
   createdAt: Date;
 };
 

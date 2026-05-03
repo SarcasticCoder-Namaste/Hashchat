@@ -78,6 +78,10 @@ function kindIcon(kind: string) {
       return <CalendarClock className="h-3.5 w-3.5" />;
     case "scheduled_post_published":
       return <CalendarClock className="h-3.5 w-3.5" />;
+    case "scheduled_dm_delivered":
+      return <CalendarClock className="h-3.5 w-3.5" />;
+    case "scheduled_dm_failed":
+      return <CalendarClock className="h-3.5 w-3.5" />;
     case "post_milestone":
       return <TrendingUp className="h-3.5 w-3.5" />;
     default:
@@ -102,6 +106,10 @@ function kindLabel(n: Notification): string {
       return `Event starting soon`;
     case "scheduled_post_published":
       return `Your scheduled post is now live`;
+    case "scheduled_dm_delivered":
+      return `Your scheduled DM was delivered`;
+    case "scheduled_dm_failed":
+      return `Your scheduled DM could not be delivered`;
     case "post_milestone":
       return `Your post hit a new milestone`;
     default:

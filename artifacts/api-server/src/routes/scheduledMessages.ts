@@ -9,6 +9,7 @@ import { and, asc, eq, lt, sql } from "drizzle-orm";
 import { requireAuth, getUserId } from "../middlewares/requireAuth";
 import { ScheduleConversationMessageBody } from "@workspace/api-zod";
 import { logger } from "../lib/logger";
+import { createNotification } from "../lib/notifications";
 
 const router: IRouter = Router();
 
@@ -198,6 +199,14 @@ export async function publishDueScheduledMessages(): Promise<number> {
           .update(scheduledMessagesTable)
           .set({ status: "failed" })
           .where(eq(scheduledMessagesTable.id, sm.id));
+        await createNotification({
+          recipientId: sm.senderId,
+          actorId: null,
+          kind: "scheduled_dm_failed",
+          targetType: "conversation",
+          targetId: sm.conversationId,
+          snippet: sm.content.slice(0, 200),
+        });
         continue;
       }
 
@@ -208,18 +217,35 @@ export async function publishDueScheduledMessages(): Promise<number> {
         replyToId: sm.replyToId,
         imageUrl: sm.imageUrl,
         imageAlt: sm.imageAlt,
+        scheduledFor: sm.scheduledFor,
       });
       await db
         .update(scheduledMessagesTable)
         .set({ status: "sent" })
         .where(eq(scheduledMessagesTable.id, sm.id));
       published++;
+      await createNotification({
+        recipientId: sm.senderId,
+        actorId: null,
+        kind: "scheduled_dm_delivered",
+        targetType: "conversation",
+        targetId: sm.conversationId,
+        snippet: sm.content.slice(0, 200),
+      });
     } catch (err) {
       logger.warn({ err, scheduledMessageId: sm.id }, "scheduled DM publish failed");
       await db
         .update(scheduledMessagesTable)
         .set({ status: "failed" })
         .where(eq(scheduledMessagesTable.id, sm.id));
+      await createNotification({
+        recipientId: sm.senderId,
+        actorId: null,
+        kind: "scheduled_dm_failed",
+        targetType: "conversation",
+        targetId: sm.conversationId,
+        snippet: sm.content.slice(0, 200),
+      }).catch(() => {});
     }
   }
   return published;

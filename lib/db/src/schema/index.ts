@@ -228,6 +228,7 @@ export const messagesTable = pgTable(
     audioWaveform: text("audio_waveform"),
     audioTranscript: text("audio_transcript"),
     replyToId: integer("reply_to_id"),
+    scheduledFor: timestamp("scheduled_for", { withTimezone: true }),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
     pinnedAt: timestamp("pinned_at", { withTimezone: true }),
     lockedAt: timestamp("locked_at", { withTimezone: true }),

@@ -4256,6 +4256,10 @@ components:
           format: date-time
         createdAt: { type: string, format: date-time }
         kind: { type: string, description: "user | system" }
+        scheduledFor:
+          type: ["string", "null"]
+          format: date-time
+          description: "Set when the message was originally a scheduled DM, indicating when it was scheduled to be delivered."
       required: [id, senderId, senderName, content, kind, reactions, attachments, mentions, replyCount, createdAt]
 
     SendMessageBody:
@@ -5757,7 +5761,7 @@ components:
       type: object
       properties:
         id: { type: integer }
-        kind: { type: string, enum: [mention, reply, reaction, follow, dm, event_starting, scheduled_post_published, post_milestone, report_resolved, appeal_decided, moderation_action, mod_promoted, post_pinned] }
+        kind: { type: string, enum: [mention, reply, reaction, follow, dm, event_starting, scheduled_post_published, scheduled_dm_delivered, scheduled_dm_failed, post_milestone, report_resolved, appeal_decided, moderation_action, mod_promoted, post_pinned] }
         actor:
           oneOf:
             - { $ref: "#/components/schemas/NotificationActor" }
