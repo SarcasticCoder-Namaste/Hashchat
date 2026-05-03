@@ -2341,6 +2341,14 @@ export interface TwoFactorStatus {
    * @nullable
    */
   emailAddress?: string | null;
+  smsEnabled: boolean;
+  /** @nullable */
+  smsEnabledAt?: string | null;
+  /**
+   * Masked phone number used for SMS backup codes
+   * @nullable
+   */
+  phoneNumber?: string | null;
 }
 
 export interface TwoFactorRecoveryChallengeBody {
@@ -2381,6 +2389,22 @@ export interface TwoFactorEmailSendResult {
   expiresAt: string;
   /** Masked email address */
   emailAddress: string;
+}
+
+export interface TwoFactorSmsEnrollBody {
+  /**
+   * Phone number in E.164 format, e.g. +14155552671
+   * @minLength 7
+   * @maxLength 20
+   */
+  phoneNumber: string;
+}
+
+export interface TwoFactorSmsSendResult {
+  sent: boolean;
+  expiresAt: string;
+  /** Masked phone number */
+  phoneNumber: string;
 }
 
 export interface TwoFactorSetup {

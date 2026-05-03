@@ -1136,6 +1136,18 @@ export const userTwoFactorTable = pgTable("user_two_factor", {
   pendingEmailFailedAttempts: integer("pending_email_failed_attempts")
     .notNull()
     .default(0),
+  phoneNumber: text("phone_number"),
+  smsEnabled: boolean("sms_enabled").notNull().default(false),
+  smsEnabledAt: timestamp("sms_enabled_at", { withTimezone: true }),
+  pendingSmsCodeHash: text("pending_sms_code_hash"),
+  pendingSmsCodeExpiresAt: timestamp("pending_sms_code_expires_at", {
+    withTimezone: true,
+  }),
+  pendingSmsCodePurpose: text("pending_sms_code_purpose"),
+  pendingPhoneNumber: text("pending_phone_number"),
+  pendingSmsFailedAttempts: integer("pending_sms_failed_attempts")
+    .notNull()
+    .default(0),
   recoveryLockedUntil: timestamp("recovery_locked_until", {
     withTimezone: true,
   }),

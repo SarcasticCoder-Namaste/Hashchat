@@ -11,6 +11,10 @@ import {
   useConfirmMyTwoFactorEmail,
   useSendMyTwoFactorEmail,
   useRemoveMyTwoFactorEmail,
+  useEnrollMyTwoFactorSms,
+  useConfirmMyTwoFactorSms,
+  useSendMyTwoFactorSms,
+  useRemoveMyTwoFactorSms,
   getGetMyTwoFactorQueryKey,
   getListMySessionsQueryKey,
 } from "@workspace/api-client-react";
@@ -26,6 +30,7 @@ import {
   CheckCircle2,
   Mail,
   Send,
+  MessageSquare,
 } from "lucide-react";
 
 export function SecurityPanel() {
@@ -51,6 +56,9 @@ export function SecurityPanel() {
     null,
   );
   const [emailConfirmCode, setEmailConfirmCode] = useState("");
+  const [phoneInput, setPhoneInput] = useState("");
+  const [smsEnrollPending, setSmsEnrollPending] = useState<string | null>(null);
+  const [smsConfirmCode, setSmsConfirmCode] = useState("");
 
   const setup = useSetupMyTwoFactor({
     mutation: {
@@ -140,6 +148,59 @@ export function SecurityPanel() {
         toast({ title: "Could not remove", variant: "destructive" }),
     },
   });
+  const enrollSms = useEnrollMyTwoFactorSms({
+    mutation: {
+      onSuccess: (r) => {
+        setSmsEnrollPending(r.phoneNumber);
+        toast({ title: `Code sent to ${r.phoneNumber}` });
+      },
+      onError: () =>
+        toast({
+          title: "Could not send SMS code",
+          description: "Check the phone number and try again in a moment.",
+          variant: "destructive",
+        }),
+    },
+  });
+  const confirmSms = useConfirmMyTwoFactorSms({
+    mutation: {
+      onSuccess: () => {
+        setSmsEnrollPending(null);
+        setSmsConfirmCode("");
+        setPhoneInput("");
+        qc.invalidateQueries({ queryKey: getGetMyTwoFactorQueryKey() });
+        toast({ title: "SMS backup added" });
+      },
+      onError: () =>
+        toast({
+          title: "Code didn't match — try again",
+          variant: "destructive",
+        }),
+    },
+  });
+  const sendSmsCode = useSendMyTwoFactorSms({
+    mutation: {
+      onSuccess: (r) => {
+        setDisableCode("");
+        toast({ title: `Code sent to ${r.phoneNumber}` });
+      },
+      onError: () =>
+        toast({
+          title: "Could not send SMS code",
+          variant: "destructive",
+        }),
+    },
+  });
+  const removeSms = useRemoveMyTwoFactorSms({
+    mutation: {
+      onSuccess: () => {
+        qc.invalidateQueries({ queryKey: getGetMyTwoFactorQueryKey() });
+        toast({ title: "SMS backup removed" });
+      },
+      onError: () =>
+        toast({ title: "Could not remove", variant: "destructive" }),
+    },
+  });
   const revoke = useRevokeMySession({
     mutation: {
       onSuccess: () => {
@@ -155,6 +216,8 @@ export function SecurityPanel() {
   const remaining = status.data?.backupCodesRemaining ?? 0;
   const emailEnabled = !!status.data?.emailEnabled;
   const emailAddress = status.data?.emailAddress ?? null;
+  const smsEnabled = !!status.data?.smsEnabled;
+  const phoneNumber = status.data?.phoneNumber ?? null;
 
   return (
     <div className="space-y-5">
@@ -321,6 +384,18 @@ export function SecurityPanel() {
                     ) : null}
                   </li>
                 )}
+                {smsEnabled && (
+                  <li
+                    className="flex items-center gap-1.5"
+                    data-testid="2fa-method-sms"
+                  >
+                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+                    Text message (SMS)
+                    {phoneNumber ? (
+                      <span className="font-mono">({phoneNumber})</span>
+                    ) : null}
+                  </li>
+                )}
                 <li>Backup codes remaining: <strong>{remaining}</strong></li>
               </ul>
             </div>
@@ -367,11 +442,28 @@ export function SecurityPanel() {
                     Email me a code
                   </Button>
                 )}
+                {smsEnabled && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => sendSmsCode.mutate()}
+                    disabled={sendSmsCode.isPending}
+                    data-testid="button-send-sms-code"
+                  >
+                    {sendSmsCode.isPending ? (
+                      <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <MessageSquare className="mr-1.5 h-3.5 w-3.5" />
+                    )}
+                    Text me a code
+                  </Button>
+                )}
               </div>
-              {emailEnabled && (
+              {(emailEnabled || smsEnabled) && (
                 <p className="text-[11px] text-muted-foreground">
                   Lost your authenticator and backup codes? Send a one-time code
-                  to your enrolled email address. Codes expire in 10 minutes.
+                  to your enrolled email address or phone number. Codes expire
+                  in 10 minutes.
                 </p>
               )}
             </div>
@@ -508,6 +600,147 @@ export function SecurityPanel() {
                   onClick={() => {
                     setEmailEnrollPending(null);
                     setEmailConfirmCode("");
+                  }}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {enabled && (
+        <div
+          className="space-y-3 rounded-xl border border-border bg-card p-5 shadow-sm"
+          data-testid="security-2fa-sms-card"
+        >
+          <div className="flex items-start gap-3">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-amber-500/15 text-amber-600 dark:text-amber-300">
+              <MessageSquare className="h-5 w-5" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <h3 className="text-base font-semibold text-foreground">
+                Text message (SMS) backup code
+              </h3>
+              <p className="text-xs text-muted-foreground">
+                Receive a one-time 6-digit code by text message if you don't
+                have your authenticator or email handy.
+              </p>
+            </div>
+            {smsEnabled ? (
+              <span
+                className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2.5 py-0.5 text-xs font-semibold text-emerald-700 dark:text-emerald-300"
+                data-testid="2fa-sms-status-on"
+              >
+                <CheckCircle2 className="h-3.5 w-3.5" /> Enrolled
+              </span>
+            ) : (
+              <span
+                className="inline-flex items-center rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground"
+                data-testid="2fa-sms-status-off"
+              >
+                Not enrolled
+              </span>
+            )}
+          </div>
+
+          {smsEnabled ? (
+            <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border pt-3">
+              <p className="text-xs text-muted-foreground">
+                Codes are sent to{" "}
+                <span className="font-mono text-foreground">
+                  {phoneNumber ?? "your enrolled number"}
+                </span>
+                .
+              </p>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => removeSms.mutate()}
+                disabled={removeSms.isPending}
+                data-testid="button-remove-2fa-sms"
+              >
+                {removeSms.isPending && (
+                  <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                )}
+                Remove SMS backup
+              </Button>
+            </div>
+          ) : !smsEnrollPending ? (
+            <div className="flex flex-wrap items-center gap-2 border-t border-border pt-3">
+              <Input
+                type="tel"
+                value={phoneInput}
+                onChange={(e) => setPhoneInput(e.target.value)}
+                placeholder="+14155552671"
+                className="w-64 font-mono"
+                data-testid="input-2fa-phone"
+              />
+              <Button
+                size="sm"
+                onClick={() =>
+                  enrollSms.mutate({
+                    data: { phoneNumber: phoneInput.trim() },
+                  })
+                }
+                disabled={
+                  enrollSms.isPending ||
+                  !/^\+?[1-9][\d\s().-]{6,19}$/.test(phoneInput.trim())
+                }
+                data-testid="button-enroll-2fa-sms"
+              >
+                {enrollSms.isPending && (
+                  <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                )}
+                Send verification code
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-2 rounded-lg border border-border bg-background p-3">
+              <p className="text-xs text-muted-foreground">
+                We sent a 6-digit code to{" "}
+                <span className="font-mono text-foreground">
+                  {smsEnrollPending}
+                </span>
+                . It expires in 10 minutes.
+              </p>
+              <div className="flex flex-wrap items-center gap-2">
+                <Input
+                  value={smsConfirmCode}
+                  onChange={(e) =>
+                    setSmsConfirmCode(
+                      e.target.value.replace(/\D/g, "").slice(0, 6),
+                    )
+                  }
+                  placeholder="123456"
+                  inputMode="numeric"
+                  className="w-32 font-mono"
+                  data-testid="input-2fa-sms-confirm"
+                />
+                <Button
+                  size="sm"
+                  onClick={() =>
+                    confirmSms.mutate({
+                      data: { code: smsConfirmCode },
+                    })
+                  }
+                  disabled={
+                    smsConfirmCode.length !== 6 || confirmSms.isPending
+                  }
+                  data-testid="button-confirm-2fa-sms"
+                >
+                  {confirmSms.isPending && (
+                    <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                  )}
+                  Confirm
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => {
+                    setSmsEnrollPending(null);
+                    setSmsConfirmCode("");
                   }}
                 >
                   Cancel

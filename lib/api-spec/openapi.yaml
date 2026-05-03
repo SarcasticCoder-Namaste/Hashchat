@@ -3202,11 +3202,105 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/OkResponse" }
 
+  /auth/2fa/sms/challenge:
+    post:
+      operationId: requestTwoFactorSmsRecovery
+      tags: [safety]
+      summary: Request an SMS backup code to sign in when locked out
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/TwoFactorRecoveryChallengeBody" }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TwoFactorRecoveryChallengeResult" }
+
+  /auth/2fa/sms/verify:
+    post:
+      operationId: verifyTwoFactorSmsRecovery
+      tags: [safety]
+      summary: Verify an SMS backup code and lift the TOTP gate
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/TwoFactorRecoveryVerifyBody" }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/OkResponse" }
+
   /me/2fa/email/remove:
     post:
       operationId: removeMyTwoFactorEmail
       tags: [safety]
       summary: Remove the email backup factor
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/OkResponse" }
+
+  /me/2fa/sms/enroll:
+    post:
+      operationId: enrollMyTwoFactorSms
+      tags: [safety]
+      summary: Send a verification code by SMS to enroll a phone backup factor
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/TwoFactorSmsEnrollBody" }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TwoFactorSmsSendResult" }
+
+  /me/2fa/sms/confirm:
+    post:
+      operationId: confirmMyTwoFactorSms
+      tags: [safety]
+      summary: Confirm an SMS backup factor with the verification code
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/TwoFactorVerifyBody" }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/OkResponse" }
+
+  /me/2fa/sms/send:
+    post:
+      operationId: sendMyTwoFactorSms
+      tags: [safety]
+      summary: Send a one-time backup code by SMS to the enrolled phone number
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TwoFactorSmsSendResult" }
+
+  /me/2fa/sms/remove:
+    post:
+      operationId: removeMyTwoFactorSms
+      tags: [safety]
+      summary: Remove the SMS backup factor
       responses:
         "200":
           description: OK
@@ -6202,7 +6296,14 @@ components:
         emailAddress:
           type: ["string", "null"]
           description: Masked email address used for backup codes
-      required: [enabled, backupCodesRemaining, emailEnabled]
+        smsEnabled: { type: boolean }
+        smsEnabledAt:
+          type: ["string", "null"]
+          format: date-time
+        phoneNumber:
+          type: ["string", "null"]
+          description: Masked phone number used for SMS backup codes
+      required: [enabled, backupCodesRemaining, emailEnabled, smsEnabled]
 
     TwoFactorRecoveryChallengeBody:
       type: object
@@ -6236,6 +6337,24 @@ components:
         expiresAt: { type: string, format: date-time }
         emailAddress: { type: string, description: Masked email address }
       required: [sent, expiresAt, emailAddress]
+
+    TwoFactorSmsEnrollBody:
+      type: object
+      properties:
+        phoneNumber:
+          type: string
+          minLength: 7
+          maxLength: 20
+          description: Phone number in E.164 format, e.g. +14155552671
+      required: [phoneNumber]
+
+    TwoFactorSmsSendResult:
+      type: object
+      properties:
+        sent: { type: boolean }
+        expiresAt: { type: string, format: date-time }
+        phoneNumber: { type: string, description: Masked phone number }
+      required: [sent, expiresAt, phoneNumber]
 
     TwoFactorSetup:
       type: object

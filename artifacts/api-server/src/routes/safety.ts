@@ -17,6 +17,8 @@ import {
   DisableMyTwoFactorBody,
   EnrollMyTwoFactorEmailBody,
   ConfirmMyTwoFactorEmailBody,
+  EnrollMyTwoFactorSmsBody,
+  ConfirmMyTwoFactorSmsBody,
 } from "@workspace/api-zod";
 import { checkContent } from "../lib/contentSafety";
 import {
@@ -30,6 +32,7 @@ import {
   hashEmailOtp,
 } from "../lib/totp";
 import { sendEmail, escapeHtml } from "../lib/email";
+import { sendSms, normalizePhoneNumber, maskPhoneNumber } from "../lib/sms";
 import {
   getCurrentClerkSessionId,
   revokeUserSession,
@@ -368,6 +371,9 @@ router.get("/me/2fa", requireAuth, async (req, res): Promise<void> => {
       ? row.emailEnabledAt.toISOString()
       : null,
     emailAddress: row?.emailEnabled ? maskEmail(row.emailAddress) : null,
+    smsEnabled: !!row?.smsEnabled,
+    smsEnabledAt: row?.smsEnabledAt ? row.smsEnabledAt.toISOString() : null,
+    phoneNumber: row?.smsEnabled ? maskPhoneNumber(row.phoneNumber) : null,
   });
 });
 
@@ -453,12 +459,21 @@ router.post(
       ok = r.ok;
       remaining = r.remaining;
     }
+    let consumedSmsCode = false;
     if (!ok) {
       // Try email-delivered code as a backup factor
       const emailOk = checkPendingEmailCode(row, code, "auth");
       if (emailOk) {
         ok = true;
         consumedEmailCode = true;
+      }
+    }
+    if (!ok) {
+      // Try SMS-delivered code as a backup factor
+      const smsOk = checkPendingSmsCode(row, code, "auth");
+      if (smsOk) {
+        ok = true;
+        consumedSmsCode = true;
       }
     }
     if (!ok) {
@@ -476,6 +491,13 @@ router.post(
               pendingEmailCodeHash: null,
               pendingEmailCodeExpiresAt: null,
               pendingEmailCodePurpose: null,
+            }
+          : {}),
+        ...(consumedSmsCode
+          ? {
+              pendingSmsCodeHash: null,
+              pendingSmsCodeExpiresAt: null,
+              pendingSmsCodePurpose: null,
             }
           : {}),
         updatedAt: new Date(),
@@ -929,6 +951,359 @@ router.post(
         pendingEmailCodeExpiresAt: null,
         pendingEmailCodePurpose: null,
         pendingEmailAddress: null,
+        updatedAt: new Date(),
+      })
+      .where(eq(userTwoFactorTable.userId, me));
+    res.json({ ok: true });
+  },
+);
+
+// ---------- 2FA SMS backup factor ----------
+
+const SMS_CODE_TTL_MS = 10 * 60 * 1000;
+const SMS_RESEND_COOLDOWN_MS = 30 * 1000;
+
+function checkPendingSmsCode(
+  row: {
+    pendingSmsCodeHash: string | null;
+    pendingSmsCodeExpiresAt: Date | null;
+    pendingSmsCodePurpose: string | null;
+  },
+  code: string,
+  expectedPurpose: "enroll" | "auth",
+): boolean {
+  if (
+    !row.pendingSmsCodeHash ||
+    !row.pendingSmsCodeExpiresAt ||
+    row.pendingSmsCodePurpose !== expectedPurpose
+  ) {
+    return false;
+  }
+  if (row.pendingSmsCodeExpiresAt.getTime() < Date.now()) return false;
+  return hashEmailOtp(code) === row.pendingSmsCodeHash;
+}
+
+function smsCodeBody(code: string, purpose: "enroll" | "auth"): string {
+  return purpose === "enroll"
+    ? `Your HashChat verification code is ${code}. It expires in 10 minutes.`
+    : `Your HashChat sign-in code is ${code}. It expires in 10 minutes. If you didn't ask for this, ignore this message.`;
+}
+
+async function issueSmsCode(
+  userId: string,
+  phoneNumber: string,
+  purpose: "enroll" | "auth",
+  pendingPhoneNumber: string | null,
+): Promise<
+  | { ok: true; expiresAt: Date }
+  | { ok: false; status: number; error: string }
+> {
+  const code = generateEmailOtp();
+  const codeHash = hashEmailOtp(code);
+  const expiresAt = new Date(Date.now() + SMS_CODE_TTL_MS);
+  const r = await sendSms(phoneNumber, smsCodeBody(code, purpose));
+  if (!r.ok) {
+    return {
+      ok: false,
+      status: 502,
+      error:
+        r.error === "no-sms-provider-configured"
+          ? "SMS is not configured on this server"
+          : "Could not send SMS right now",
+    };
+  }
+  await db
+    .update(userTwoFactorTable)
+    .set({
+      pendingSmsCodeHash: codeHash,
+      pendingSmsCodeExpiresAt: expiresAt,
+      pendingSmsCodePurpose: purpose,
+      pendingPhoneNumber,
+      updatedAt: new Date(),
+    })
+    .where(eq(userTwoFactorTable.userId, userId));
+  return { ok: true, expiresAt };
+}
+
+// ---------- Public sign-in recovery via SMS-delivered code ----------
+//
+// Mirrors the email recovery flow above so a locked-out user with SMS
+// enrolled can recover without admin intervention. Same enumeration-resistant
+// response shape and shared per-account brute-force lockout.
+
+router.post(
+  "/auth/2fa/sms/challenge",
+  async (req, res): Promise<void> => {
+    if (!takeIpToken(clientIp(req), "challenge")) {
+      res.status(429).json({ sent: true, error: "Too many requests" });
+      return;
+    }
+    const username =
+      typeof req.body?.username === "string"
+        ? req.body.username.trim().toLowerCase()
+        : "";
+    if (!username || username.length > 64) {
+      res.json({ sent: true });
+      return;
+    }
+    const [user] = await db
+      .select({ id: usersTable.id })
+      .from(usersTable)
+      .where(eq(usersTable.username, username))
+      .limit(1);
+    if (!user) {
+      res.json({ sent: true });
+      return;
+    }
+    const row = await getTwoFactor(user.id);
+    if (!row || !row.enabled || !row.smsEnabled || !row.phoneNumber) {
+      res.json({ sent: true });
+      return;
+    }
+    if (
+      row.recoveryLockedUntil &&
+      row.recoveryLockedUntil.getTime() > Date.now()
+    ) {
+      res.json({ sent: true });
+      return;
+    }
+    if (
+      row.pendingSmsCodeExpiresAt &&
+      row.pendingSmsCodePurpose === "auth" &&
+      row.pendingSmsCodeExpiresAt.getTime() - SMS_CODE_TTL_MS >
+        Date.now() - SMS_RESEND_COOLDOWN_MS
+    ) {
+      res.json({ sent: true });
+      return;
+    }
+    await issueSmsCode(user.id, row.phoneNumber, "auth", null);
+    await db
+      .update(userTwoFactorTable)
+      .set({ pendingSmsFailedAttempts: 0 })
+      .where(eq(userTwoFactorTable.userId, user.id));
+    res.json({ sent: true });
+  },
+);
+
+router.post(
+  "/auth/2fa/sms/verify",
+  async (req, res): Promise<void> => {
+    if (!takeIpToken(clientIp(req), "verify")) {
+      res.status(429).json({ error: "Too many attempts. Try again later." });
+      return;
+    }
+    const username =
+      typeof req.body?.username === "string"
+        ? req.body.username.trim().toLowerCase()
+        : "";
+    const code =
+      typeof req.body?.code === "string" ? req.body.code.trim() : "";
+    if (!username || !/^\d{6}$/.test(code.replace(/\s+/g, ""))) {
+      res.status(400).json({ error: "Invalid request" });
+      return;
+    }
+    const [user] = await db
+      .select({ id: usersTable.id })
+      .from(usersTable)
+      .where(eq(usersTable.username, username))
+      .limit(1);
+    if (!user) {
+      res.status(400).json({ error: "Invalid or expired code" });
+      return;
+    }
+    const row = await getTwoFactor(user.id);
+    if (!row || !row.enabled || !row.smsEnabled) {
+      res.status(400).json({ error: "Invalid or expired code" });
+      return;
+    }
+    if (
+      row.recoveryLockedUntil &&
+      row.recoveryLockedUntil.getTime() > Date.now()
+    ) {
+      res.status(429).json({ error: "Too many attempts. Try again later." });
+      return;
+    }
+    if (!checkPendingSmsCode(row, code, "auth")) {
+      const nextAttempts = (row.pendingSmsFailedAttempts ?? 0) + 1;
+      const shouldLock = nextAttempts >= MAX_VERIFY_FAILURES;
+      await db
+        .update(userTwoFactorTable)
+        .set({
+          pendingSmsFailedAttempts: shouldLock ? 0 : nextAttempts,
+          ...(shouldLock
+            ? {
+                pendingSmsCodeHash: null,
+                pendingSmsCodeExpiresAt: null,
+                pendingSmsCodePurpose: null,
+                recoveryLockedUntil: new Date(Date.now() + RECOVERY_LOCKOUT_MS),
+              }
+            : {}),
+        })
+        .where(eq(userTwoFactorTable.userId, user.id));
+      req.log?.warn?.(
+        { userId: user.id, attempts: nextAttempts, locked: shouldLock },
+        "2fa sms recovery: verification failed",
+      );
+      if (shouldLock) {
+        res.status(429).json({ error: "Too many attempts. Try again later." });
+        return;
+      }
+      res.status(400).json({ error: "Invalid or expired code" });
+      return;
+    }
+    const codeHash = hashEmailOtp(code);
+    const updated = await db
+      .update(userTwoFactorTable)
+      .set({
+        enabled: false,
+        enabledAt: null,
+        pendingSmsCodeHash: null,
+        pendingSmsCodeExpiresAt: null,
+        pendingSmsCodePurpose: null,
+        pendingPhoneNumber: null,
+        pendingSmsFailedAttempts: 0,
+        recoveryLockedUntil: null,
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(userTwoFactorTable.userId, user.id),
+          eq(userTwoFactorTable.pendingSmsCodeHash, codeHash),
+        ),
+      )
+      .returning({ userId: userTwoFactorTable.userId });
+    if (updated.length === 0) {
+      res.status(400).json({ error: "Invalid or expired code" });
+      return;
+    }
+    res.json({ ok: true });
+  },
+);
+
+router.post(
+  "/me/2fa/sms/enroll",
+  requireAuth,
+  async (req, res): Promise<void> => {
+    const me = getUserId(req);
+    const parsed = EnrollMyTwoFactorSmsBody.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: parsed.error.message });
+      return;
+    }
+    const phone = normalizePhoneNumber(parsed.data.phoneNumber);
+    if (!phone) {
+      res.status(400).json({ error: "Invalid phone number" });
+      return;
+    }
+    await ensureTwoFactorRow(me);
+    const existing = await getTwoFactor(me);
+    if (
+      existing?.pendingSmsCodeExpiresAt &&
+      existing.pendingSmsCodePurpose === "enroll" &&
+      existing.pendingPhoneNumber === phone &&
+      existing.pendingSmsCodeExpiresAt.getTime() - SMS_CODE_TTL_MS >
+        Date.now() - SMS_RESEND_COOLDOWN_MS
+    ) {
+      res.status(429).json({ error: "Please wait before requesting another code" });
+      return;
+    }
+    const r = await issueSmsCode(me, phone, "enroll", phone);
+    if (!r.ok) {
+      res.status(r.status).json({ error: r.error });
+      return;
+    }
+    res.json({
+      sent: true,
+      expiresAt: r.expiresAt.toISOString(),
+      phoneNumber: maskPhoneNumber(phone) ?? phone,
+    });
+  },
+);
+
+router.post(
+  "/me/2fa/sms/confirm",
+  requireAuth,
+  async (req, res): Promise<void> => {
+    const me = getUserId(req);
+    const parsed = ConfirmMyTwoFactorSmsBody.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: parsed.error.message });
+      return;
+    }
+    const row = await getTwoFactor(me);
+    if (!row || !row.pendingPhoneNumber) {
+      res.status(409).json({ error: "Start SMS enrollment first" });
+      return;
+    }
+    if (!checkPendingSmsCode(row, parsed.data.code, "enroll")) {
+      res.status(400).json({ error: "Invalid or expired code" });
+      return;
+    }
+    const now = new Date();
+    await db
+      .update(userTwoFactorTable)
+      .set({
+        phoneNumber: row.pendingPhoneNumber,
+        smsEnabled: true,
+        smsEnabledAt: now,
+        pendingSmsCodeHash: null,
+        pendingSmsCodeExpiresAt: null,
+        pendingSmsCodePurpose: null,
+        pendingPhoneNumber: null,
+        updatedAt: now,
+      })
+      .where(eq(userTwoFactorTable.userId, me));
+    res.json({ ok: true });
+  },
+);
+
+router.post(
+  "/me/2fa/sms/send",
+  requireAuth,
+  async (req, res): Promise<void> => {
+    const me = getUserId(req);
+    const row = await getTwoFactor(me);
+    if (!row || !row.smsEnabled || !row.phoneNumber) {
+      res.status(409).json({ error: "SMS backup is not enrolled" });
+      return;
+    }
+    if (
+      row.pendingSmsCodeExpiresAt &&
+      row.pendingSmsCodePurpose === "auth" &&
+      row.pendingSmsCodeExpiresAt.getTime() - SMS_CODE_TTL_MS >
+        Date.now() - SMS_RESEND_COOLDOWN_MS
+    ) {
+      res.status(429).json({ error: "Please wait before requesting another code" });
+      return;
+    }
+    const r = await issueSmsCode(me, row.phoneNumber, "auth", null);
+    if (!r.ok) {
+      res.status(r.status).json({ error: r.error });
+      return;
+    }
+    res.json({
+      sent: true,
+      expiresAt: r.expiresAt.toISOString(),
+      phoneNumber: maskPhoneNumber(row.phoneNumber) ?? row.phoneNumber,
+    });
+  },
+);
+
+router.post(
+  "/me/2fa/sms/remove",
+  requireAuth,
+  async (req, res): Promise<void> => {
+    const me = getUserId(req);
+    await db
+      .update(userTwoFactorTable)
+      .set({
+        phoneNumber: null,
+        smsEnabled: false,
+        smsEnabledAt: null,
+        pendingSmsCodeHash: null,
+        pendingSmsCodeExpiresAt: null,
+        pendingSmsCodePurpose: null,
+        pendingPhoneNumber: null,
         updatedAt: new Date(),
       })
       .where(eq(userTwoFactorTable.userId, me));

@@ -185,6 +185,8 @@ import type {
   TwoFactorRecoveryChallengeResult,
   TwoFactorRecoveryVerifyBody,
   TwoFactorSetup,
+  TwoFactorSmsEnrollBody,
+  TwoFactorSmsSendResult,
   TwoFactorStatus,
   TwoFactorVerifyBody,
   TypingResponse,
@@ -18751,6 +18753,183 @@ export const useVerifyTwoFactorEmailRecovery = <
 };
 
 /**
+ * @summary Request an SMS backup code to sign in when locked out
+ */
+export const getRequestTwoFactorSmsRecoveryUrl = () => {
+  return `/api/auth/2fa/sms/challenge`;
+};
+
+export const requestTwoFactorSmsRecovery = async (
+  twoFactorRecoveryChallengeBody: TwoFactorRecoveryChallengeBody,
+  options?: RequestInit,
+): Promise<TwoFactorRecoveryChallengeResult> => {
+  return customFetch<TwoFactorRecoveryChallengeResult>(
+    getRequestTwoFactorSmsRecoveryUrl(),
+    {
+      ...options,
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(twoFactorRecoveryChallengeBody),
+    },
+  );
+};
+
+export const getRequestTwoFactorSmsRecoveryMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof requestTwoFactorSmsRecovery>>,
+    TError,
+    { data: BodyType<TwoFactorRecoveryChallengeBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof requestTwoFactorSmsRecovery>>,
+  TError,
+  { data: BodyType<TwoFactorRecoveryChallengeBody> },
+  TContext
+> => {
+  const mutationKey = ["requestTwoFactorSmsRecovery"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof requestTwoFactorSmsRecovery>>,
+    { data: BodyType<TwoFactorRecoveryChallengeBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return requestTwoFactorSmsRecovery(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RequestTwoFactorSmsRecoveryMutationResult = NonNullable<
+  Awaited<ReturnType<typeof requestTwoFactorSmsRecovery>>
+>;
+export type RequestTwoFactorSmsRecoveryMutationBody =
+  BodyType<TwoFactorRecoveryChallengeBody>;
+export type RequestTwoFactorSmsRecoveryMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Request an SMS backup code to sign in when locked out
+ */
+export const useRequestTwoFactorSmsRecovery = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof requestTwoFactorSmsRecovery>>,
+    TError,
+    { data: BodyType<TwoFactorRecoveryChallengeBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof requestTwoFactorSmsRecovery>>,
+  TError,
+  { data: BodyType<TwoFactorRecoveryChallengeBody> },
+  TContext
+> => {
+  return useMutation(getRequestTwoFactorSmsRecoveryMutationOptions(options));
+};
+
+/**
+ * @summary Verify an SMS backup code and lift the TOTP gate
+ */
+export const getVerifyTwoFactorSmsRecoveryUrl = () => {
+  return `/api/auth/2fa/sms/verify`;
+};
+
+export const verifyTwoFactorSmsRecovery = async (
+  twoFactorRecoveryVerifyBody: TwoFactorRecoveryVerifyBody,
+  options?: RequestInit,
+): Promise<OkResponse> => {
+  return customFetch<OkResponse>(getVerifyTwoFactorSmsRecoveryUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(twoFactorRecoveryVerifyBody),
+  });
+};
+
+export const getVerifyTwoFactorSmsRecoveryMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof verifyTwoFactorSmsRecovery>>,
+    TError,
+    { data: BodyType<TwoFactorRecoveryVerifyBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof verifyTwoFactorSmsRecovery>>,
+  TError,
+  { data: BodyType<TwoFactorRecoveryVerifyBody> },
+  TContext
+> => {
+  const mutationKey = ["verifyTwoFactorSmsRecovery"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof verifyTwoFactorSmsRecovery>>,
+    { data: BodyType<TwoFactorRecoveryVerifyBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return verifyTwoFactorSmsRecovery(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type VerifyTwoFactorSmsRecoveryMutationResult = NonNullable<
+  Awaited<ReturnType<typeof verifyTwoFactorSmsRecovery>>
+>;
+export type VerifyTwoFactorSmsRecoveryMutationBody =
+  BodyType<TwoFactorRecoveryVerifyBody>;
+export type VerifyTwoFactorSmsRecoveryMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Verify an SMS backup code and lift the TOTP gate
+ */
+export const useVerifyTwoFactorSmsRecovery = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof verifyTwoFactorSmsRecovery>>,
+    TError,
+    { data: BodyType<TwoFactorRecoveryVerifyBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof verifyTwoFactorSmsRecovery>>,
+  TError,
+  { data: BodyType<TwoFactorRecoveryVerifyBody> },
+  TContext
+> => {
+  return useMutation(getVerifyTwoFactorSmsRecoveryMutationOptions(options));
+};
+
+/**
  * @summary Remove the email backup factor
  */
 export const getRemoveMyTwoFactorEmailUrl = () => {
@@ -18829,6 +19008,340 @@ export const useRemoveMyTwoFactorEmail = <
   TContext
 > => {
   return useMutation(getRemoveMyTwoFactorEmailMutationOptions(options));
+};
+
+/**
+ * @summary Send a verification code by SMS to enroll a phone backup factor
+ */
+export const getEnrollMyTwoFactorSmsUrl = () => {
+  return `/api/me/2fa/sms/enroll`;
+};
+
+export const enrollMyTwoFactorSms = async (
+  twoFactorSmsEnrollBody: TwoFactorSmsEnrollBody,
+  options?: RequestInit,
+): Promise<TwoFactorSmsSendResult> => {
+  return customFetch<TwoFactorSmsSendResult>(getEnrollMyTwoFactorSmsUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(twoFactorSmsEnrollBody),
+  });
+};
+
+export const getEnrollMyTwoFactorSmsMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof enrollMyTwoFactorSms>>,
+    TError,
+    { data: BodyType<TwoFactorSmsEnrollBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof enrollMyTwoFactorSms>>,
+  TError,
+  { data: BodyType<TwoFactorSmsEnrollBody> },
+  TContext
+> => {
+  const mutationKey = ["enrollMyTwoFactorSms"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof enrollMyTwoFactorSms>>,
+    { data: BodyType<TwoFactorSmsEnrollBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return enrollMyTwoFactorSms(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type EnrollMyTwoFactorSmsMutationResult = NonNullable<
+  Awaited<ReturnType<typeof enrollMyTwoFactorSms>>
+>;
+export type EnrollMyTwoFactorSmsMutationBody = BodyType<TwoFactorSmsEnrollBody>;
+export type EnrollMyTwoFactorSmsMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Send a verification code by SMS to enroll a phone backup factor
+ */
+export const useEnrollMyTwoFactorSms = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof enrollMyTwoFactorSms>>,
+    TError,
+    { data: BodyType<TwoFactorSmsEnrollBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof enrollMyTwoFactorSms>>,
+  TError,
+  { data: BodyType<TwoFactorSmsEnrollBody> },
+  TContext
+> => {
+  return useMutation(getEnrollMyTwoFactorSmsMutationOptions(options));
+};
+
+/**
+ * @summary Confirm an SMS backup factor with the verification code
+ */
+export const getConfirmMyTwoFactorSmsUrl = () => {
+  return `/api/me/2fa/sms/confirm`;
+};
+
+export const confirmMyTwoFactorSms = async (
+  twoFactorVerifyBody: TwoFactorVerifyBody,
+  options?: RequestInit,
+): Promise<OkResponse> => {
+  return customFetch<OkResponse>(getConfirmMyTwoFactorSmsUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(twoFactorVerifyBody),
+  });
+};
+
+export const getConfirmMyTwoFactorSmsMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof confirmMyTwoFactorSms>>,
+    TError,
+    { data: BodyType<TwoFactorVerifyBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof confirmMyTwoFactorSms>>,
+  TError,
+  { data: BodyType<TwoFactorVerifyBody> },
+  TContext
+> => {
+  const mutationKey = ["confirmMyTwoFactorSms"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof confirmMyTwoFactorSms>>,
+    { data: BodyType<TwoFactorVerifyBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return confirmMyTwoFactorSms(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ConfirmMyTwoFactorSmsMutationResult = NonNullable<
+  Awaited<ReturnType<typeof confirmMyTwoFactorSms>>
+>;
+export type ConfirmMyTwoFactorSmsMutationBody = BodyType<TwoFactorVerifyBody>;
+export type ConfirmMyTwoFactorSmsMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Confirm an SMS backup factor with the verification code
+ */
+export const useConfirmMyTwoFactorSms = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof confirmMyTwoFactorSms>>,
+    TError,
+    { data: BodyType<TwoFactorVerifyBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof confirmMyTwoFactorSms>>,
+  TError,
+  { data: BodyType<TwoFactorVerifyBody> },
+  TContext
+> => {
+  return useMutation(getConfirmMyTwoFactorSmsMutationOptions(options));
+};
+
+/**
+ * @summary Send a one-time backup code by SMS to the enrolled phone number
+ */
+export const getSendMyTwoFactorSmsUrl = () => {
+  return `/api/me/2fa/sms/send`;
+};
+
+export const sendMyTwoFactorSms = async (
+  options?: RequestInit,
+): Promise<TwoFactorSmsSendResult> => {
+  return customFetch<TwoFactorSmsSendResult>(getSendMyTwoFactorSmsUrl(), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getSendMyTwoFactorSmsMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof sendMyTwoFactorSms>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof sendMyTwoFactorSms>>,
+  TError,
+  void,
+  TContext
+> => {
+  const mutationKey = ["sendMyTwoFactorSms"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof sendMyTwoFactorSms>>,
+    void
+  > = () => {
+    return sendMyTwoFactorSms(requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SendMyTwoFactorSmsMutationResult = NonNullable<
+  Awaited<ReturnType<typeof sendMyTwoFactorSms>>
+>;
+
+export type SendMyTwoFactorSmsMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Send a one-time backup code by SMS to the enrolled phone number
+ */
+export const useSendMyTwoFactorSms = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof sendMyTwoFactorSms>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof sendMyTwoFactorSms>>,
+  TError,
+  void,
+  TContext
+> => {
+  return useMutation(getSendMyTwoFactorSmsMutationOptions(options));
+};
+
+/**
+ * @summary Remove the SMS backup factor
+ */
+export const getRemoveMyTwoFactorSmsUrl = () => {
+  return `/api/me/2fa/sms/remove`;
+};
+
+export const removeMyTwoFactorSms = async (
+  options?: RequestInit,
+): Promise<OkResponse> => {
+  return customFetch<OkResponse>(getRemoveMyTwoFactorSmsUrl(), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getRemoveMyTwoFactorSmsMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof removeMyTwoFactorSms>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof removeMyTwoFactorSms>>,
+  TError,
+  void,
+  TContext
+> => {
+  const mutationKey = ["removeMyTwoFactorSms"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof removeMyTwoFactorSms>>,
+    void
+  > = () => {
+    return removeMyTwoFactorSms(requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RemoveMyTwoFactorSmsMutationResult = NonNullable<
+  Awaited<ReturnType<typeof removeMyTwoFactorSms>>
+>;
+
+export type RemoveMyTwoFactorSmsMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Remove the SMS backup factor
+ */
+export const useRemoveMyTwoFactorSms = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof removeMyTwoFactorSms>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof removeMyTwoFactorSms>>,
+  TError,
+  void,
+  TContext
+> => {
+  return useMutation(getRemoveMyTwoFactorSmsMutationOptions(options));
 };
 
 export const getListMySessionsUrl = () => {

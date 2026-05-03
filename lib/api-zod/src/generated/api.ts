@@ -9179,6 +9179,12 @@ export const GetMyTwoFactorResponse = zod.object({
     .string()
     .nullish()
     .describe("Masked email address used for backup codes"),
+  smsEnabled: zod.boolean(),
+  smsEnabledAt: zod.coerce.date().nullish(),
+  phoneNumber: zod
+    .string()
+    .nullish()
+    .describe("Masked phone number used for SMS backup codes"),
 });
 
 /**
@@ -9304,9 +9310,95 @@ export const VerifyTwoFactorEmailRecoveryResponse = zod.object({
 });
 
 /**
+ * @summary Request an SMS backup code to sign in when locked out
+ */
+export const requestTwoFactorSmsRecoveryBodyUsernameMax = 64;
+
+export const RequestTwoFactorSmsRecoveryBody = zod.object({
+  username: zod.string().min(1).max(requestTwoFactorSmsRecoveryBodyUsernameMax),
+});
+
+export const RequestTwoFactorSmsRecoveryResponse = zod.object({
+  sent: zod.boolean(),
+});
+
+/**
+ * @summary Verify an SMS backup code and lift the TOTP gate
+ */
+export const verifyTwoFactorSmsRecoveryBodyUsernameMax = 64;
+
+export const verifyTwoFactorSmsRecoveryBodyCodeMin = 6;
+export const verifyTwoFactorSmsRecoveryBodyCodeMax = 12;
+
+export const VerifyTwoFactorSmsRecoveryBody = zod.object({
+  username: zod.string().min(1).max(verifyTwoFactorSmsRecoveryBodyUsernameMax),
+  code: zod
+    .string()
+    .min(verifyTwoFactorSmsRecoveryBodyCodeMin)
+    .max(verifyTwoFactorSmsRecoveryBodyCodeMax),
+});
+
+export const VerifyTwoFactorSmsRecoveryResponse = zod.object({
+  ok: zod.boolean(),
+});
+
+/**
  * @summary Remove the email backup factor
  */
 export const RemoveMyTwoFactorEmailResponse = zod.object({
+  ok: zod.boolean(),
+});
+
+/**
+ * @summary Send a verification code by SMS to enroll a phone backup factor
+ */
+export const enrollMyTwoFactorSmsBodyPhoneNumberMin = 7;
+export const enrollMyTwoFactorSmsBodyPhoneNumberMax = 20;
+
+export const EnrollMyTwoFactorSmsBody = zod.object({
+  phoneNumber: zod
+    .string()
+    .min(enrollMyTwoFactorSmsBodyPhoneNumberMin)
+    .max(enrollMyTwoFactorSmsBodyPhoneNumberMax)
+    .describe("Phone number in E.164 format, e.g. +14155552671"),
+});
+
+export const EnrollMyTwoFactorSmsResponse = zod.object({
+  sent: zod.boolean(),
+  expiresAt: zod.coerce.date(),
+  phoneNumber: zod.string().describe("Masked phone number"),
+});
+
+/**
+ * @summary Confirm an SMS backup factor with the verification code
+ */
+export const confirmMyTwoFactorSmsBodyCodeMin = 6;
+export const confirmMyTwoFactorSmsBodyCodeMax = 12;
+
+export const ConfirmMyTwoFactorSmsBody = zod.object({
+  code: zod
+    .string()
+    .min(confirmMyTwoFactorSmsBodyCodeMin)
+    .max(confirmMyTwoFactorSmsBodyCodeMax),
+});
+
+export const ConfirmMyTwoFactorSmsResponse = zod.object({
+  ok: zod.boolean(),
+});
+
+/**
+ * @summary Send a one-time backup code by SMS to the enrolled phone number
+ */
+export const SendMyTwoFactorSmsResponse = zod.object({
+  sent: zod.boolean(),
+  expiresAt: zod.coerce.date(),
+  phoneNumber: zod.string().describe("Masked phone number"),
+});
+
+/**
+ * @summary Remove the SMS backup factor
+ */
+export const RemoveMyTwoFactorSmsResponse = zod.object({
   ok: zod.boolean(),
 });
 
