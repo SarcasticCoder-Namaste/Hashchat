@@ -1,6 +1,7 @@
 import { useAuth, useUser } from "@clerk/clerk-expo";
 import { Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
+import { useRouter } from "expo-router";
 import {
   ActivityIndicator,
   Pressable,
@@ -12,6 +13,8 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Avatar } from "@/components/Avatar";
+import { SparkComposer, SparksRow } from "@/components/SparksPanel";
+import { StreakBadge } from "@/components/StreakBadge";
 import { useColors } from "@/hooks/useColors";
 import { unregisterPushNotifications } from "@/lib/registerPush";
 import { useGetMe } from "@workspace/api-client-react";
@@ -22,6 +25,7 @@ export default function ProfileScreen() {
   const { signOut } = useAuth();
   const { user } = useUser();
   const me = useGetMe();
+  const router = useRouter();
 
   async function handleSignOut() {
     try {
@@ -66,10 +70,21 @@ export default function ProfileScreen() {
         style={[styles.banner, { paddingTop: insets.top + 24 }]}
       >
         <Avatar url={avatar} name={name} size={88} />
-        <Text style={styles.name}>{name}</Text>
+        <View style={styles.nameRow}>
+          <Text style={styles.name}>{name}</Text>
+          <StreakBadge />
+        </View>
         {handle ? <Text style={styles.handle}>{handle}</Text> : null}
         {profile?.bio ? <Text style={styles.bio}>{profile.bio}</Text> : null}
       </LinearGradient>
+
+      <View style={styles.section}>
+        <SparkComposer />
+      </View>
+
+      <View style={{ paddingVertical: 4 }}>
+        <SparksRow scope={{ kind: "me" }} canDelete />
+      </View>
 
       {profile?.hashtags?.length ? (
         <View style={styles.section}>
@@ -96,6 +111,39 @@ export default function ProfileScreen() {
           </View>
         </View>
       ) : null}
+
+      <View style={styles.section}>
+        <Pressable
+          onPress={() => router.push("/invite" as never)}
+          style={[
+            styles.inviteRow,
+            {
+              backgroundColor: colors.card,
+              borderColor: colors.border,
+            },
+          ]}
+        >
+          <LinearGradient
+            colors={["#7c3aed", "#db2777"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.inviteIcon}
+          >
+            <Feather name="gift" size={16} color="#fff" />
+          </LinearGradient>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.inviteTitle, { color: colors.foreground }]}>
+              Invite friends
+            </Text>
+            <Text
+              style={[styles.inviteSub, { color: colors.mutedForeground }]}
+            >
+              Earn free MVP days for every friend who joins
+            </Text>
+          </View>
+          <Feather name="chevron-right" size={18} color={colors.mutedForeground} />
+        </Pressable>
+      </View>
 
       <View style={styles.section}>
         <Pressable
@@ -133,7 +181,30 @@ const styles = StyleSheet.create({
     paddingBottom: 32,
     gap: 8,
   },
-  name: { color: "#fff", fontSize: 22, fontFamily: "Inter_700Bold", marginTop: 12 },
+  nameRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginTop: 12,
+  },
+  name: { color: "#fff", fontSize: 22, fontFamily: "Inter_700Bold" },
+  inviteRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    padding: 14,
+    borderRadius: 14,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  inviteIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  inviteTitle: { fontFamily: "Inter_600SemiBold", fontSize: 14 },
+  inviteSub: { fontFamily: "Inter_400Regular", fontSize: 12, marginTop: 2 },
   handle: { color: "rgba(255,255,255,0.85)", fontSize: 15, fontFamily: "Inter_500Medium" },
   bio: {
     color: "rgba(255,255,255,0.95)",

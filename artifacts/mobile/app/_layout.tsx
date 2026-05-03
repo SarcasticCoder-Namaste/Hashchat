@@ -119,6 +119,10 @@ function RootLayoutNav() {
           animation: "slide_from_bottom",
         }}
       />
+      <Stack.Screen
+        name="invite"
+        options={{ headerShown: true, title: "Invite friends" }}
+      />
     </Stack>
   );
 }

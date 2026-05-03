@@ -20,6 +20,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ChatInput } from "@/components/ChatInput";
 import { EmptyState } from "@/components/EmptyState";
 import { MessageBubble } from "@/components/MessageBubble";
+import { SparkComposer, SparksRow } from "@/components/SparksPanel";
 import { useColors } from "@/hooks/useColors";
 import {
   getGetRoomMessagesQueryKey,
@@ -95,6 +96,12 @@ export default function RoomScreen() {
         behavior="padding"
         keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
       >
+        <View style={styles.sparkBanner}>
+          <View style={{ paddingHorizontal: 12 }}>
+            <SparkComposer defaultTag={tag} />
+          </View>
+          <SparksRow scope={{ kind: "hashtag", tag }} canDelete />
+        </View>
         {msgs.isLoading ? (
           <View style={styles.center}>
             <ActivityIndicator color={colors.primary} />
@@ -265,4 +272,5 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     borderWidth: 1,
   },
+  sparkBanner: { gap: 8, paddingTop: 8, paddingBottom: 4 },
 });

@@ -15,6 +15,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Avatar } from "@/components/Avatar";
 import { EmptyState } from "@/components/EmptyState";
+import { QuestsWidget } from "@/components/QuestsWidget";
 import { useColors } from "@/hooks/useColors";
 import {
   useGetForYouFeed,
@@ -53,6 +54,8 @@ export default function HomeScreen() {
         <FlatList
           data={data}
           keyExtractor={(item) => `${item.kind}-${item.id}`}
+          ListHeaderComponent={<QuestsWidget />}
+          ListHeaderComponentStyle={{ marginBottom: 12 }}
           contentContainerStyle={{
             paddingBottom: insets.bottom + 100,
             paddingHorizontal: 16,
