@@ -18,6 +18,7 @@ import {
 } from "react-native";
 
 import { GifPicker } from "@/components/GifPicker";
+import { PrePostSafetyWarning } from "@/components/PrePostSafetyWarning";
 import { useColors } from "@/hooks/useColors";
 import { uploadFile } from "@/lib/upload";
 
@@ -137,12 +138,13 @@ export function ChatInput({ onSend, sending, placeholder = "Message" }: Props) {
   const busy = uploading || sending;
 
   return (
-    <View
-      style={[
-        styles.bar,
-        { backgroundColor: colors.background, borderTopColor: colors.border },
-      ]}
-    >
+    <View style={{ backgroundColor: colors.background }}>
+      <View
+        style={[
+          styles.bar,
+          { backgroundColor: colors.background, borderTopColor: colors.border },
+        ]}
+      >
       <Pressable onPress={pickImage} disabled={busy} hitSlop={6} style={styles.iconBtn}>
         <Feather name="image" size={22} color={colors.mutedForeground} />
       </Pressable>
@@ -216,6 +218,12 @@ export function ChatInput({ onSend, sending, placeholder = "Message" }: Props) {
         onClose={() => setGifOpen(false)}
         onSelect={handleGif}
       />
+      </View>
+      {draft.trim().length > 0 ? (
+        <View style={styles.warning}>
+          <PrePostSafetyWarning text={draft} />
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -245,6 +253,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   gifText: { fontFamily: "Inter_700Bold", fontSize: 13 },
+  warning: { paddingHorizontal: 8, paddingTop: 6 },
   sendBtn: {
     width: 36,
     height: 36,
