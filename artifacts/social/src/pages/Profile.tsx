@@ -15,6 +15,7 @@ import {
   useGetMyBlocksAndMutes,
   useUnblockUser,
   useUnmuteUser,
+  useMuteHashtag,
   useUnmuteHashtag,
   getGetMeQueryKey,
   getGetMyFriendCodeQueryKey,
@@ -1464,6 +1465,33 @@ function BlocksMutesTab() {
       },
     },
   });
+  const [tagInput, setTagInput] = useState("");
+  const muteTag = useMuteHashtag({
+    mutation: {
+      onSuccess: () => {
+        invalidate();
+        setTagInput("");
+        toast({ title: "Hashtag muted" });
+      },
+      onError: () => {
+        toast({
+          title: "Couldn't mute hashtag",
+          description: "Please try again.",
+          variant: "destructive",
+        });
+      },
+    },
+  });
+  const normalizedTag = tagInput
+    .trim()
+    .replace(/^#+/, "")
+    .toLowerCase()
+    .replace(/\s+/g, "");
+  const handleMuteTag = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!normalizedTag || muteTag.isPending) return;
+    muteTag.mutate({ tag: normalizedTag });
+  };
 
   if (isLoading || !data) {
     return (
@@ -1571,6 +1599,39 @@ function BlocksMutesTab() {
             {data.mutedHashtags.length}
           </span>
         </div>
+        <form
+          onSubmit={handleMuteTag}
+          className="mb-3 flex items-center gap-2"
+          data-testid="form-mute-hashtag"
+        >
+          <div className="relative flex-1">
+            <Hash className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              type="text"
+              value={tagInput}
+              onChange={(e) => setTagInput(e.target.value)}
+              placeholder="Mute a hashtag (e.g. politics)"
+              className="pl-7"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
+              disabled={muteTag.isPending}
+              data-testid="input-mute-hashtag"
+            />
+          </div>
+          <Button
+            type="submit"
+            size="sm"
+            disabled={!normalizedTag || muteTag.isPending}
+            data-testid="button-mute-hashtag"
+          >
+            {muteTag.isPending ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              "Mute"
+            )}
+          </Button>
+        </form>
         {data.mutedHashtags.length === 0 ? (
           <p
             className="rounded-lg border border-dashed border-border px-3 py-6 text-center text-sm text-muted-foreground"
