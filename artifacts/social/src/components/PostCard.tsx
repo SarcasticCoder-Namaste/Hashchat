@@ -53,6 +53,7 @@ import {
   CornerUpLeft,
   MessageCircle,
 } from "lucide-react";
+import { BlurImage } from "./BlurImage";
 import { BookmarkButton } from "./BookmarkButton";
 import { GifMedia, isGifUrl } from "./GifMedia";
 import { PostStatsSheet } from "./PostStatsSheet";
@@ -219,6 +220,8 @@ export function PostCard({ post, meId, onDeleted, onChanged, scope, canModerate 
         isRemoved ? "opacity-60" : "",
       ].join(" ")}
       data-testid={`post-${post.id}`}
+      data-feed-item="post"
+      data-feed-item-id={post.id}
       aria-label={`Post by ${post.author.displayName}`}
       data-pinned={isPinnedHere ? "true" : undefined}
       data-locked={isLocked ? "true" : undefined}
@@ -492,14 +495,13 @@ export function PostCard({ post, meId, onDeleted, onChanged, scope, canModerate 
                     className="aspect-square w-full object-cover"
                   />
                 ) : (
-                  <img
+                  <BlurImage
                     src={u}
                     alt={
                       post.imageAlts?.[i]?.trim() ||
                       `Image attached by ${post.author.displayName}`
                     }
-                    className="aspect-square w-full object-cover"
-                    loading="lazy"
+                    className="aspect-square w-full"
                   />
                 )}
               </a>

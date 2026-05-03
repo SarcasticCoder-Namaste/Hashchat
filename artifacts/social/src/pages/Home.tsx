@@ -10,7 +10,8 @@ import {
 import { PostFeed } from "@/components/PostFeed";
 import { PostComposer } from "@/components/PostComposer";
 import { Button } from "@/components/ui/button";
-import { Hash, Home as HomeIcon, Loader2 } from "lucide-react";
+import { Hash, Home as HomeIcon } from "lucide-react";
+import { FeedSkeleton } from "@/components/Skeleton";
 import { useTranslation } from "@/lib/i18n";
 
 export default function Home() {
@@ -56,9 +57,7 @@ export default function Home() {
       </div>
 
       {followedQ.isLoading ? (
-        <div className="flex justify-center py-8">
-          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground/70" />
-        </div>
+        <FeedSkeleton count={3} />
       ) : followed.length === 0 ? (
         <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-border bg-card/40 p-8 text-center">
           <Hash className="h-8 w-8 text-muted-foreground/70" />

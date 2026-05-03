@@ -1,4 +1,4 @@
-import { type ReactNode, useEffect } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import { Link, useLocation, Redirect } from "wouter";
 import { useUser, useClerk } from "@clerk/react";
 import {
@@ -21,6 +21,7 @@ import {
   Home as HomeIcon,
   Users,
   Sparkles,
+  Keyboard,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -31,6 +32,8 @@ import { PageTransition } from "@/components/PageTransition";
 import { FriendCodeSearch } from "@/components/FriendCodeSearch";
 import { NotificationsBell } from "@/components/NotificationsBell";
 import { GlobalSearchBar } from "@/components/GlobalSearchBar";
+import { ShortcutsCheatSheet } from "@/components/ShortcutsCheatSheet";
+import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { useSyncedPreferences } from "@/lib/serverPreferences";
 import { usePresenceHeartbeat } from "@/lib/usePresenceHeartbeat";
 import { Bookmark as BookmarkIcon } from "lucide-react";
@@ -108,6 +111,8 @@ export default function AppShell({ children }: { children: ReactNode }) {
   const isStaff = me?.role === "admin" || me?.role === "moderator";
   useSyncedPreferences();
   usePresenceHeartbeat(!!clerkUser && !!me);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  useKeyboardShortcuts({ onShowCheatSheet: () => setShortcutsOpen(true) });
 
   const { t } = useTranslation();
   const groups = isStaff
@@ -329,6 +334,17 @@ export default function AppShell({ children }: { children: ReactNode }) {
           <header className="sticky top-0 z-10 hidden items-center justify-between gap-3 border-b border-border bg-card/60 px-6 py-2.5 backdrop-blur md:flex">
             <GlobalSearchBar widthClass="w-80" />
             <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                onClick={() => setShortcutsOpen(true)}
+                data-testid="button-shortcuts"
+                aria-label="Keyboard shortcuts"
+                title="Keyboard shortcuts (?)"
+              >
+                <Keyboard className="h-4 w-4" />
+              </Button>
               <FriendCodeSearch />
               <NotificationsBell enabled={!!me} />
             </div>
@@ -380,6 +396,10 @@ export default function AppShell({ children }: { children: ReactNode }) {
         </div>
       </div>
       {me && <IncomingCallToast />}
+      <ShortcutsCheatSheet
+        open={shortcutsOpen}
+        onOpenChange={setShortcutsOpen}
+      />
     </div>
   );
 }

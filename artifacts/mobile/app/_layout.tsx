@@ -6,7 +6,10 @@ import {
   useFonts,
 } from "@expo-google-fonts/inter";
 import { ClerkProvider, useAuth } from "@clerk/clerk-expo";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { QueryClient } from "@tanstack/react-query";
+import { createAsyncStoragePersister } from "@tanstack/query-async-storage-persister";
+import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 import {
   setAuthTokenGetter,
   setBaseUrl,
@@ -36,7 +39,22 @@ if (DOMAIN) {
 }
 
 const queryClient = new QueryClient({
-  defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: false } },
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      refetchOnWindowFocus: false,
+      // Keep cached data around for 24h so the app shows last-seen feeds and
+      // conversations when launched without connectivity.
+      gcTime: 1000 * 60 * 60 * 24,
+      staleTime: 1000 * 30,
+    },
+  },
+});
+
+const queryPersister = createAsyncStoragePersister({
+  storage: AsyncStorage,
+  key: "hashchat-query-cache-v1",
+  throttleTime: 1500,
 });
 
 function AuthBridge({ children }: { children: React.ReactNode }) {
@@ -129,7 +147,14 @@ export default function RootLayout() {
     <SafeAreaProvider>
       <ErrorBoundary>
         <ClerkProvider publishableKey={PUBLISHABLE_KEY} tokenCache={tokenCache}>
-          <QueryClientProvider client={queryClient}>
+          <PersistQueryClientProvider
+            client={queryClient}
+            persistOptions={{
+              persister: queryPersister,
+              maxAge: 1000 * 60 * 60 * 24,
+              buster: "v1",
+            }}
+          >
             <GestureHandlerRootView style={{ flex: 1 }}>
               <KeyboardProvider>
                 <AuthBridge>
@@ -137,7 +162,7 @@ export default function RootLayout() {
                 </AuthBridge>
               </KeyboardProvider>
             </GestureHandlerRootView>
-          </QueryClientProvider>
+          </PersistQueryClientProvider>
         </ClerkProvider>
       </ErrorBoundary>
     </SafeAreaProvider>

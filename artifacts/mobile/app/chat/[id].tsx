@@ -1,12 +1,13 @@
 import { useUser } from "@clerk/clerk-expo";
 import { useQueryClient } from "@tanstack/react-query";
 import { Stack, useLocalSearchParams } from "expo-router";
-import { useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import {
   ActivityIndicator,
   FlatList,
   Platform,
   StyleSheet,
+  Text,
   View,
 } from "react-native";
 import { KeyboardAvoidingView } from "react-native-keyboard-controller";
@@ -16,6 +17,11 @@ import { ChatInput } from "@/components/ChatInput";
 import { EmptyState } from "@/components/EmptyState";
 import { MessageBubble } from "@/components/MessageBubble";
 import { useColors } from "@/hooks/useColors";
+import { useConversationOutbox } from "@/hooks/useOutboxFlusher";
+import {
+  enqueueMessage,
+  type QueuedMessage,
+} from "@/lib/offlineQueue";
 import {
   getGetConversationMessagesQueryKey,
   getGetConversationsQueryKey,
@@ -55,6 +61,23 @@ export default function ConversationChatScreen() {
       },
     },
   });
+
+  const flushSend = useCallback(
+    async (m: QueuedMessage) => {
+      await send.mutateAsync({
+        id: m.conversationId,
+        data: {
+          content: m.data.content,
+          imageUrl: m.data.imageUrl ?? null,
+          audioUrl: m.data.audioUrl ?? null,
+          gifUrl: m.data.gifUrl ?? null,
+        },
+      });
+    },
+    [send],
+  );
+
+  const { pending, online } = useConversationOutbox(id, flushSend);
 
   const markRead = useMarkConversationRead();
   const lastReadRef = useRef<number | null>(null);
@@ -111,20 +134,49 @@ export default function ConversationChatScreen() {
             }}
           />
         )}
+        {(!online || pending.length > 0) && (
+          <View
+            style={{
+              paddingHorizontal: 12,
+              paddingVertical: 6,
+              backgroundColor: colors.muted,
+              borderTopWidth: StyleSheet.hairlineWidth,
+              borderTopColor: colors.border,
+            }}
+          >
+            <Text
+              style={{
+                color: colors.mutedForeground,
+                fontFamily: "Inter_500Medium",
+                fontSize: 12,
+              }}
+            >
+              {!online
+                ? `Offline · ${pending.length} message${pending.length === 1 ? "" : "s"} pending`
+                : `Sending ${pending.length} pending message${pending.length === 1 ? "" : "s"}…`}
+            </Text>
+          </View>
+        )}
         <View style={{ paddingBottom: insets.bottom }}>
           <ChatInput
             sending={send.isPending}
             onSend={async (data) => {
               if (!Number.isFinite(id)) return;
-              await send.mutateAsync({
-                id,
-                data: {
-                  content: data.content,
-                  imageUrl: data.imageUrl ?? data.gifUrl ?? null,
-                  audioUrl: data.audioUrl ?? null,
-                  gifUrl: data.gifUrl ?? null,
-                },
-              });
+              const payload = {
+                content: data.content,
+                imageUrl: data.imageUrl ?? data.gifUrl ?? null,
+                audioUrl: data.audioUrl ?? null,
+                gifUrl: data.gifUrl ?? null,
+              };
+              if (!online) {
+                await enqueueMessage(id, payload);
+                return;
+              }
+              try {
+                await send.mutateAsync({ id, data: payload });
+              } catch {
+                await enqueueMessage(id, payload);
+              }
             }}
           />
         </View>

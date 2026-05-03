@@ -15,6 +15,38 @@ export function ListItemSkeleton() {
   );
 }
 
+export function FeedSkeleton({ count = 4 }: { count?: number }) {
+  return (
+    <div
+      className="flex flex-col gap-3"
+      role="status"
+      aria-label="Loading feed"
+      aria-busy="true"
+      data-testid="skeleton-feed"
+    >
+      {Array.from({ length: count }).map((_, i) => (
+        <CardSkeleton key={i} />
+      ))}
+    </div>
+  );
+}
+
+export function ListSkeleton({ count = 5 }: { count?: number }) {
+  return (
+    <div
+      className="divide-y divide-border rounded-xl border border-border bg-card"
+      role="status"
+      aria-label="Loading list"
+      aria-busy="true"
+      data-testid="skeleton-list"
+    >
+      {Array.from({ length: count }).map((_, i) => (
+        <ListItemSkeleton key={i} />
+      ))}
+    </div>
+  );
+}
+
 export function CardSkeleton() {
   return (
     <div className="space-y-3 rounded-xl border border-border bg-card p-4">

@@ -1866,3 +1866,10 @@ html[data-reduced-motion="always"] *::after {
 .auth-clerk-wrap .cl-cardBox > :has(a[href*="clerk"]) {
   display: none !important;
 }
+
+/* Keyboard navigation focus ring on feed items */
+[data-feed-item][data-feed-focused="true"] {
+  outline: 2px solid hsl(var(--primary));
+  outline-offset: 2px;
+  border-radius: 0.75rem;
+}

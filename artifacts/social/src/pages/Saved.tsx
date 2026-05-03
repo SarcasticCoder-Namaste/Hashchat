@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "@/lib/i18n";
+import { ListSkeleton } from "@/components/Skeleton";
 
 const TABS = [
   { id: "all", labelKey: "saved.tabAll", icon: BookmarkIcon },
@@ -74,9 +75,7 @@ export default function Saved() {
       </div>
 
       {isLoading ? (
-        <div className="rounded-lg border border-border p-6 text-center text-sm text-muted-foreground">
-          {t("saved.loading")}
-        </div>
+        <ListSkeleton count={4} />
       ) : !data || data.length === 0 ? (
         <div className="rounded-lg border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
           {t("saved.empty")}
