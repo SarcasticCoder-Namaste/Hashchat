@@ -58,7 +58,7 @@ export function CallModal({ callId, withVideo, onClose }: CallModalProps) {
   }, [hangup]);
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-black/95 text-white" data-testid="call-modal">
+    <div className="fixed inset-0 z-[60] flex flex-col bg-black/95 text-white" data-testid="call-modal">
       <div className="flex items-center justify-between px-4 py-3">
         <div>
           <p className="text-sm font-semibold">

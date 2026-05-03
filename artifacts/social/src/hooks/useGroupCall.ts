@@ -162,8 +162,19 @@ export function useGroupCall(opts: {
     const setup = async () => {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
-          audio: true,
-          video: withVideo,
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true,
+          },
+          video: withVideo
+            ? {
+                width: { ideal: 640, max: 960 },
+                height: { ideal: 360, max: 540 },
+                frameRate: { ideal: 24, max: 30 },
+                facingMode: "user",
+              }
+            : false,
         });
         if (cancelled) {
           stream.getTracks().forEach((t) => t.stop());
