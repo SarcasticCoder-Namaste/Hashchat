@@ -26,6 +26,7 @@ import {
   UserPlus,
   Loader2,
 } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
 
 interface Props {
   open: boolean;
@@ -154,14 +155,19 @@ export function NotificationsSheet({ open, onOpenChange }: Props) {
             </div>
           ) : (
             <ul>
-              {items.map((n) => {
+              <AnimatePresence initial={false}>
+                {items.map((n) => {
                 const isUnread = !n.readAt;
                 const inner = (
-                  <div
-                    className={[
-                      "flex items-start gap-3 border-b border-border/60 px-4 py-3",
-                      isUnread ? "bg-primary/5" : "",
-                    ].join(" ")}
+                  <motion.div
+                    initial={false}
+                    animate={{
+                      backgroundColor: isUnread
+                        ? "hsl(var(--primary) / 0.05)"
+                        : "hsl(var(--primary) / 0)",
+                    }}
+                    transition={{ duration: 0.4, ease: "easeOut" }}
+                    className="flex items-start gap-3 border-b border-border/60 px-4 py-3"
                   >
                     <Avatar className="h-9 w-9 shrink-0">
                       {n.actor?.avatarUrl ? (
@@ -192,17 +198,34 @@ export function NotificationsSheet({ open, onOpenChange }: Props) {
                         {timeAgo(n.createdAt)}
                       </p>
                     </div>
-                    {isUnread && (
-                      <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-primary" />
-                    )}
-                  </div>
+                    <AnimatePresence initial={false}>
+                      {isUnread && (
+                        <motion.span
+                          key="unread-dot"
+                          initial={{ opacity: 0, scale: 0.5 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          exit={{ opacity: 0, scale: 0.5 }}
+                          transition={{ duration: 0.25, ease: "easeOut" }}
+                          className="mt-1 h-2 w-2 shrink-0 rounded-full bg-primary"
+                        />
+                      )}
+                    </AnimatePresence>
+                  </motion.div>
                 );
                 const onClick = () => {
                   if (isUnread) markOne.mutate({ id: n.id });
                   onOpenChange(false);
                 };
                 return (
-                  <li key={n.id} data-testid={`notif-${n.id}`}>
+                  <motion.li
+                    key={n.id}
+                    layout
+                    initial={{ opacity: 0, y: -8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -8 }}
+                    transition={{ duration: 0.25, ease: "easeOut" }}
+                    data-testid={`notif-${n.id}`}
+                  >
                     {n.href ? (
                       <Link
                         href={n.href}
@@ -220,9 +243,10 @@ export function NotificationsSheet({ open, onOpenChange }: Props) {
                         {inner}
                       </button>
                     )}
-                  </li>
+                  </motion.li>
                 );
               })}
+              </AnimatePresence>
             </ul>
           )}
         </div>
