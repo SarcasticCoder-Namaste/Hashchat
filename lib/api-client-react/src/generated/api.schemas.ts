@@ -2333,6 +2333,54 @@ export interface TwoFactorStatus {
   /** @nullable */
   enabledAt?: string | null;
   backupCodesRemaining: number;
+  emailEnabled: boolean;
+  /** @nullable */
+  emailEnabledAt?: string | null;
+  /**
+   * Masked email address used for backup codes
+   * @nullable
+   */
+  emailAddress?: string | null;
+}
+
+export interface TwoFactorRecoveryChallengeBody {
+  /**
+   * @minLength 1
+   * @maxLength 64
+   */
+  username: string;
+}
+
+export interface TwoFactorRecoveryChallengeResult {
+  sent: boolean;
+}
+
+export interface TwoFactorRecoveryVerifyBody {
+  /**
+   * @minLength 1
+   * @maxLength 64
+   */
+  username: string;
+  /**
+   * @minLength 6
+   * @maxLength 12
+   */
+  code: string;
+}
+
+export interface TwoFactorEmailEnrollBody {
+  /**
+   * @minLength 3
+   * @maxLength 254
+   */
+  email: string;
+}
+
+export interface TwoFactorEmailSendResult {
+  sent: boolean;
+  expiresAt: string;
+  /** Masked email address */
+  emailAddress: string;
 }
 
 export interface TwoFactorSetup {

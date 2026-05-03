@@ -3120,6 +3120,100 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/OkResponse" }
 
+  /me/2fa/email/enroll:
+    post:
+      operationId: enrollMyTwoFactorEmail
+      tags: [safety]
+      summary: Send a verification code to enroll an email backup factor
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/TwoFactorEmailEnrollBody" }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TwoFactorEmailSendResult" }
+
+  /me/2fa/email/confirm:
+    post:
+      operationId: confirmMyTwoFactorEmail
+      tags: [safety]
+      summary: Confirm an email backup factor with the verification code
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/TwoFactorVerifyBody" }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/OkResponse" }
+
+  /me/2fa/email/send:
+    post:
+      operationId: sendMyTwoFactorEmail
+      tags: [safety]
+      summary: Send a one-time backup code to the enrolled email address
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TwoFactorEmailSendResult" }
+
+  /auth/2fa/email/challenge:
+    post:
+      operationId: requestTwoFactorEmailRecovery
+      tags: [safety]
+      summary: Request an email backup code to sign in when locked out
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/TwoFactorRecoveryChallengeBody" }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TwoFactorRecoveryChallengeResult" }
+
+  /auth/2fa/email/verify:
+    post:
+      operationId: verifyTwoFactorEmailRecovery
+      tags: [safety]
+      summary: Verify an emailed backup code and lift the TOTP gate
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/TwoFactorRecoveryVerifyBody" }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/OkResponse" }
+
+  /me/2fa/email/remove:
+    post:
+      operationId: removeMyTwoFactorEmail
+      tags: [safety]
+      summary: Remove the email backup factor
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/OkResponse" }
+
   /me/sessions:
     get:
       operationId: listMySessions
@@ -6101,7 +6195,47 @@ components:
           type: ["string", "null"]
           format: date-time
         backupCodesRemaining: { type: integer }
-      required: [enabled, backupCodesRemaining]
+        emailEnabled: { type: boolean }
+        emailEnabledAt:
+          type: ["string", "null"]
+          format: date-time
+        emailAddress:
+          type: ["string", "null"]
+          description: Masked email address used for backup codes
+      required: [enabled, backupCodesRemaining, emailEnabled]
+
+    TwoFactorRecoveryChallengeBody:
+      type: object
+      properties:
+        username: { type: string, minLength: 1, maxLength: 64 }
+      required: [username]
+
+    TwoFactorRecoveryChallengeResult:
+      type: object
+      properties:
+        sent: { type: boolean }
+      required: [sent]
+
+    TwoFactorRecoveryVerifyBody:
+      type: object
+      properties:
+        username: { type: string, minLength: 1, maxLength: 64 }
+        code: { type: string, minLength: 6, maxLength: 12 }
+      required: [username, code]
+
+    TwoFactorEmailEnrollBody:
+      type: object
+      properties:
+        email: { type: string, format: email, minLength: 3, maxLength: 254 }
+      required: [email]
+
+    TwoFactorEmailSendResult:
+      type: object
+      properties:
+        sent: { type: boolean }
+        expiresAt: { type: string, format: date-time }
+        emailAddress: { type: string, description: Masked email address }
+      required: [sent, expiresAt, emailAddress]
 
     TwoFactorSetup:
       type: object

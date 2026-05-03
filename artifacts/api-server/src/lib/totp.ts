@@ -101,6 +101,18 @@ export function hashBackupCode(code: string): string {
     .digest("hex");
 }
 
+export function generateEmailOtp(): string {
+  const buf = randomBytes(4);
+  const n = buf.readUInt32BE(0) % 1_000_000;
+  return String(n).padStart(6, "0");
+}
+
+export function hashEmailOtp(code: string): string {
+  return createHash("sha256")
+    .update(code.replace(/\s+/g, ""))
+    .digest("hex");
+}
+
 export function consumeBackupCode(
   code: string,
   hashes: string[],

@@ -9173,6 +9173,12 @@ export const GetMyTwoFactorResponse = zod.object({
   enabled: zod.boolean(),
   enabledAt: zod.coerce.date().nullish(),
   backupCodesRemaining: zod.number(),
+  emailEnabled: zod.boolean(),
+  emailEnabledAt: zod.coerce.date().nullish(),
+  emailAddress: zod
+    .string()
+    .nullish()
+    .describe("Masked email address used for backup codes"),
 });
 
 /**
@@ -9209,6 +9215,98 @@ export const DisableMyTwoFactorBody = zod.object({
 });
 
 export const DisableMyTwoFactorResponse = zod.object({
+  ok: zod.boolean(),
+});
+
+/**
+ * @summary Send a verification code to enroll an email backup factor
+ */
+export const enrollMyTwoFactorEmailBodyEmailMin = 3;
+export const enrollMyTwoFactorEmailBodyEmailMax = 254;
+
+export const EnrollMyTwoFactorEmailBody = zod.object({
+  email: zod
+    .string()
+    .email()
+    .min(enrollMyTwoFactorEmailBodyEmailMin)
+    .max(enrollMyTwoFactorEmailBodyEmailMax),
+});
+
+export const EnrollMyTwoFactorEmailResponse = zod.object({
+  sent: zod.boolean(),
+  expiresAt: zod.coerce.date(),
+  emailAddress: zod.string().describe("Masked email address"),
+});
+
+/**
+ * @summary Confirm an email backup factor with the verification code
+ */
+export const confirmMyTwoFactorEmailBodyCodeMin = 6;
+export const confirmMyTwoFactorEmailBodyCodeMax = 12;
+
+export const ConfirmMyTwoFactorEmailBody = zod.object({
+  code: zod
+    .string()
+    .min(confirmMyTwoFactorEmailBodyCodeMin)
+    .max(confirmMyTwoFactorEmailBodyCodeMax),
+});
+
+export const ConfirmMyTwoFactorEmailResponse = zod.object({
+  ok: zod.boolean(),
+});
+
+/**
+ * @summary Send a one-time backup code to the enrolled email address
+ */
+export const SendMyTwoFactorEmailResponse = zod.object({
+  sent: zod.boolean(),
+  expiresAt: zod.coerce.date(),
+  emailAddress: zod.string().describe("Masked email address"),
+});
+
+/**
+ * @summary Request an email backup code to sign in when locked out
+ */
+export const requestTwoFactorEmailRecoveryBodyUsernameMax = 64;
+
+export const RequestTwoFactorEmailRecoveryBody = zod.object({
+  username: zod
+    .string()
+    .min(1)
+    .max(requestTwoFactorEmailRecoveryBodyUsernameMax),
+});
+
+export const RequestTwoFactorEmailRecoveryResponse = zod.object({
+  sent: zod.boolean(),
+});
+
+/**
+ * @summary Verify an emailed backup code and lift the TOTP gate
+ */
+export const verifyTwoFactorEmailRecoveryBodyUsernameMax = 64;
+
+export const verifyTwoFactorEmailRecoveryBodyCodeMin = 6;
+export const verifyTwoFactorEmailRecoveryBodyCodeMax = 12;
+
+export const VerifyTwoFactorEmailRecoveryBody = zod.object({
+  username: zod
+    .string()
+    .min(1)
+    .max(verifyTwoFactorEmailRecoveryBodyUsernameMax),
+  code: zod
+    .string()
+    .min(verifyTwoFactorEmailRecoveryBodyCodeMin)
+    .max(verifyTwoFactorEmailRecoveryBodyCodeMax),
+});
+
+export const VerifyTwoFactorEmailRecoveryResponse = zod.object({
+  ok: zod.boolean(),
+});
+
+/**
+ * @summary Remove the email backup factor
+ */
+export const RemoveMyTwoFactorEmailResponse = zod.object({
   ok: zod.boolean(),
 });
 

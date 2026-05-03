@@ -1124,6 +1124,21 @@ export const userTwoFactorTable = pgTable("user_two_factor", {
   enabled: boolean("enabled").notNull().default(false),
   enabledAt: timestamp("enabled_at", { withTimezone: true }),
   backupCodesHash: text("backup_codes_hash").array().notNull().default(sql`ARRAY[]::text[]`),
+  emailAddress: text("email_address"),
+  emailEnabled: boolean("email_enabled").notNull().default(false),
+  emailEnabledAt: timestamp("email_enabled_at", { withTimezone: true }),
+  pendingEmailCodeHash: text("pending_email_code_hash"),
+  pendingEmailCodeExpiresAt: timestamp("pending_email_code_expires_at", {
+    withTimezone: true,
+  }),
+  pendingEmailCodePurpose: text("pending_email_code_purpose"),
+  pendingEmailAddress: text("pending_email_address"),
+  pendingEmailFailedAttempts: integer("pending_email_failed_attempts")
+    .notNull()
+    .default(0),
+  recoveryLockedUntil: timestamp("recovery_locked_until", {
+    withTimezone: true,
+  }),
   updatedAt: timestamp("updated_at", { withTimezone: true })
     .notNull()
     .defaultNow(),

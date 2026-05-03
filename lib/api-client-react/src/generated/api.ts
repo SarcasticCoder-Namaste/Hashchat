@@ -178,7 +178,12 @@ import type {
   TipTarget,
   TranslateMessageBody,
   TrendingHashtag,
+  TwoFactorEmailEnrollBody,
+  TwoFactorEmailSendResult,
   TwoFactorEnableResult,
+  TwoFactorRecoveryChallengeBody,
+  TwoFactorRecoveryChallengeResult,
+  TwoFactorRecoveryVerifyBody,
   TwoFactorSetup,
   TwoFactorStatus,
   TwoFactorVerifyBody,
@@ -18312,6 +18317,518 @@ export const useDisableMyTwoFactor = <
   TContext
 > => {
   return useMutation(getDisableMyTwoFactorMutationOptions(options));
+};
+
+/**
+ * @summary Send a verification code to enroll an email backup factor
+ */
+export const getEnrollMyTwoFactorEmailUrl = () => {
+  return `/api/me/2fa/email/enroll`;
+};
+
+export const enrollMyTwoFactorEmail = async (
+  twoFactorEmailEnrollBody: TwoFactorEmailEnrollBody,
+  options?: RequestInit,
+): Promise<TwoFactorEmailSendResult> => {
+  return customFetch<TwoFactorEmailSendResult>(getEnrollMyTwoFactorEmailUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(twoFactorEmailEnrollBody),
+  });
+};
+
+export const getEnrollMyTwoFactorEmailMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof enrollMyTwoFactorEmail>>,
+    TError,
+    { data: BodyType<TwoFactorEmailEnrollBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof enrollMyTwoFactorEmail>>,
+  TError,
+  { data: BodyType<TwoFactorEmailEnrollBody> },
+  TContext
+> => {
+  const mutationKey = ["enrollMyTwoFactorEmail"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof enrollMyTwoFactorEmail>>,
+    { data: BodyType<TwoFactorEmailEnrollBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return enrollMyTwoFactorEmail(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type EnrollMyTwoFactorEmailMutationResult = NonNullable<
+  Awaited<ReturnType<typeof enrollMyTwoFactorEmail>>
+>;
+export type EnrollMyTwoFactorEmailMutationBody =
+  BodyType<TwoFactorEmailEnrollBody>;
+export type EnrollMyTwoFactorEmailMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Send a verification code to enroll an email backup factor
+ */
+export const useEnrollMyTwoFactorEmail = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof enrollMyTwoFactorEmail>>,
+    TError,
+    { data: BodyType<TwoFactorEmailEnrollBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof enrollMyTwoFactorEmail>>,
+  TError,
+  { data: BodyType<TwoFactorEmailEnrollBody> },
+  TContext
+> => {
+  return useMutation(getEnrollMyTwoFactorEmailMutationOptions(options));
+};
+
+/**
+ * @summary Confirm an email backup factor with the verification code
+ */
+export const getConfirmMyTwoFactorEmailUrl = () => {
+  return `/api/me/2fa/email/confirm`;
+};
+
+export const confirmMyTwoFactorEmail = async (
+  twoFactorVerifyBody: TwoFactorVerifyBody,
+  options?: RequestInit,
+): Promise<OkResponse> => {
+  return customFetch<OkResponse>(getConfirmMyTwoFactorEmailUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(twoFactorVerifyBody),
+  });
+};
+
+export const getConfirmMyTwoFactorEmailMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof confirmMyTwoFactorEmail>>,
+    TError,
+    { data: BodyType<TwoFactorVerifyBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof confirmMyTwoFactorEmail>>,
+  TError,
+  { data: BodyType<TwoFactorVerifyBody> },
+  TContext
+> => {
+  const mutationKey = ["confirmMyTwoFactorEmail"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof confirmMyTwoFactorEmail>>,
+    { data: BodyType<TwoFactorVerifyBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return confirmMyTwoFactorEmail(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ConfirmMyTwoFactorEmailMutationResult = NonNullable<
+  Awaited<ReturnType<typeof confirmMyTwoFactorEmail>>
+>;
+export type ConfirmMyTwoFactorEmailMutationBody = BodyType<TwoFactorVerifyBody>;
+export type ConfirmMyTwoFactorEmailMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Confirm an email backup factor with the verification code
+ */
+export const useConfirmMyTwoFactorEmail = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof confirmMyTwoFactorEmail>>,
+    TError,
+    { data: BodyType<TwoFactorVerifyBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof confirmMyTwoFactorEmail>>,
+  TError,
+  { data: BodyType<TwoFactorVerifyBody> },
+  TContext
+> => {
+  return useMutation(getConfirmMyTwoFactorEmailMutationOptions(options));
+};
+
+/**
+ * @summary Send a one-time backup code to the enrolled email address
+ */
+export const getSendMyTwoFactorEmailUrl = () => {
+  return `/api/me/2fa/email/send`;
+};
+
+export const sendMyTwoFactorEmail = async (
+  options?: RequestInit,
+): Promise<TwoFactorEmailSendResult> => {
+  return customFetch<TwoFactorEmailSendResult>(getSendMyTwoFactorEmailUrl(), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getSendMyTwoFactorEmailMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof sendMyTwoFactorEmail>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof sendMyTwoFactorEmail>>,
+  TError,
+  void,
+  TContext
+> => {
+  const mutationKey = ["sendMyTwoFactorEmail"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof sendMyTwoFactorEmail>>,
+    void
+  > = () => {
+    return sendMyTwoFactorEmail(requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SendMyTwoFactorEmailMutationResult = NonNullable<
+  Awaited<ReturnType<typeof sendMyTwoFactorEmail>>
+>;
+
+export type SendMyTwoFactorEmailMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Send a one-time backup code to the enrolled email address
+ */
+export const useSendMyTwoFactorEmail = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof sendMyTwoFactorEmail>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof sendMyTwoFactorEmail>>,
+  TError,
+  void,
+  TContext
+> => {
+  return useMutation(getSendMyTwoFactorEmailMutationOptions(options));
+};
+
+/**
+ * @summary Request an email backup code to sign in when locked out
+ */
+export const getRequestTwoFactorEmailRecoveryUrl = () => {
+  return `/api/auth/2fa/email/challenge`;
+};
+
+export const requestTwoFactorEmailRecovery = async (
+  twoFactorRecoveryChallengeBody: TwoFactorRecoveryChallengeBody,
+  options?: RequestInit,
+): Promise<TwoFactorRecoveryChallengeResult> => {
+  return customFetch<TwoFactorRecoveryChallengeResult>(
+    getRequestTwoFactorEmailRecoveryUrl(),
+    {
+      ...options,
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(twoFactorRecoveryChallengeBody),
+    },
+  );
+};
+
+export const getRequestTwoFactorEmailRecoveryMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof requestTwoFactorEmailRecovery>>,
+    TError,
+    { data: BodyType<TwoFactorRecoveryChallengeBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof requestTwoFactorEmailRecovery>>,
+  TError,
+  { data: BodyType<TwoFactorRecoveryChallengeBody> },
+  TContext
+> => {
+  const mutationKey = ["requestTwoFactorEmailRecovery"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof requestTwoFactorEmailRecovery>>,
+    { data: BodyType<TwoFactorRecoveryChallengeBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return requestTwoFactorEmailRecovery(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RequestTwoFactorEmailRecoveryMutationResult = NonNullable<
+  Awaited<ReturnType<typeof requestTwoFactorEmailRecovery>>
+>;
+export type RequestTwoFactorEmailRecoveryMutationBody =
+  BodyType<TwoFactorRecoveryChallengeBody>;
+export type RequestTwoFactorEmailRecoveryMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Request an email backup code to sign in when locked out
+ */
+export const useRequestTwoFactorEmailRecovery = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof requestTwoFactorEmailRecovery>>,
+    TError,
+    { data: BodyType<TwoFactorRecoveryChallengeBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof requestTwoFactorEmailRecovery>>,
+  TError,
+  { data: BodyType<TwoFactorRecoveryChallengeBody> },
+  TContext
+> => {
+  return useMutation(getRequestTwoFactorEmailRecoveryMutationOptions(options));
+};
+
+/**
+ * @summary Verify an emailed backup code and lift the TOTP gate
+ */
+export const getVerifyTwoFactorEmailRecoveryUrl = () => {
+  return `/api/auth/2fa/email/verify`;
+};
+
+export const verifyTwoFactorEmailRecovery = async (
+  twoFactorRecoveryVerifyBody: TwoFactorRecoveryVerifyBody,
+  options?: RequestInit,
+): Promise<OkResponse> => {
+  return customFetch<OkResponse>(getVerifyTwoFactorEmailRecoveryUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(twoFactorRecoveryVerifyBody),
+  });
+};
+
+export const getVerifyTwoFactorEmailRecoveryMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof verifyTwoFactorEmailRecovery>>,
+    TError,
+    { data: BodyType<TwoFactorRecoveryVerifyBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof verifyTwoFactorEmailRecovery>>,
+  TError,
+  { data: BodyType<TwoFactorRecoveryVerifyBody> },
+  TContext
+> => {
+  const mutationKey = ["verifyTwoFactorEmailRecovery"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof verifyTwoFactorEmailRecovery>>,
+    { data: BodyType<TwoFactorRecoveryVerifyBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return verifyTwoFactorEmailRecovery(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type VerifyTwoFactorEmailRecoveryMutationResult = NonNullable<
+  Awaited<ReturnType<typeof verifyTwoFactorEmailRecovery>>
+>;
+export type VerifyTwoFactorEmailRecoveryMutationBody =
+  BodyType<TwoFactorRecoveryVerifyBody>;
+export type VerifyTwoFactorEmailRecoveryMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Verify an emailed backup code and lift the TOTP gate
+ */
+export const useVerifyTwoFactorEmailRecovery = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof verifyTwoFactorEmailRecovery>>,
+    TError,
+    { data: BodyType<TwoFactorRecoveryVerifyBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof verifyTwoFactorEmailRecovery>>,
+  TError,
+  { data: BodyType<TwoFactorRecoveryVerifyBody> },
+  TContext
+> => {
+  return useMutation(getVerifyTwoFactorEmailRecoveryMutationOptions(options));
+};
+
+/**
+ * @summary Remove the email backup factor
+ */
+export const getRemoveMyTwoFactorEmailUrl = () => {
+  return `/api/me/2fa/email/remove`;
+};
+
+export const removeMyTwoFactorEmail = async (
+  options?: RequestInit,
+): Promise<OkResponse> => {
+  return customFetch<OkResponse>(getRemoveMyTwoFactorEmailUrl(), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getRemoveMyTwoFactorEmailMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof removeMyTwoFactorEmail>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof removeMyTwoFactorEmail>>,
+  TError,
+  void,
+  TContext
+> => {
+  const mutationKey = ["removeMyTwoFactorEmail"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof removeMyTwoFactorEmail>>,
+    void
+  > = () => {
+    return removeMyTwoFactorEmail(requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RemoveMyTwoFactorEmailMutationResult = NonNullable<
+  Awaited<ReturnType<typeof removeMyTwoFactorEmail>>
+>;
+
+export type RemoveMyTwoFactorEmailMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Remove the email backup factor
+ */
+export const useRemoveMyTwoFactorEmail = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof removeMyTwoFactorEmail>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof removeMyTwoFactorEmail>>,
+  TError,
+  void,
+  TContext
+> => {
+  return useMutation(getRemoveMyTwoFactorEmailMutationOptions(options));
 };
 
 export const getListMySessionsUrl = () => {

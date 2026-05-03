@@ -35,6 +35,7 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import Landing from "@/pages/Landing";
 import Onboarding from "@/pages/Onboarding";
+import Recover2FA from "@/pages/Recover2FA";
 import Discover from "@/pages/Discover";
 import ForYou from "@/pages/ForYou";
 import Home from "@/pages/Home";
@@ -272,6 +273,16 @@ function SignInPage() {
         path={`${basePath}/sign-in`}
         signUpUrl={`${basePath}/sign-up`}
       />
+      <p className="mt-4 text-center text-xs text-muted-foreground">
+        Lost your authenticator?{" "}
+        <Link
+          href="/recover-2fa"
+          className="font-medium text-primary hover:underline"
+          data-testid="link-recover-2fa"
+        >
+          Recover with email backup
+        </Link>
+      </p>
     </ClerkAuthCard>
   );
 }
@@ -377,6 +388,7 @@ function ClerkProviderWithRoutes() {
             <Route path="/" component={HomeRoute} />
             <Route path="/sign-in/*?" component={SignInPage} />
             <Route path="/sign-up/*?" component={SignUpPage} />
+            <Route path="/recover-2fa" component={Recover2FA} />
             <Route path="/onboarding">
               <ProtectedShell>
                 <Onboarding />

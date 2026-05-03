@@ -7,6 +7,10 @@ import {
   useDisableMyTwoFactor,
   useListMySessions,
   useRevokeMySession,
+  useEnrollMyTwoFactorEmail,
+  useConfirmMyTwoFactorEmail,
+  useSendMyTwoFactorEmail,
+  useRemoveMyTwoFactorEmail,
   getGetMyTwoFactorQueryKey,
   getListMySessionsQueryKey,
 } from "@workspace/api-client-react";
@@ -20,6 +24,8 @@ import {
   Loader2,
   Trash2,
   CheckCircle2,
+  Mail,
+  Send,
 } from "lucide-react";
 
 export function SecurityPanel() {
@@ -40,6 +46,11 @@ export function SecurityPanel() {
   const [enrollCode, setEnrollCode] = useState("");
   const [disableCode, setDisableCode] = useState("");
   const [backupCodes, setBackupCodes] = useState<string[] | null>(null);
+  const [emailInput, setEmailInput] = useState("");
+  const [emailEnrollPending, setEmailEnrollPending] = useState<string | null>(
+    null,
+  );
+  const [emailConfirmCode, setEmailConfirmCode] = useState("");
 
   const setup = useSetupMyTwoFactor({
     mutation: {
@@ -76,6 +87,59 @@ export function SecurityPanel() {
         toast({ title: "Code didn't match", variant: "destructive" }),
     },
   });
+  const enrollEmail = useEnrollMyTwoFactorEmail({
+    mutation: {
+      onSuccess: (r) => {
+        setEmailEnrollPending(r.emailAddress);
+        toast({ title: `Code sent to ${r.emailAddress}` });
+      },
+      onError: () =>
+        toast({
+          title: "Could not send email code",
+          description: "Check the address and try again in a moment.",
+          variant: "destructive",
+        }),
+    },
+  });
+  const confirmEmail = useConfirmMyTwoFactorEmail({
+    mutation: {
+      onSuccess: () => {
+        setEmailEnrollPending(null);
+        setEmailConfirmCode("");
+        setEmailInput("");
+        qc.invalidateQueries({ queryKey: getGetMyTwoFactorQueryKey() });
+        toast({ title: "Email backup added" });
+      },
+      onError: () =>
+        toast({
+          title: "Code didn't match — try again",
+          variant: "destructive",
+        }),
+    },
+  });
+  const sendEmailCode = useSendMyTwoFactorEmail({
+    mutation: {
+      onSuccess: (r) => {
+        setDisableCode("");
+        toast({ title: `Code sent to ${r.emailAddress}` });
+      },
+      onError: () =>
+        toast({
+          title: "Could not send email code",
+          variant: "destructive",
+        }),
+    },
+  });
+  const removeEmail = useRemoveMyTwoFactorEmail({
+    mutation: {
+      onSuccess: () => {
+        qc.invalidateQueries({ queryKey: getGetMyTwoFactorQueryKey() });
+        toast({ title: "Email backup removed" });
+      },
+      onError: () =>
+        toast({ title: "Could not remove", variant: "destructive" }),
+    },
+  });
   const revoke = useRevokeMySession({
     mutation: {
       onSuccess: () => {
@@ -89,6 +153,8 @@ export function SecurityPanel() {
 
   const enabled = !!status.data?.enabled;
   const remaining = status.data?.backupCodesRemaining ?? 0;
+  const emailEnabled = !!status.data?.emailEnabled;
+  const emailAddress = status.data?.emailAddress ?? null;
 
   return (
     <div className="space-y-5">
@@ -230,40 +296,227 @@ export function SecurityPanel() {
         )}
 
         {enabled && !backupCodes && (
-          <div className="space-y-2 border-t border-border pt-3">
-            <p className="text-xs text-muted-foreground">
-              Backup codes remaining: <strong>{remaining}</strong>
-            </p>
-            <div className="flex flex-wrap items-center gap-2">
-              <Input
-                value={disableCode}
-                onChange={(e) =>
-                  setDisableCode(
-                    e.target.value.replace(/[^A-Za-z0-9-]/g, "").slice(0, 12),
-                  )
-                }
-                placeholder="6-digit code or backup"
-                className="w-48 font-mono"
-                data-testid="input-2fa-disable-code"
-              />
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() =>
-                  disable.mutate({ data: { code: disableCode } })
-                }
-                disabled={disableCode.length < 6 || disable.isPending}
-                data-testid="button-disable-2fa"
+          <div className="space-y-3 border-t border-border pt-3">
+            <div className="space-y-1">
+              <p className="text-xs font-semibold text-foreground">
+                Enrolled methods
+              </p>
+              <ul
+                className="space-y-1 text-xs text-muted-foreground"
+                data-testid="2fa-methods-list"
               >
-                {disable.isPending && (
-                  <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                <li className="flex items-center gap-1.5">
+                  <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+                  Authenticator app
+                </li>
+                {emailEnabled && (
+                  <li
+                    className="flex items-center gap-1.5"
+                    data-testid="2fa-method-email"
+                  >
+                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+                    Email backup
+                    {emailAddress ? (
+                      <span className="font-mono">({emailAddress})</span>
+                    ) : null}
+                  </li>
                 )}
-                Turn off
-              </Button>
+                <li>Backup codes remaining: <strong>{remaining}</strong></li>
+              </ul>
+            </div>
+            <div className="space-y-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <Input
+                  value={disableCode}
+                  onChange={(e) =>
+                    setDisableCode(
+                      e.target.value.replace(/[^A-Za-z0-9-]/g, "").slice(0, 12),
+                    )
+                  }
+                  placeholder="Code from app, backup, or email"
+                  className="w-64 font-mono"
+                  data-testid="input-2fa-disable-code"
+                />
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() =>
+                    disable.mutate({ data: { code: disableCode } })
+                  }
+                  disabled={disableCode.length < 6 || disable.isPending}
+                  data-testid="button-disable-2fa"
+                >
+                  {disable.isPending && (
+                    <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                  )}
+                  Turn off
+                </Button>
+                {emailEnabled && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => sendEmailCode.mutate()}
+                    disabled={sendEmailCode.isPending}
+                    data-testid="button-send-email-code"
+                  >
+                    {sendEmailCode.isPending ? (
+                      <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Send className="mr-1.5 h-3.5 w-3.5" />
+                    )}
+                    Email me a code
+                  </Button>
+                )}
+              </div>
+              {emailEnabled && (
+                <p className="text-[11px] text-muted-foreground">
+                  Lost your authenticator and backup codes? Send a one-time code
+                  to your enrolled email address. Codes expire in 10 minutes.
+                </p>
+              )}
             </div>
           </div>
         )}
       </div>
+
+      {enabled && (
+        <div
+          className="space-y-3 rounded-xl border border-border bg-card p-5 shadow-sm"
+          data-testid="security-2fa-email-card"
+        >
+          <div className="flex items-start gap-3">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-sky-500/15 text-sky-600 dark:text-sky-300">
+              <Mail className="h-5 w-5" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <h3 className="text-base font-semibold text-foreground">
+                Email backup code
+              </h3>
+              <p className="text-xs text-muted-foreground">
+                Receive a one-time 6-digit code by email if you lose your
+                authenticator and backup codes.
+              </p>
+            </div>
+            {emailEnabled ? (
+              <span
+                className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2.5 py-0.5 text-xs font-semibold text-emerald-700 dark:text-emerald-300"
+                data-testid="2fa-email-status-on"
+              >
+                <CheckCircle2 className="h-3.5 w-3.5" /> Enrolled
+              </span>
+            ) : (
+              <span
+                className="inline-flex items-center rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground"
+                data-testid="2fa-email-status-off"
+              >
+                Not enrolled
+              </span>
+            )}
+          </div>
+
+          {emailEnabled ? (
+            <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border pt-3">
+              <p className="text-xs text-muted-foreground">
+                Codes are sent to{" "}
+                <span className="font-mono text-foreground">
+                  {emailAddress ?? "your enrolled address"}
+                </span>
+                .
+              </p>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => removeEmail.mutate()}
+                disabled={removeEmail.isPending}
+                data-testid="button-remove-2fa-email"
+              >
+                {removeEmail.isPending && (
+                  <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                )}
+                Remove email backup
+              </Button>
+            </div>
+          ) : !emailEnrollPending ? (
+            <div className="flex flex-wrap items-center gap-2 border-t border-border pt-3">
+              <Input
+                type="email"
+                value={emailInput}
+                onChange={(e) => setEmailInput(e.target.value)}
+                placeholder="you@example.com"
+                className="w-64"
+                data-testid="input-2fa-email"
+              />
+              <Button
+                size="sm"
+                onClick={() =>
+                  enrollEmail.mutate({ data: { email: emailInput.trim() } })
+                }
+                disabled={
+                  enrollEmail.isPending ||
+                  !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailInput.trim())
+                }
+                data-testid="button-enroll-2fa-email"
+              >
+                {enrollEmail.isPending && (
+                  <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                )}
+                Send verification code
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-2 rounded-lg border border-border bg-background p-3">
+              <p className="text-xs text-muted-foreground">
+                We sent a 6-digit code to{" "}
+                <span className="font-mono text-foreground">
+                  {emailEnrollPending}
+                </span>
+                . It expires in 10 minutes.
+              </p>
+              <div className="flex flex-wrap items-center gap-2">
+                <Input
+                  value={emailConfirmCode}
+                  onChange={(e) =>
+                    setEmailConfirmCode(
+                      e.target.value.replace(/\D/g, "").slice(0, 6),
+                    )
+                  }
+                  placeholder="123456"
+                  inputMode="numeric"
+                  className="w-32 font-mono"
+                  data-testid="input-2fa-email-confirm"
+                />
+                <Button
+                  size="sm"
+                  onClick={() =>
+                    confirmEmail.mutate({
+                      data: { code: emailConfirmCode },
+                    })
+                  }
+                  disabled={
+                    emailConfirmCode.length !== 6 || confirmEmail.isPending
+                  }
+                  data-testid="button-confirm-2fa-email"
+                >
+                  {confirmEmail.isPending && (
+                    <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                  )}
+                  Confirm
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => {
+                    setEmailEnrollPending(null);
+                    setEmailConfirmCode("");
+                  }}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       <div
         className="space-y-3 rounded-xl border border-border bg-card p-5 shadow-sm"
