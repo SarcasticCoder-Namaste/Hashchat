@@ -56,6 +56,7 @@ import SearchResults from "@/pages/SearchResults";
 import Saved from "@/pages/Saved";
 import NotFound from "@/pages/not-found";
 import AppShell from "@/components/AppShell";
+import { SolanaProvider } from "@/components/SolanaProvider";
 
 const clerkPubKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY as
   | string
@@ -366,6 +367,7 @@ function ClerkProviderWithRoutes() {
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
           <ClerkQueryClientCacheInvalidator />
+          <SolanaProvider>
           <Switch>
             <Route path="/" component={HomeRoute} />
             <Route path="/sign-in/*?" component={SignInPage} />
@@ -487,6 +489,7 @@ function ClerkProviderWithRoutes() {
             </Route>
             <Route component={NotFound} />
           </Switch>
+          </SolanaProvider>
           <Toaster />
         </TooltipProvider>
       </QueryClientProvider>

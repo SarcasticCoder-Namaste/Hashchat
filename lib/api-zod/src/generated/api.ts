@@ -3643,3 +3643,91 @@ export const SubscribePushResponse = zod.object({
 export const UnsubscribePushBody = zod.object({
   endpoint: zod.string(),
 });
+
+/**
+ * @summary Start the wallet linking flow by requesting a sign-in nonce
+ */
+export const CreateWalletChallengeBody = zod.object({
+  publicKey: zod.string(),
+});
+
+export const CreateWalletChallengeResponse = zod.object({
+  nonce: zod.string(),
+  message: zod.string(),
+  expiresAt: zod.coerce.date(),
+});
+
+/**
+ * @summary Verify a signed wallet challenge and link the wallet
+ */
+export const VerifyWalletChallengeBody = zod.object({
+  publicKey: zod.string(),
+  signature: zod
+    .string()
+    .describe("base58-encoded ed25519 signature of the challenge message"),
+  label: zod.string().nullish(),
+});
+
+export const VerifyWalletChallengeResponse = zod.object({
+  id: zod.number(),
+  publicKey: zod.string(),
+  label: zod.string().nullable(),
+  isPrimary: zod.boolean(),
+  createdAt: zod.coerce.date(),
+});
+
+/**
+ * @summary List my linked Solana wallets
+ */
+export const ListMyWalletsResponse = zod.object({
+  wallets: zod.array(
+    zod.object({
+      id: zod.number(),
+      publicKey: zod.string(),
+      label: zod.string().nullable(),
+      isPrimary: zod.boolean(),
+      createdAt: zod.coerce.date(),
+    }),
+  ),
+});
+
+/**
+ * @summary Unlink one of my Solana wallets
+ */
+export const UnlinkMyWalletParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+/**
+ * @summary Mark one of my wallets as the primary one
+ */
+export const SetPrimaryWalletParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const SetPrimaryWalletResponse = zod.object({
+  id: zod.number(),
+  publicKey: zod.string(),
+  label: zod.string().nullable(),
+  isPrimary: zod.boolean(),
+  createdAt: zod.coerce.date(),
+});
+
+/**
+ * @summary Get the public wallet list for any user
+ */
+export const GetUserWalletsParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const GetUserWalletsResponse = zod.object({
+  wallets: zod.array(
+    zod.object({
+      id: zod.number(),
+      publicKey: zod.string(),
+      label: zod.string().nullable(),
+      isPrimary: zod.boolean(),
+      createdAt: zod.coerce.date(),
+    }),
+  ),
+});

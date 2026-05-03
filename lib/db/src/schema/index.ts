@@ -790,6 +790,49 @@ export const subscriptionsTable = pgTable("subscriptions", {
     .defaultNow(),
 });
 
+export const solanaWalletsTable = pgTable(
+  "solana_wallets",
+  {
+    id: serial("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => usersTable.id, { onDelete: "cascade" }),
+    publicKey: text("public_key").notNull(),
+    label: text("label"),
+    isPrimary: boolean("is_primary").notNull().default(false),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("solana_wallets_pubkey_unique").on(t.publicKey),
+    index("solana_wallets_user_idx").on(t.userId),
+  ],
+);
+
+export const solanaWalletChallengesTable = pgTable(
+  "solana_wallet_challenges",
+  {
+    id: serial("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => usersTable.id, { onDelete: "cascade" }),
+    publicKey: text("public_key").notNull(),
+    nonce: text("nonce").notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    index("solana_wallet_challenges_user_idx").on(t.userId, t.publicKey),
+  ],
+);
+
+export type SolanaWallet = typeof solanaWalletsTable.$inferSelect;
+export type SolanaWalletChallenge =
+  typeof solanaWalletChallengesTable.$inferSelect;
+
 export type Event = typeof eventsTable.$inferSelect;
 export type EventRsvp = typeof eventRsvpsTable.$inferSelect;
 export type HashtagMetricsDaily = typeof hashtagMetricsDailyTable.$inferSelect;

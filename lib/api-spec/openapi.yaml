@@ -29,6 +29,7 @@ tags:
   - name: bookmarks
   - name: preferences
   - name: push
+  - name: wallets
 paths:
   /healthz:
     get:
@@ -1970,6 +1971,95 @@ paths:
       responses:
         "204": { description: No content }
 
+  /me/wallets/challenge:
+    post:
+      operationId: createWalletChallenge
+      tags: [wallets]
+      summary: Start the wallet linking flow by requesting a sign-in nonce
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/WalletChallengeBody" }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/WalletChallengeResponse" }
+
+  /me/wallets/verify:
+    post:
+      operationId: verifyWalletChallenge
+      tags: [wallets]
+      summary: Verify a signed wallet challenge and link the wallet
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/WalletVerifyBody" }
+      responses:
+        "200":
+          description: Wallet was already linked
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SolanaWallet" }
+        "201":
+          description: Wallet linked
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SolanaWallet" }
+
+  /me/wallets:
+    get:
+      operationId: listMyWallets
+      tags: [wallets]
+      summary: List my linked Solana wallets
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/WalletListResponse" }
+
+  /me/wallets/{id}:
+    delete:
+      operationId: unlinkMyWallet
+      tags: [wallets]
+      summary: Unlink one of my Solana wallets
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      responses:
+        "204": { description: No content }
+
+  /me/wallets/{id}/primary:
+    post:
+      operationId: setPrimaryWallet
+      tags: [wallets]
+      summary: Mark one of my wallets as the primary one
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SolanaWallet" }
+
+  /users/{id}/wallets:
+    get:
+      operationId: getUserWallets
+      tags: [wallets]
+      summary: Get the public wallet list for any user
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/WalletListResponse" }
+
 components:
   schemas:
     HealthStatus:
@@ -2758,6 +2848,48 @@ components:
       properties:
         endpoint: { type: string }
       required: [endpoint]
+
+    SolanaWallet:
+      type: object
+      properties:
+        id: { type: integer }
+        publicKey: { type: string }
+        label:
+          type: ["string", "null"]
+        isPrimary: { type: boolean }
+        createdAt: { type: string, format: date-time }
+      required: [id, publicKey, label, isPrimary, createdAt]
+
+    WalletListResponse:
+      type: object
+      properties:
+        wallets:
+          type: array
+          items: { $ref: "#/components/schemas/SolanaWallet" }
+      required: [wallets]
+
+    WalletChallengeBody:
+      type: object
+      properties:
+        publicKey: { type: string }
+      required: [publicKey]
+
+    WalletChallengeResponse:
+      type: object
+      properties:
+        nonce: { type: string }
+        message: { type: string }
+        expiresAt: { type: string, format: date-time }
+      required: [nonce, message, expiresAt]
+
+    WalletVerifyBody:
+      type: object
+      properties:
+        publicKey: { type: string }
+        signature: { type: string, description: "base58-encoded ed25519 signature of the challenge message" }
+        label:
+          type: ["string", "null"]
+      required: [publicKey, signature]
 
     MvpCode:
       type: object

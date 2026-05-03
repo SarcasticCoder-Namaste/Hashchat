@@ -731,6 +731,37 @@ export interface PushUnsubscribeBody {
   endpoint: string;
 }
 
+export interface SolanaWallet {
+  id: number;
+  publicKey: string;
+  /** @nullable */
+  label: string | null;
+  isPrimary: boolean;
+  createdAt: string;
+}
+
+export interface WalletListResponse {
+  wallets: SolanaWallet[];
+}
+
+export interface WalletChallengeBody {
+  publicKey: string;
+}
+
+export interface WalletChallengeResponse {
+  nonce: string;
+  message: string;
+  expiresAt: string;
+}
+
+export interface WalletVerifyBody {
+  publicKey: string;
+  /** base58-encoded ed25519 signature of the challenge message */
+  signature: string;
+  /** @nullable */
+  label?: string | null;
+}
+
 export interface MvpCode {
   code: string;
   createdBy: string;

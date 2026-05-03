@@ -109,6 +109,7 @@ import type {
   SetHashtagsBody,
   SetRoleBody,
   SetRoomVisibilityBody,
+  SolanaWallet,
   TrendingHashtag,
   TypingResponse,
   UnreadCountResponse,
@@ -122,6 +123,10 @@ import type {
   UserPreferences,
   VapidKeyResponse,
   VotePollBody,
+  WalletChallengeBody,
+  WalletChallengeResponse,
+  WalletListResponse,
+  WalletVerifyBody,
 } from "./api.schemas";
 
 import { customFetch } from "../custom-fetch";
@@ -11325,3 +11330,505 @@ export const useUnsubscribePush = <
 > => {
   return useMutation(getUnsubscribePushMutationOptions(options));
 };
+
+/**
+ * @summary Start the wallet linking flow by requesting a sign-in nonce
+ */
+export const getCreateWalletChallengeUrl = () => {
+  return `/api/me/wallets/challenge`;
+};
+
+export const createWalletChallenge = async (
+  walletChallengeBody: WalletChallengeBody,
+  options?: RequestInit,
+): Promise<WalletChallengeResponse> => {
+  return customFetch<WalletChallengeResponse>(getCreateWalletChallengeUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(walletChallengeBody),
+  });
+};
+
+export const getCreateWalletChallengeMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createWalletChallenge>>,
+    TError,
+    { data: BodyType<WalletChallengeBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createWalletChallenge>>,
+  TError,
+  { data: BodyType<WalletChallengeBody> },
+  TContext
+> => {
+  const mutationKey = ["createWalletChallenge"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createWalletChallenge>>,
+    { data: BodyType<WalletChallengeBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return createWalletChallenge(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateWalletChallengeMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createWalletChallenge>>
+>;
+export type CreateWalletChallengeMutationBody = BodyType<WalletChallengeBody>;
+export type CreateWalletChallengeMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Start the wallet linking flow by requesting a sign-in nonce
+ */
+export const useCreateWalletChallenge = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createWalletChallenge>>,
+    TError,
+    { data: BodyType<WalletChallengeBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createWalletChallenge>>,
+  TError,
+  { data: BodyType<WalletChallengeBody> },
+  TContext
+> => {
+  return useMutation(getCreateWalletChallengeMutationOptions(options));
+};
+
+/**
+ * @summary Verify a signed wallet challenge and link the wallet
+ */
+export const getVerifyWalletChallengeUrl = () => {
+  return `/api/me/wallets/verify`;
+};
+
+export const verifyWalletChallenge = async (
+  walletVerifyBody: WalletVerifyBody,
+  options?: RequestInit,
+): Promise<SolanaWallet> => {
+  return customFetch<SolanaWallet>(getVerifyWalletChallengeUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(walletVerifyBody),
+  });
+};
+
+export const getVerifyWalletChallengeMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof verifyWalletChallenge>>,
+    TError,
+    { data: BodyType<WalletVerifyBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof verifyWalletChallenge>>,
+  TError,
+  { data: BodyType<WalletVerifyBody> },
+  TContext
+> => {
+  const mutationKey = ["verifyWalletChallenge"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof verifyWalletChallenge>>,
+    { data: BodyType<WalletVerifyBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return verifyWalletChallenge(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type VerifyWalletChallengeMutationResult = NonNullable<
+  Awaited<ReturnType<typeof verifyWalletChallenge>>
+>;
+export type VerifyWalletChallengeMutationBody = BodyType<WalletVerifyBody>;
+export type VerifyWalletChallengeMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Verify a signed wallet challenge and link the wallet
+ */
+export const useVerifyWalletChallenge = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof verifyWalletChallenge>>,
+    TError,
+    { data: BodyType<WalletVerifyBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof verifyWalletChallenge>>,
+  TError,
+  { data: BodyType<WalletVerifyBody> },
+  TContext
+> => {
+  return useMutation(getVerifyWalletChallengeMutationOptions(options));
+};
+
+/**
+ * @summary List my linked Solana wallets
+ */
+export const getListMyWalletsUrl = () => {
+  return `/api/me/wallets`;
+};
+
+export const listMyWallets = async (
+  options?: RequestInit,
+): Promise<WalletListResponse> => {
+  return customFetch<WalletListResponse>(getListMyWalletsUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListMyWalletsQueryKey = () => {
+  return [`/api/me/wallets`] as const;
+};
+
+export const getListMyWalletsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listMyWallets>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listMyWallets>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListMyWalletsQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listMyWallets>>> = ({
+    signal,
+  }) => listMyWallets({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listMyWallets>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListMyWalletsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listMyWallets>>
+>;
+export type ListMyWalletsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List my linked Solana wallets
+ */
+
+export function useListMyWallets<
+  TData = Awaited<ReturnType<typeof listMyWallets>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listMyWallets>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListMyWalletsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Unlink one of my Solana wallets
+ */
+export const getUnlinkMyWalletUrl = (id: number) => {
+  return `/api/me/wallets/${id}`;
+};
+
+export const unlinkMyWallet = async (
+  id: number,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getUnlinkMyWalletUrl(id), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getUnlinkMyWalletMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof unlinkMyWallet>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof unlinkMyWallet>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["unlinkMyWallet"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof unlinkMyWallet>>,
+    { id: number }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return unlinkMyWallet(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UnlinkMyWalletMutationResult = NonNullable<
+  Awaited<ReturnType<typeof unlinkMyWallet>>
+>;
+
+export type UnlinkMyWalletMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Unlink one of my Solana wallets
+ */
+export const useUnlinkMyWallet = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof unlinkMyWallet>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof unlinkMyWallet>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  return useMutation(getUnlinkMyWalletMutationOptions(options));
+};
+
+/**
+ * @summary Mark one of my wallets as the primary one
+ */
+export const getSetPrimaryWalletUrl = (id: number) => {
+  return `/api/me/wallets/${id}/primary`;
+};
+
+export const setPrimaryWallet = async (
+  id: number,
+  options?: RequestInit,
+): Promise<SolanaWallet> => {
+  return customFetch<SolanaWallet>(getSetPrimaryWalletUrl(id), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getSetPrimaryWalletMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof setPrimaryWallet>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof setPrimaryWallet>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["setPrimaryWallet"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof setPrimaryWallet>>,
+    { id: number }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return setPrimaryWallet(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SetPrimaryWalletMutationResult = NonNullable<
+  Awaited<ReturnType<typeof setPrimaryWallet>>
+>;
+
+export type SetPrimaryWalletMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Mark one of my wallets as the primary one
+ */
+export const useSetPrimaryWallet = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof setPrimaryWallet>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof setPrimaryWallet>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  return useMutation(getSetPrimaryWalletMutationOptions(options));
+};
+
+/**
+ * @summary Get the public wallet list for any user
+ */
+export const getGetUserWalletsUrl = (id: string) => {
+  return `/api/users/${id}/wallets`;
+};
+
+export const getUserWallets = async (
+  id: string,
+  options?: RequestInit,
+): Promise<WalletListResponse> => {
+  return customFetch<WalletListResponse>(getGetUserWalletsUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetUserWalletsQueryKey = (id: string) => {
+  return [`/api/users/${id}/wallets`] as const;
+};
+
+export const getGetUserWalletsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getUserWallets>>,
+  TError = ErrorType<unknown>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getUserWallets>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetUserWalletsQueryKey(id);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getUserWallets>>> = ({
+    signal,
+  }) => getUserWallets(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getUserWallets>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetUserWalletsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getUserWallets>>
+>;
+export type GetUserWalletsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get the public wallet list for any user
+ */
+
+export function useGetUserWallets<
+  TData = Awaited<ReturnType<typeof getUserWallets>>,
+  TError = ErrorType<unknown>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getUserWallets>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetUserWalletsQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}

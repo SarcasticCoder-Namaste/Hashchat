@@ -90,6 +90,8 @@ import {
 } from "lucide-react";
 import { ImageUploadButton } from "@/components/ImageUploadButton";
 import { FriendCodeQRDialog } from "@/components/FriendCodeQRDialog";
+import { WalletConnectSection } from "@/components/WalletConnectSection";
+import { Wallet as WalletIcon } from "lucide-react";
 import {
   ACCENTS,
   applyAccentToDocument,
@@ -338,7 +340,7 @@ export default function Settings() {
       <FriendCodeCard />
 
       <Tabs defaultValue="profile">
-        <TabsList className="grid h-auto w-full grid-cols-3 gap-1 p-1 sm:grid-cols-9">
+        <TabsList className="grid h-auto w-full grid-cols-3 gap-1 p-1 sm:grid-cols-10">
           <TabsTrigger
             value="profile"
             data-testid="tab-profile"
@@ -402,6 +404,14 @@ export default function Settings() {
           >
             <ImageIcon className="h-4 w-4 shrink-0" />
             <span className="truncate">Photos</span>
+          </TabsTrigger>
+          <TabsTrigger
+            value="wallets"
+            data-testid="tab-wallets"
+            className="flex flex-col items-center gap-1 px-1 py-2 text-[11px] sm:flex-row sm:gap-1.5 sm:text-xs"
+          >
+            <WalletIcon className="h-4 w-4 shrink-0" />
+            <span className="truncate">Wallets</span>
           </TabsTrigger>
           <TabsTrigger
             value="account"
@@ -901,6 +911,10 @@ export default function Settings() {
 
         <TabsContent value="gallery" className="mt-4">
           <ProfileGallery />
+        </TabsContent>
+
+        <TabsContent value="wallets" className="mt-4">
+          <WalletConnectSection />
         </TabsContent>
 
         <TabsContent value="account" className="mt-4 space-y-4">

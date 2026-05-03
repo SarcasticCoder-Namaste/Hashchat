@@ -78,11 +78,17 @@
   "dependencies": {
     "@clerk/react": "^6.4.2",
     "@clerk/themes": "^2.4.57",
+    "@solana/wallet-adapter-base": "^0.9.27",
+    "@solana/wallet-adapter-react": "^0.15.39",
+    "@solana/wallet-adapter-react-ui": "^0.9.39",
+    "@solana/wallet-adapter-wallets": "^0.19.38",
+    "@solana/web3.js": "^1.98.4",
     "@uppy/aws-s3": "^5.1.0",
     "@uppy/core": "^5.2.0",
     "@uppy/dashboard": "^5.1.1",
     "@uppy/react": "^5.2.0",
     "@workspace/object-storage-web": "workspace:*",
+    "bs58": "^6.0.0",
     "jsqr": "^1.4.0",
     "qrcode": "^1.5.4"
   }

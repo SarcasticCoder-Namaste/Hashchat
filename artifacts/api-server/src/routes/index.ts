@@ -27,6 +27,7 @@ import searchRouter from "./search";
 import bookmarksRouter from "./bookmarks";
 import preferencesRouter from "./preferences";
 import pushRouter from "./push";
+import walletsRouter from "./wallets";
 
 const router: IRouter = Router();
 
@@ -60,5 +61,10 @@ router.use(searchRouter);
 router.use(bookmarksRouter);
 router.use(preferencesRouter);
 router.use(pushRouter);
+// walletsRouter must be registered BEFORE usersRouter would normally be, but
+// since friendsRouter already comes first and usersRouter handles /users/:id,
+// we register walletsRouter here so its /users/:id/wallets is matched by the
+// more specific path first.
+router.use(walletsRouter);
 
 export default router;
