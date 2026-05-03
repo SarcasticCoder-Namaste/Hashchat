@@ -44,11 +44,39 @@ export function usePresenceHeartbeat(enabled: boolean) {
         if (Date.now() - lastSentRef.current > HEARTBEAT_MS / 2) send();
       }
     }
+    function sendGoingAway() {
+      const url = "/api/presence/ping";
+      const payload = JSON.stringify({ roomTag: null });
+      try {
+        if (typeof navigator !== "undefined" && typeof navigator.sendBeacon === "function") {
+          const blob = new Blob([payload], { type: "application/json" });
+          if (navigator.sendBeacon(url, blob)) return;
+        }
+        if (typeof fetch === "function") {
+          void fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: payload,
+            keepalive: true,
+            credentials: "include",
+          });
+        }
+      } catch {
+        // best-effort
+      }
+    }
+    function onPageHide() {
+      sendGoingAway();
+    }
     document.addEventListener("visibilitychange", onVisibility);
+    window.addEventListener("pagehide", onPageHide);
+    window.addEventListener("beforeunload", onPageHide);
     return () => {
       cancelled = true;
       window.clearInterval(interval);
       document.removeEventListener("visibilitychange", onVisibility);
+      window.removeEventListener("pagehide", onPageHide);
+      window.removeEventListener("beforeunload", onPageHide);
     };
   }, [enabled]);
 
