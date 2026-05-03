@@ -512,9 +512,27 @@ export default function ConversationChat({ id }: { id: number }) {
   const msgs = useGetConversationMessages(id, {
     query: {
       queryKey: getGetConversationMessagesQueryKey(id),
-      refetchInterval: 2500,
+      // Long-interval fallback only; real-time updates arrive via SSE below.
+      refetchInterval: 60_000,
     },
   });
+
+  // Subscribe to real-time conversation events (new messages, system events,
+  // membership/rename changes) instead of short-interval polling.
+  useEffect(() => {
+    if (typeof EventSource === "undefined") return;
+    const url = `${basePath}/api/conversations/${id}/stream`;
+    const es = new EventSource(url, { withCredentials: true });
+    const onEvent = () => {
+      qc.invalidateQueries({ queryKey: getGetConversationMessagesQueryKey(id) });
+      qc.invalidateQueries({ queryKey: getGetConversationsQueryKey() });
+    };
+    es.addEventListener("conv-event", onEvent);
+    return () => {
+      es.removeEventListener("conv-event", onEvent);
+      es.close();
+    };
+  }, [id, qc]);
 
   function invalidateMessages() {
     qc.invalidateQueries({ queryKey: getGetConversationMessagesQueryKey(id) });

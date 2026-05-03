@@ -38,6 +38,12 @@ import {
 } from "@workspace/api-zod";
 import { resolveMentions, recordMentions } from "../lib/mentions";
 import { createNotification } from "../lib/notifications";
+import {
+  broadcastConversationChange,
+  subscribeConversation,
+  subscribeUserConversations,
+  publishUserConversationUpdate,
+} from "../lib/conversationEvents";
 
 const router: IRouter = Router();
 
@@ -251,6 +257,15 @@ async function insertSystemMessage(
     .where(eq(conversationsTable.id, conversationId));
 }
 
+function writeSseEvent(
+  res: import("express").Response,
+  event: string,
+  data: unknown,
+): void {
+  res.write(`event: ${event}\n`);
+  res.write(`data: ${JSON.stringify(data)}\n\n`);
+}
+
 router.get("/conversations", requireAuth, async (req, res): Promise<void> => {
   const me = getUserId(req);
   const myMemberships = await db
@@ -340,6 +355,8 @@ router.post("/conversations", requireAuth, async (req, res): Promise<void> => {
         { conversationId: convoId, userId: b },
       ])
       .onConflictDoNothing();
+    publishUserConversationUpdate(a, convoId, "members");
+    publishUserConversationUpdate(b, convoId, "members");
   }
 
   // Membership backfill safeguard for legacy direct rows.
@@ -413,7 +430,7 @@ router.post(
     await db.insert(conversationMembersTable).values(memberRows);
     await insertSystemMessage(created.id, me, "created the group");
     const groupLabel = title ? `“${title}”` : "a group chat";
-    // Notify other members they were added.
+    // Notify the other members they were added.
     for (const uid of requestedIds) {
       await createNotification({
         recipientId: uid,
@@ -424,6 +441,9 @@ router.post(
         snippet: `added you to ${groupLabel}`,
       });
     }
+
+    await broadcastConversationChange(created.id, "members");
+
     // Notify the creator that the group was created (no actor → not self-skipped).
     await createNotification({
       recipientId: me,
@@ -485,6 +505,9 @@ router.patch(
       me,
       title ? `renamed the group to “${title}”` : "cleared the group name",
     );
+
+    await broadcastConversationChange(id, "rename");
+
     // Notify other members of the rename.
     const otherMembers = await db
       .select({ userId: conversationMembersTable.userId })
@@ -607,6 +630,7 @@ router.post(
         snippet: `added you to ${groupLabel}`,
       });
     }
+    await broadcastConversationChange(id, "members");
     const view = await buildConversationView(id, me);
     res.json(view);
   },
@@ -676,6 +700,9 @@ router.delete(
       me,
       `removed ${target?.displayName ?? target?.username ?? "a member"}`,
     );
+
+    await broadcastConversationChange(id, "members", [targetId]);
+
     // Notify the removed user.
     const removedLabel = convo.title ? `“${convo.title}”` : "a group chat";
     await createNotification({
@@ -750,6 +777,7 @@ router.post(
         .set({ creatorId: next?.userId ?? null })
         .where(eq(conversationsTable.id, id));
     }
+    await broadcastConversationChange(id, "members", [me]);
     res.status(204).end();
   },
 );
@@ -1030,7 +1058,90 @@ router.post(
     }
 
     const [built] = await buildMessages([created], me);
+    await broadcastConversationChange(id, "message");
     res.status(201).json(built);
+  },
+);
+
+router.get(
+  "/conversations/stream",
+  requireAuth,
+  async (req, res): Promise<void> => {
+    const me = getUserId(req);
+
+    res.status(200);
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache, no-transform");
+    res.setHeader("Connection", "keep-alive");
+    res.setHeader("X-Accel-Buffering", "no");
+    res.flushHeaders?.();
+    res.write(`retry: 3000\n\n`);
+    res.write(`: connected\n\n`);
+
+    const unsubscribe = subscribeUserConversations(me, (event) => {
+      writeSseEvent(res, "conv-update", event);
+    });
+    const heartbeat = setInterval(() => {
+      res.write(`: ping\n\n`);
+    }, 25_000);
+
+    const cleanup = () => {
+      clearInterval(heartbeat);
+      unsubscribe();
+      try {
+        res.end();
+      } catch {
+        // ignore
+      }
+    };
+    req.on("close", cleanup);
+    req.on("aborted", cleanup);
+  },
+);
+
+router.get(
+  "/conversations/:id/stream",
+  requireAuth,
+  async (req, res): Promise<void> => {
+    const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    const id = parseInt(raw, 10);
+    if (Number.isNaN(id)) {
+      res.status(400).json({ error: "Invalid id" });
+      return;
+    }
+    const me = getUserId(req);
+    if (!(await isMember(id, me))) {
+      res.status(404).json({ error: "Not found" });
+      return;
+    }
+
+    res.status(200);
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache, no-transform");
+    res.setHeader("Connection", "keep-alive");
+    res.setHeader("X-Accel-Buffering", "no");
+    res.flushHeaders?.();
+    res.write(`retry: 3000\n\n`);
+    res.write(`: connected\n\n`);
+
+    const unsubscribe = subscribeConversation(id, (event) => {
+      writeSseEvent(res, "conv-event", event);
+    });
+    const heartbeat = setInterval(() => {
+      res.write(`: ping\n\n`);
+    }, 25_000);
+
+    const cleanup = () => {
+      clearInterval(heartbeat);
+      unsubscribe();
+      try {
+        res.end();
+      } catch {
+        // ignore
+      }
+    };
+    req.on("close", cleanup);
+    req.on("aborted", cleanup);
   },
 );
 

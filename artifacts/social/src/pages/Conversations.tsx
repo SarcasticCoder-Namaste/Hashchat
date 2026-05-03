@@ -1,4 +1,5 @@
 import { Link } from "wouter";
+import { useEffect } from "react";
 import {
   useGetConversations,
   useGetMyFriends,
@@ -8,6 +9,8 @@ import {
   type Conversation,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
+
+const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
 import { motion } from "framer-motion";
 import { PresenceAvatar } from "@/components/UserBadge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -256,6 +259,7 @@ function GroupCreateDialog({
 
 export default function Conversations() {
   const { t } = useTranslation();
+  const qc = useQueryClient();
   const timeAgo = (iso: string) => {
     const then = new Date(iso).getTime();
     const diff = Math.max(0, Date.now() - then);
@@ -268,10 +272,31 @@ export default function Conversations() {
     return `${d}d`;
   };
   const { data: convs, isLoading } = useGetConversations({
-    query: { queryKey: getGetConversationsQueryKey(), refetchInterval: 5000 },
+    query: {
+      queryKey: getGetConversationsQueryKey(),
+      // Long-interval fallback only; real-time updates arrive via SSE below.
+      refetchInterval: 60_000,
+    },
   });
   const [search, setSearch] = useState("");
   const [groupOpen, setGroupOpen] = useState(false);
+
+  // Subscribe to per-user conversation updates so the list refreshes the
+  // moment any of our conversations gets a new message, rename, or member
+  // change — no short-interval polling required.
+  useEffect(() => {
+    if (typeof EventSource === "undefined") return;
+    const url = `${basePath}/api/conversations/stream`;
+    const es = new EventSource(url, { withCredentials: true });
+    const onUpdate = () => {
+      qc.invalidateQueries({ queryKey: getGetConversationsQueryKey() });
+    };
+    es.addEventListener("conv-update", onUpdate);
+    return () => {
+      es.removeEventListener("conv-update", onUpdate);
+      es.close();
+    };
+  }, [qc]);
 
   const filtered = useMemo(() => {
     if (!convs) return [];
