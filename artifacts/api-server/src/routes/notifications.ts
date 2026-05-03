@@ -2,6 +2,8 @@ import { Router, type IRouter } from "express";
 import {
   db,
   notificationsTable,
+  notificationMutesTable,
+  hashtagsTable,
   usersTable,
   conversationsTable,
   conversationReadsTable,
@@ -10,6 +12,7 @@ import {
 import { and, desc, eq, gt, inArray, isNull, or, sql } from "drizzle-orm";
 import { requireAuth, getUserId } from "../middlewares/requireAuth";
 import { buildHref } from "../lib/notifications";
+import { normalizeTag } from "../lib/hashtags";
 
 const router: IRouter = Router();
 
@@ -170,6 +173,124 @@ router.post(
         and(
           eq(notificationsTable.id, id),
           eq(notificationsTable.recipientId, me),
+        ),
+      );
+    res.status(204).end();
+  },
+);
+
+// ----- Notification mutes -----
+
+router.get(
+  "/notifications/mutes",
+  requireAuth,
+  async (req, res): Promise<void> => {
+    const me = getUserId(req);
+    const rows = await db
+      .select({
+        sourceType: notificationMutesTable.sourceType,
+        sourceKey: notificationMutesTable.sourceKey,
+      })
+      .from(notificationMutesTable)
+      .where(eq(notificationMutesTable.userId, me));
+    const users: string[] = [];
+    const hashtags: string[] = [];
+    for (const r of rows) {
+      if (r.sourceType === "user") users.push(r.sourceKey);
+      else if (r.sourceType === "hashtag") hashtags.push(r.sourceKey);
+    }
+    res.json({ users, hashtags });
+  },
+);
+
+router.post(
+  "/notifications/mutes/users/:id",
+  requireAuth,
+  async (req, res): Promise<void> => {
+    const me = getUserId(req);
+    const otherId = String(
+      Array.isArray(req.params.id) ? req.params.id[0] : req.params.id,
+    );
+    if (!otherId || otherId === me) {
+      res.status(400).json({ error: "Invalid user id" });
+      return;
+    }
+    const [exists] = await db
+      .select({ id: usersTable.id })
+      .from(usersTable)
+      .where(eq(usersTable.id, otherId))
+      .limit(1);
+    if (!exists) {
+      res.status(404).json({ error: "User not found" });
+      return;
+    }
+    await db
+      .insert(notificationMutesTable)
+      .values({ userId: me, sourceType: "user", sourceKey: otherId })
+      .onConflictDoNothing();
+    res.status(204).end();
+  },
+);
+
+router.delete(
+  "/notifications/mutes/users/:id",
+  requireAuth,
+  async (req, res): Promise<void> => {
+    const me = getUserId(req);
+    const otherId = String(
+      Array.isArray(req.params.id) ? req.params.id[0] : req.params.id,
+    );
+    await db
+      .delete(notificationMutesTable)
+      .where(
+        and(
+          eq(notificationMutesTable.userId, me),
+          eq(notificationMutesTable.sourceType, "user"),
+          eq(notificationMutesTable.sourceKey, otherId),
+        ),
+      );
+    res.status(204).end();
+  },
+);
+
+router.post(
+  "/notifications/mutes/hashtags/:tag",
+  requireAuth,
+  async (req, res): Promise<void> => {
+    const me = getUserId(req);
+    const raw = Array.isArray(req.params.tag) ? req.params.tag[0] : req.params.tag;
+    const tag = normalizeTag(raw);
+    if (!tag) {
+      res.status(400).json({ error: "Invalid tag" });
+      return;
+    }
+    await db.insert(hashtagsTable).values({ tag }).onConflictDoNothing();
+    await db
+      .insert(notificationMutesTable)
+      .values({ userId: me, sourceType: "hashtag", sourceKey: tag })
+      .onConflictDoNothing();
+    res.status(204).end();
+  },
+);
+
+router.delete(
+  "/notifications/mutes/hashtags/:tag",
+  requireAuth,
+  async (req, res): Promise<void> => {
+    const me = getUserId(req);
+    const raw = Array.isArray(req.params.tag) ? req.params.tag[0] : req.params.tag;
+    const tag = normalizeTag(raw);
+    if (!tag) {
+      res.status(400).json({ error: "Invalid tag" });
+      return;
+    }
+    await db
+      .delete(notificationMutesTable)
+      .where(
+        and(
+          eq(notificationMutesTable.userId, me),
+          eq(notificationMutesTable.sourceType, "hashtag"),
+          eq(notificationMutesTable.sourceKey, tag),
         ),
       );
     res.status(204).end();

@@ -297,6 +297,24 @@ export const notificationsTable = pgTable(
   ],
 );
 
+export const notificationMutesTable = pgTable(
+  "notification_mutes",
+  {
+    userId: text("user_id")
+      .notNull()
+      .references(() => usersTable.id, { onDelete: "cascade" }),
+    sourceType: text("source_type").notNull(),
+    sourceKey: text("source_key").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.userId, t.sourceType, t.sourceKey] }),
+    index("notification_mutes_user_idx").on(t.userId),
+  ],
+);
+
 export const friendshipsTable = pgTable(
   "friendships",
   {

@@ -1201,6 +1201,11 @@ export interface UnreadCountResponse {
   total: number;
 }
 
+export interface NotificationMutes {
+  users: string[];
+  hashtags: string[];
+}
+
 export interface TypingUser {
   id: string;
   displayName: string;

@@ -79,6 +79,7 @@ import type {
   MessageThread,
   MvpCode,
   MyRelationships,
+  NotificationMutes,
   NotificationsResponse,
   OkResponse,
   OpenConversationBody,
@@ -3260,6 +3261,417 @@ export const useMarkNotificationRead = <
   TContext
 > => {
   return useMutation(getMarkNotificationReadMutationOptions(options));
+};
+
+/**
+ * @summary List my muted notification sources (users and hashtags)
+ */
+export const getGetNotificationMutesUrl = () => {
+  return `/api/notifications/mutes`;
+};
+
+export const getNotificationMutes = async (
+  options?: RequestInit,
+): Promise<NotificationMutes> => {
+  return customFetch<NotificationMutes>(getGetNotificationMutesUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetNotificationMutesQueryKey = () => {
+  return [`/api/notifications/mutes`] as const;
+};
+
+export const getGetNotificationMutesQueryOptions = <
+  TData = Awaited<ReturnType<typeof getNotificationMutes>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getNotificationMutes>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetNotificationMutesQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getNotificationMutes>>
+  > = ({ signal }) => getNotificationMutes({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getNotificationMutes>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetNotificationMutesQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getNotificationMutes>>
+>;
+export type GetNotificationMutesQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List my muted notification sources (users and hashtags)
+ */
+
+export function useGetNotificationMutes<
+  TData = Awaited<ReturnType<typeof getNotificationMutes>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getNotificationMutes>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetNotificationMutesQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Stop receiving notifications triggered by a user
+ */
+export const getMuteNotificationsFromUserUrl = (id: string) => {
+  return `/api/notifications/mutes/users/${id}`;
+};
+
+export const muteNotificationsFromUser = async (
+  id: string,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getMuteNotificationsFromUserUrl(id), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getMuteNotificationsFromUserMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof muteNotificationsFromUser>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof muteNotificationsFromUser>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  const mutationKey = ["muteNotificationsFromUser"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof muteNotificationsFromUser>>,
+    { id: string }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return muteNotificationsFromUser(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type MuteNotificationsFromUserMutationResult = NonNullable<
+  Awaited<ReturnType<typeof muteNotificationsFromUser>>
+>;
+
+export type MuteNotificationsFromUserMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Stop receiving notifications triggered by a user
+ */
+export const useMuteNotificationsFromUser = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof muteNotificationsFromUser>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof muteNotificationsFromUser>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  return useMutation(getMuteNotificationsFromUserMutationOptions(options));
+};
+
+/**
+ * @summary Resume receiving notifications triggered by a user
+ */
+export const getUnmuteNotificationsFromUserUrl = (id: string) => {
+  return `/api/notifications/mutes/users/${id}`;
+};
+
+export const unmuteNotificationsFromUser = async (
+  id: string,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getUnmuteNotificationsFromUserUrl(id), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getUnmuteNotificationsFromUserMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof unmuteNotificationsFromUser>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof unmuteNotificationsFromUser>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  const mutationKey = ["unmuteNotificationsFromUser"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof unmuteNotificationsFromUser>>,
+    { id: string }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return unmuteNotificationsFromUser(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UnmuteNotificationsFromUserMutationResult = NonNullable<
+  Awaited<ReturnType<typeof unmuteNotificationsFromUser>>
+>;
+
+export type UnmuteNotificationsFromUserMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Resume receiving notifications triggered by a user
+ */
+export const useUnmuteNotificationsFromUser = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof unmuteNotificationsFromUser>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof unmuteNotificationsFromUser>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  return useMutation(getUnmuteNotificationsFromUserMutationOptions(options));
+};
+
+/**
+ * @summary Stop receiving notifications originating in a hashtag room
+ */
+export const getMuteNotificationsFromHashtagUrl = (tag: string) => {
+  return `/api/notifications/mutes/hashtags/${tag}`;
+};
+
+export const muteNotificationsFromHashtag = async (
+  tag: string,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getMuteNotificationsFromHashtagUrl(tag), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getMuteNotificationsFromHashtagMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof muteNotificationsFromHashtag>>,
+    TError,
+    { tag: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof muteNotificationsFromHashtag>>,
+  TError,
+  { tag: string },
+  TContext
+> => {
+  const mutationKey = ["muteNotificationsFromHashtag"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof muteNotificationsFromHashtag>>,
+    { tag: string }
+  > = (props) => {
+    const { tag } = props ?? {};
+
+    return muteNotificationsFromHashtag(tag, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type MuteNotificationsFromHashtagMutationResult = NonNullable<
+  Awaited<ReturnType<typeof muteNotificationsFromHashtag>>
+>;
+
+export type MuteNotificationsFromHashtagMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Stop receiving notifications originating in a hashtag room
+ */
+export const useMuteNotificationsFromHashtag = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof muteNotificationsFromHashtag>>,
+    TError,
+    { tag: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof muteNotificationsFromHashtag>>,
+  TError,
+  { tag: string },
+  TContext
+> => {
+  return useMutation(getMuteNotificationsFromHashtagMutationOptions(options));
+};
+
+/**
+ * @summary Resume receiving notifications originating in a hashtag room
+ */
+export const getUnmuteNotificationsFromHashtagUrl = (tag: string) => {
+  return `/api/notifications/mutes/hashtags/${tag}`;
+};
+
+export const unmuteNotificationsFromHashtag = async (
+  tag: string,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getUnmuteNotificationsFromHashtagUrl(tag), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getUnmuteNotificationsFromHashtagMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof unmuteNotificationsFromHashtag>>,
+    TError,
+    { tag: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof unmuteNotificationsFromHashtag>>,
+  TError,
+  { tag: string },
+  TContext
+> => {
+  const mutationKey = ["unmuteNotificationsFromHashtag"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof unmuteNotificationsFromHashtag>>,
+    { tag: string }
+  > = (props) => {
+    const { tag } = props ?? {};
+
+    return unmuteNotificationsFromHashtag(tag, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UnmuteNotificationsFromHashtagMutationResult = NonNullable<
+  Awaited<ReturnType<typeof unmuteNotificationsFromHashtag>>
+>;
+
+export type UnmuteNotificationsFromHashtagMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Resume receiving notifications originating in a hashtag room
+ */
+export const useUnmuteNotificationsFromHashtag = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof unmuteNotificationsFromHashtag>>,
+    TError,
+    { tag: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof unmuteNotificationsFromHashtag>>,
+  TError,
+  { tag: string },
+  TContext
+> => {
+  return useMutation(getUnmuteNotificationsFromHashtagMutationOptions(options));
 };
 
 /**

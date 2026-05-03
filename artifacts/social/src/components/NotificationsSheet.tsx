@@ -4,8 +4,12 @@ import {
   useGetNotifications,
   useMarkAllNotificationsRead,
   useMarkNotificationRead,
+  useGetNotificationMutes,
+  useMuteNotificationsFromUser,
+  useMuteNotificationsFromHashtag,
   getGetNotificationsQueryKey,
   getGetUnreadNotificationCountQueryKey,
+  getGetNotificationMutesQueryKey,
   type Notification,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -19,15 +23,25 @@ import {
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
   AtSign,
+  BellOff,
   CheckCheck,
+  Hash,
   Heart,
   MessageSquare,
+  MoreHorizontal,
   UserPlus,
   Loader2,
   CalendarClock,
 } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
+import { useToast } from "@/hooks/use-toast";
 
 interface Props {
   open: boolean;
@@ -86,18 +100,56 @@ function kindLabel(n: Notification): string {
   }
 }
 
+function roomTagFromHref(href: string | null | undefined): string | null {
+  if (!href) return null;
+  const m = href.match(/^\/app\/rooms\/([^/?#]+)/);
+  return m ? decodeURIComponent(m[1]) : null;
+}
+
 export function NotificationsSheet({ open, onOpenChange }: Props) {
   const qc = useQueryClient();
+  const { toast } = useToast();
   const { data, isLoading, refetch } = useGetNotifications(undefined, {
     query: {
       queryKey: getGetNotificationsQueryKey(),
       enabled: open,
     },
   });
+  const { data: mutes } = useGetNotificationMutes({
+    query: {
+      queryKey: getGetNotificationMutesQueryKey(),
+      enabled: open,
+    },
+  });
+  const mutedUserIds = new Set(mutes?.users ?? []);
+  const mutedHashtags = new Set(mutes?.hashtags ?? []);
 
   useEffect(() => {
     if (open) refetch();
   }, [open, refetch]);
+
+  const muteUser = useMuteNotificationsFromUser({
+    mutation: {
+      onSuccess: (_d, vars) => {
+        qc.invalidateQueries({ queryKey: getGetNotificationMutesQueryKey() });
+        toast({
+          title: "Muted",
+          description: `You won't get notifications from this person anymore.`,
+        });
+      },
+    },
+  });
+  const muteHashtag = useMuteNotificationsFromHashtag({
+    mutation: {
+      onSuccess: (_d, vars) => {
+        qc.invalidateQueries({ queryKey: getGetNotificationMutesQueryKey() });
+        toast({
+          title: "Muted",
+          description: `You won't get notifications from #${vars.tag} anymore.`,
+        });
+      },
+    },
+  });
 
   const readAll = useMarkAllNotificationsRead({
     mutation: {
@@ -163,6 +215,15 @@ export function NotificationsSheet({ open, onOpenChange }: Props) {
               <AnimatePresence initial={false}>
                 {items.map((n) => {
                 const isUnread = !n.readAt;
+                const actorId = n.actor?.id ?? null;
+                const roomTag = roomTagFromHref(n.href);
+                const actorMuted = actorId
+                  ? mutedUserIds.has(actorId)
+                  : false;
+                const roomMuted = roomTag
+                  ? mutedHashtags.has(roomTag)
+                  : false;
+                const canMuteAnything = !!actorId || !!roomTag;
                 const inner = (
                   <motion.div
                     initial={false}
@@ -221,6 +282,65 @@ export function NotificationsSheet({ open, onOpenChange }: Props) {
                   if (isUnread) markOne.mutate({ id: n.id });
                   onOpenChange(false);
                 };
+                const muteMenu = canMuteAnything ? (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 shrink-0 text-muted-foreground hover:text-foreground"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          e.preventDefault();
+                        }}
+                        aria-label="Notification options"
+                        data-testid={`notif-${n.id}-options`}
+                      >
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent
+                      align="end"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      {actorId && (
+                        <DropdownMenuItem
+                          disabled={actorMuted || muteUser.isPending}
+                          onSelect={(e) => {
+                            e.preventDefault();
+                            if (!actorMuted && actorId) {
+                              muteUser.mutate({ id: actorId });
+                            }
+                          }}
+                          data-testid={`notif-${n.id}-mute-user`}
+                        >
+                          <BellOff className="mr-2 h-4 w-4" />
+                          {actorMuted
+                            ? `Muted ${n.actor?.displayName ?? "this user"}`
+                            : `Mute ${n.actor?.displayName ?? "this user"}`}
+                        </DropdownMenuItem>
+                      )}
+                      {roomTag && (
+                        <DropdownMenuItem
+                          disabled={roomMuted || muteHashtag.isPending}
+                          onSelect={(e) => {
+                            e.preventDefault();
+                            if (!roomMuted && roomTag) {
+                              muteHashtag.mutate({ tag: roomTag });
+                            }
+                          }}
+                          data-testid={`notif-${n.id}-mute-room`}
+                        >
+                          <Hash className="mr-2 h-4 w-4" />
+                          {roomMuted
+                            ? `Muted #${roomTag}`
+                            : `Mute #${roomTag}`}
+                        </DropdownMenuItem>
+                      )}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                ) : null;
                 return (
                   <motion.li
                     key={n.id}
@@ -230,6 +350,7 @@ export function NotificationsSheet({ open, onOpenChange }: Props) {
                     exit={{ opacity: 0, y: -8 }}
                     transition={{ duration: 0.25, ease: "easeOut" }}
                     data-testid={`notif-${n.id}`}
+                    className="relative"
                   >
                     {n.href ? (
                       <Link
@@ -247,6 +368,9 @@ export function NotificationsSheet({ open, onOpenChange }: Props) {
                       >
                         {inner}
                       </button>
+                    )}
+                    {muteMenu && (
+                      <div className="absolute right-2 top-2">{muteMenu}</div>
                     )}
                   </motion.li>
                 );

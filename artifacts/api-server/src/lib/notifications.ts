@@ -1,5 +1,10 @@
-import { db, notificationsTable, usersTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import {
+  db,
+  notificationsTable,
+  notificationMutesTable,
+  usersTable,
+} from "@workspace/db";
+import { and, eq } from "drizzle-orm";
 
 export type NotificationKind =
   | "mention"
@@ -27,10 +32,65 @@ export interface CreateNotificationInput {
   extra?: string | null;
 }
 
+/**
+ * Returns the room hashtag implied by a notification target, if any.
+ * Notifications that originate inside a room store a `room:<tag>` hint in
+ * `targetTextId`; we use that to apply per-room mutes.
+ */
+function roomTagFromTarget(targetTextId: string | null | undefined): string | null {
+  if (!targetTextId) return null;
+  if (targetTextId.startsWith("room:")) return targetTextId.slice(5);
+  return null;
+}
+
+async function isNotificationMuted(input: CreateNotificationInput): Promise<boolean> {
+  const checks: Array<Promise<{ sourceType: string }[]>> = [];
+  if (input.actorId) {
+    checks.push(
+      db
+        .select({ sourceType: notificationMutesTable.sourceType })
+        .from(notificationMutesTable)
+        .where(
+          and(
+            eq(notificationMutesTable.userId, input.recipientId),
+            eq(notificationMutesTable.sourceType, "user"),
+            eq(notificationMutesTable.sourceKey, input.actorId),
+          ),
+        )
+        .limit(1),
+    );
+  }
+  const roomTag = roomTagFromTarget(input.targetTextId);
+  if (roomTag) {
+    checks.push(
+      db
+        .select({ sourceType: notificationMutesTable.sourceType })
+        .from(notificationMutesTable)
+        .where(
+          and(
+            eq(notificationMutesTable.userId, input.recipientId),
+            eq(notificationMutesTable.sourceType, "hashtag"),
+            eq(notificationMutesTable.sourceKey, roomTag),
+          ),
+        )
+        .limit(1),
+    );
+  }
+  if (checks.length === 0) return false;
+  const results = await Promise.all(checks);
+  return results.some((rows) => rows.length > 0);
+}
+
 export async function createNotification(
   input: CreateNotificationInput,
 ): Promise<void> {
   if (input.actorId && input.actorId === input.recipientId) return;
+  try {
+    if (await isNotificationMuted(input)) return;
+  } catch {
+    // If the mute check fails, fall through and create the notification
+    // rather than silently dropping it.
+  }
   let inserted: { id: number } | undefined;
   try {
     const [row] = await db

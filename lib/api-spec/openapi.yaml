@@ -566,6 +566,54 @@ paths:
       responses:
         "204": { description: No content }
 
+  /notifications/mutes:
+    get:
+      operationId: getNotificationMutes
+      tags: [notifications]
+      summary: List my muted notification sources (users and hashtags)
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/NotificationMutes" }
+
+  /notifications/mutes/users/{id}:
+    post:
+      operationId: muteNotificationsFromUser
+      tags: [notifications]
+      summary: Stop receiving notifications triggered by a user
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "204": { description: No content }
+    delete:
+      operationId: unmuteNotificationsFromUser
+      tags: [notifications]
+      summary: Resume receiving notifications triggered by a user
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "204": { description: No content }
+
+  /notifications/mutes/hashtags/{tag}:
+    post:
+      operationId: muteNotificationsFromHashtag
+      tags: [notifications]
+      summary: Stop receiving notifications originating in a hashtag room
+      parameters:
+        - { name: tag, in: path, required: true, schema: { type: string } }
+      responses:
+        "204": { description: No content }
+    delete:
+      operationId: unmuteNotificationsFromHashtag
+      tags: [notifications]
+      summary: Resume receiving notifications originating in a hashtag room
+      parameters:
+        - { name: tag, in: path, required: true, schema: { type: string } }
+      responses:
+        "204": { description: No content }
+
   /conversations/{id}/typing:
     post:
       operationId: pingConversationTyping
@@ -3450,6 +3498,17 @@ components:
         dms: { type: integer }
         total: { type: integer }
       required: [notifications, dms, total]
+
+    NotificationMutes:
+      type: object
+      properties:
+        users:
+          type: array
+          items: { type: string }
+        hashtags:
+          type: array
+          items: { type: string }
+      required: [users, hashtags]
 
     TypingUser:
       type: object

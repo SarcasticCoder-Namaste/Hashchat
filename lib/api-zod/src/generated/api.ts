@@ -1250,6 +1250,42 @@ export const MarkNotificationReadParams = zod.object({
 });
 
 /**
+ * @summary List my muted notification sources (users and hashtags)
+ */
+export const GetNotificationMutesResponse = zod.object({
+  users: zod.array(zod.string()),
+  hashtags: zod.array(zod.string()),
+});
+
+/**
+ * @summary Stop receiving notifications triggered by a user
+ */
+export const MuteNotificationsFromUserParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+/**
+ * @summary Resume receiving notifications triggered by a user
+ */
+export const UnmuteNotificationsFromUserParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+/**
+ * @summary Stop receiving notifications originating in a hashtag room
+ */
+export const MuteNotificationsFromHashtagParams = zod.object({
+  tag: zod.coerce.string(),
+});
+
+/**
+ * @summary Resume receiving notifications originating in a hashtag room
+ */
+export const UnmuteNotificationsFromHashtagParams = zod.object({
+  tag: zod.coerce.string(),
+});
+
+/**
  * @summary Heartbeat that current user is typing in this conversation
  */
 export const PingConversationTypingParams = zod.object({
