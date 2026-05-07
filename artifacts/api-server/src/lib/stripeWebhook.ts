@@ -11,7 +11,7 @@ import { eq } from "drizzle-orm";
 import { getStripeSync, getUncachableStripeClient, getCachedWebhookSecret } from "./stripeClient";
 import { logger } from "./logger";
 import { createNotification } from "./notifications";
-import type Stripe from "stripe";
+import type { Stripe } from "stripe";
 
 export async function handleStripeWebhook(req: Request, res: Response): Promise<void> {
   const signature = req.headers["stripe-signature"];
