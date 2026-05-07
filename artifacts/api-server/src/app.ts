@@ -1,6 +1,7 @@
 import express, { type Express } from "express";
 import cors from "cors";
-import pinoHttp from "pino-http";
+import { pinoHttp, type Options as PinoHttpOptions } from "pino-http";
+import type { IncomingMessage, ServerResponse } from "node:http";
 import { clerkMiddleware } from "@clerk/express";
 import {
   CLERK_PROXY_PATH,
@@ -21,25 +22,24 @@ app.post(
   },
 );
 
-app.use(
-  pinoHttp({
-    logger,
-    serializers: {
-      req(req) {
-        return {
-          id: req.id,
-          method: req.method,
-          url: req.url?.split("?")[0],
-        };
-      },
-      res(res) {
-        return {
-          statusCode: res.statusCode,
-        };
-      },
+const pinoHttpOptions: PinoHttpOptions = {
+  logger,
+  serializers: {
+    req(req: IncomingMessage & { id?: string | number }) {
+      return {
+        id: req.id,
+        method: req.method,
+        url: req.url?.split("?")[0],
+      };
     },
-  }),
-);
+    res(res: ServerResponse) {
+      return {
+        statusCode: res.statusCode,
+      };
+    },
+  },
+};
+app.use(pinoHttp(pinoHttpOptions));
 
 app.use(CLERK_PROXY_PATH, clerkProxyMiddleware());
 
