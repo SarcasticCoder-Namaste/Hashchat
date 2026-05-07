@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef } from "react";
+import { createPortal } from "react-dom";
 import { useAuth, useUser } from "@clerk/react";
 import { useGroupCall } from "@/hooks/useGroupCall";
 import { Button } from "@/components/ui/button";
@@ -108,11 +109,27 @@ export function CallModal({ callId, withVideo, onClose }: CallModalProps) {
       ? "Video call"
       : "Voice call";
 
-  return (
-    <div className="fixed inset-0 z-[60] flex flex-col bg-black/95 text-white" data-testid="call-modal">
+  // Lock body scroll while the call modal is open so accidental scrolls don't
+  // hide the controls behind the mobile browser chrome.
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, []);
+
+  if (typeof document === "undefined") return null;
+
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[100] flex flex-col bg-black/95 text-white"
+      style={{ height: "100dvh", width: "100dvw" }}
+      data-testid="call-modal"
+    >
       <div className="flex items-center justify-between px-4 py-3">
-        <div>
-          <p className="text-sm font-semibold">{headerLabel}</p>
+        <div className="min-w-0">
+          <p className="text-sm font-semibold truncate">{headerLabel}</p>
           <p className="text-xs text-white/60">
             {joinedParticipants.length} joined ·{" "}
             {call?.status ?? "connecting"}
@@ -121,11 +138,12 @@ export function CallModal({ callId, withVideo, onClose }: CallModalProps) {
         <Button
           variant="ghost"
           size="icon"
-          className="text-white hover:bg-white/10"
+          className="h-10 w-10 shrink-0 text-white hover:bg-white/10"
           onClick={hangup}
           data-testid="button-close-call"
+          aria-label="Close call"
         >
-          <X className="h-4 w-4" />
+          <X className="h-6 w-6" />
         </Button>
       </div>
 
@@ -248,13 +266,15 @@ export function CallModal({ callId, withVideo, onClose }: CallModalProps) {
         )}
         <Button
           onClick={hangup}
-          className="h-12 w-12 rounded-full bg-red-600 p-0 text-white hover:bg-red-700"
+          className="h-14 w-14 rounded-full bg-red-600 p-0 text-white hover:bg-red-700"
           data-testid="button-hangup"
+          aria-label="Hang up"
         >
-          <PhoneOff className="h-5 w-5" />
+          <PhoneOff className="h-6 w-6" />
         </Button>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
