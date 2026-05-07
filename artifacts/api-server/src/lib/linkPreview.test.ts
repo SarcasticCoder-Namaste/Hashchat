@@ -47,7 +47,7 @@ type FetchHandler = (
 
 let fetchHandler: FetchHandler;
 const fetchSpy = vi.fn(
-  async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
+  async (input: string | URL | Request, init?: RequestInit): Promise<Response> => {
     const url = typeof input === "string" ? input : input.toString();
     return fetchHandler(url, init);
   },
@@ -369,7 +369,7 @@ describe("in-flight dedup", () => {
     // Wait for dbGet (mocked async) to settle and fetch() to be invoked.
     await new Promise((r) => setTimeout(r, 10));
     expect(fetchSpy).toHaveBeenCalledTimes(1);
-    resolveFetch?.(
+    (resolveFetch as ((r: Response) => void) | null)?.(
       htmlResponse(
         `<html><head><meta property="og:title" content="Once"></head></html>`,
       ),

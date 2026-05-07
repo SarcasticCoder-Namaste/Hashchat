@@ -13,6 +13,7 @@ import {
   friendshipsTable,
 } from "@workspace/db";
 import { and, desc, eq, gt, inArray, isNull, ne, or, sql } from "drizzle-orm";
+import type { AnyPgColumn } from "drizzle-orm/pg-core";
 import { getOpenAIClient } from "../lib/openaiClient";
 import { requireAuth, getUserId } from "../middlewares/requireAuth";
 import { normalizeTag } from "../lib/hashtags";
@@ -480,7 +481,7 @@ router.get(
   requireAuth,
   async (req, res): Promise<void> => {
     const me = getUserId(req);
-    const notExpired = (col: typeof userMutesTable.expiresAt) =>
+    const notExpired = (col: AnyPgColumn) =>
       or(isNull(col), gt(col, sql`now()`));
     const [blockRows, muteRows, roomMuteRows, hashtagMuteRows] = await Promise.all([
       db
