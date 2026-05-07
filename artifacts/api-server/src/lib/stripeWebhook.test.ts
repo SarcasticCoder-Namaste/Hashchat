@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { Stripe } from "stripe";
+import { Stripe } from "stripe";
 import { resolveTierFromSubscription } from "./stripeWebhook";
 
 function makeSubscription(opts: {
